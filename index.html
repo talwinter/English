@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>English Quest</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Rubik:wght@400;600&family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app">
+    <main class="main">
+      <div class="topbar">
+        <span id="score"></span>
+        <span class="title">English Quest</span>
+        <span class="tools">
+          <button id="book-btn">Words·מילים</button>
+          <button id="help-btn">Help·עזרה</button>
+          <button id="restart">Restart</button>
+          <button id="sound">Sound:on</button>
+        </span>
+      </div>
+      <div class="scene-wrap">
+        <canvas id="scene" aria-label="Game picture"></canvas>
+      </div>
+      <form id="type" class="parser" autocomplete="off">
+        <span class="prompt">&gt;</span>
+        <input id="type-input" placeholder="type here: open the door" spellcheck="false" aria-label="Type a command">
+      </form>
+      <div class="under">
+        <div id="scene-name" class="scene-name"></div>
+        <div id="sentence" class="sentence" aria-live="polite"></div>
+      </div>
+      <div class="controls">
+        <div id="verbs" class="verbs"></div>
+        <div class="bag-wrap">
+          <div id="bag-label" class="bag-label"></div>
+          <div id="bag" class="bag"></div>
+        </div>
+      </div>
+    </main>
+
+    <aside class="side">
+      <div class="goal sierra">
+        <div class="goal-head">🎯 <span id="goal-text"></span></div>
+        <div class="goal-tools">
+          <button id="goal-say">🔊 Listen</button>
+          <button id="hint">💡 Hint · רמז</button>
+        </div>
+      </div>
+      <div id="log" class="log sierra"></div>
+    </aside>
+  </div>
+
+  <div id="popup" class="popup" hidden></div>
+
+  <div id="help" class="modal">
+    <div class="card sierra" dir="rtl">
+      <h2>English Quest ⚔️</h2>
+      <p>משחק הרפתקה באנגלית. אבא שלך נמצא ביער, והוא צריך עזרה.</p>
+      <ol>
+        <li>לחץ על <b>פעולה</b> למטה (למשל <b dir="ltr">Open</b>), ואז על משהו בתמונה (למשל הדלת).</li>
+        <li>הגיבור הולך לשם ועושה את הפעולה. אפשר גם ללחוץ על השלג כדי ללכת.</li>
+        <li>תקרא מה קורה. 🎯 הוא המשימה שלך.</li>
+        <li>לא מבין מילה? <b>לחץ עליה</b> ותראה תרגום ותשמע אותה.</li>
+        <li>תקוע? לחץ על <b>💡 רמז</b>. בפעם השנייה הרמז יהיה בעברית.</li>
+        <li>אפשר גם <b>להקליד</b> פקודות באנגלית, כמו במשחקים הישנים: <b dir="ltr">open the door</b></li>
+      </ol>
+      <p class="small">כדאי להשתמש באוזניות. המשחק קורא כל משפט בקול.</p>
+      <button id="start" class="big">Start · התחל</button>
+    </div>
+  </div>
+
+  <div id="book" class="modal" hidden>
+    <div class="card sierra">
+      <button class="close" data-close>✕</button>
+      <h2>📖 Word Book</h2>
+      <p id="book-stats"></p>
+      <ul id="book-list" class="book-list"></ul>
+      <button id="practice-btn" class="big">🎮 Practice · תרגול</button>
+    </div>
+  </div>
+
+  <div id="quiz" class="modal" hidden>
+    <div class="card sierra">
+      <button class="close" data-close>✕</button>
+      <h2>🎮 Practice</h2>
+      <div id="quiz-body"></div>
+    </div>
+  </div>
+
+  <div id="end" class="modal" hidden>
+    <div class="card sierra end">
+      <h2 id="end-title"></h2>
+      <p id="end-score" class="end-score"></p>
+      <p id="end-words"></p>
+      <p dir="rtl">כל הכבוד! 🏆</p>
+      <button id="play-again" class="big">Play again · שחק שוב</button>
+    </div>
+  </div>
+
+  <script src="js/dictionary.js"></script>
+  <script src="js/game-data.js"></script>
+  <script src="js/art.js"></script>
+  <script src="js/speech.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
