@@ -139,6 +139,34 @@ Status: done and working in `godot/`. Grandpa's attic and the hero are modeled i
 - Known gaps: the hero is procedural (no Kenney/Quaternius download was needed yet); baking parses render
   meshes at runtime (a warning), later it should use the layout JSON; no sound yet.
 
+**Step 1 progress (the prologue is fully playable, `godot/scripts/`):**
+- `engine.gd`: the rule engine ported from `js/episode.js` + `js/game.js` (rules, conditions, effects, points,
+  goals, hints, typed commands). Test: `Godot --headless --path godot --script res://scripts/test_engine.gd`.
+- `game.gd` (orchestrator), `room.gd` (the catalog contract), `actor.gd` (hero/Byte walking), `hud.gd`
+  (verbs, bag, goal, clickable words with Hebrew, typed commands, story mode), `terminal.gd` (the CRT screen as
+  a viewport), `fx_layer.gd` (glitch, flash, fade, title card), `sfx.gd` (sounds, music with ducking under
+  voices), `voice.gd` (server voices at /api/voice, else the computer's own text-to-speech at once).
+- Effects library an episode can ask for (`fx`): shake, flash, glitch, crt, boot, askname, pullin. The prologue
+  uses crt (screen turns on), boot (camera zooms into the full-screen terminal), glitch, askname (he types his
+  name on the old screen), pullin (vortex, he is lifted, stretched and sucked in), then `_ending` drops him
+  into `cold_world.glb` where Byte flies in.
+- Assets: `attic.glb`, `boy.glb` (rigged, Idle with blinking, Walk), `byte.glb` (wings flap in code),
+  `cold_world.glb`; sounds are synthesized by `godot/tools/make_sounds.py` into `godot/audio/`.
+- Data: `node tools/export-episodes.js` writes `godot/episodes/*.json` (the same data the server sends);
+  `-- --server=http://HOST:8080` plays from the server and calls /api/episode-done at the end.
+- Run the robot with video: `Godot --path godot --write-movie shots/x.avi --fixed-fps 30 -- --autoplay`.
+- **Learning UX (the priority of the whole game, the parent said so): `word_ui.gd` + `word_store.gd`.** Click any
+  English word: a card with the word, Hebrew, Hear / Slow and the sentence. Words he has not mastered are gold
+  in every text, "learning" words are pale, mastered words are white, so the text itself shows progress. The Word
+  Book collects every word he met (filters new / learning / mastered) and has Practice: hear a word, choose the
+  Hebrew; right answers move a word up the boxes, wrong ones send it back. Translation is always free.
+  Test: `Godot --headless --path godot --script res://scripts/test_words.gd`; visual demo: `-- --words-demo --shots`.
+  State is in `user://words.json` (not yet synced to the server's challenge).
+- The HUD (`hud.gd`) and the bag (five fixed slots, pictures rendered from the real 3D models by
+  `item_icons.gd`) must look the same in every episode and mode.
+- Not done yet: the daily challenge UI in Godot (server `/api/challenge/*`), syncing word progress to the server, `.pck` content updates, typed-command voice
+  lines, more scenes/props (the catalog), the layout builder and reachability check on the server.
+
 Original checklist, kept for reference:
 
 The parent wants to see it work before real development starts. Keep it small:

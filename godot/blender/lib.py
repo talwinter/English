@@ -74,9 +74,16 @@ def _box_verts(c0, c1):
             (x0, y0, z1), (x1, y0, z1), (x1, y1, z1), (x0, y1, z1)]
 
 
-def box(name, c0, c1, material=None, parent=None):
-    """Axis-aligned box from min corner c0 to max corner c1."""
-    return obj(name, _box_verts(c0, c1), _BOX_FACES, material, parent)
+def box(name, c0, c1, material=None, parent=None, origin=None):
+    """Axis-aligned box from min corner c0 to max corner c1.
+    origin: the object's pivot (for example a hinge); the box keeps its place in the room."""
+    verts = _box_verts(c0, c1)
+    if origin is not None:
+        verts = [(v[0] - origin[0], v[1] - origin[1], v[2] - origin[2]) for v in verts]
+    ob = obj(name, verts, _BOX_FACES, material, parent)
+    if origin is not None:
+        ob.location = origin
+    return ob
 
 
 def box_rot(name, center, size, euler_deg, material=None, parent=None):
@@ -195,6 +202,24 @@ def soften(ob, width=0.03, segments=3, smooth=True):
             for p in me.polygons:
                 p.use_smooth = True
     return ob
+
+
+def ring_xy(name, center, major, minor, segs=16, tube=6, material=None, parent=None):
+    """Torus lying flat (in the XY plane): a coil of cable."""
+    verts = []
+    for i in range(segs):
+        a = 2 * math.pi * i / segs
+        rad = Vector((math.cos(a), math.sin(a), 0))
+        for j in range(tube):
+            b = 2 * math.pi * j / tube
+            verts.append(Vector(center) + rad * (major + minor * math.cos(b)) + Vector((0, 0, minor * math.sin(b))))
+    faces = []
+    for i in range(segs):
+        i2 = (i + 1) % segs
+        for j in range(tube):
+            j2 = (j + 1) % tube
+            faces.append((i2 * tube + j, i * tube + j, i * tube + j2, i2 * tube + j2))
+    return obj(name, verts, faces, material, parent)
 
 
 def export_glb(path, animations=False, **extra):

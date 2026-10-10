@@ -1,0 +1,1233 @@
+{
+ "id": "s1e1",
+ "title": "The Cold Village",
+ "summary": "The hero arrives in a cold Viking village. He finds a key under a rock and enters his house. Grandmother says his father is in the forest and needs help. He takes a sword and bread, feeds the hungry wolf on the bridge, and goes into the forest, where he hears his father's voice.",
+ "start": {
+  "scene": "outside",
+  "goal": "enter"
+ },
+ "items": [
+  {
+   "id": "key",
+   "name": "the key",
+   "words": [
+    "key"
+   ],
+   "look": "It is a small old key.",
+   "art": "item-key"
+  },
+  {
+   "id": "sword",
+   "name": "the sword",
+   "words": [
+    "sword"
+   ],
+   "look": "It is a big sword. It is very sharp.",
+   "art": "item-sword"
+  },
+  {
+   "id": "bread",
+   "name": "the bread",
+   "words": [
+    "bread"
+   ],
+   "look": "It is fresh bread. It smells good.",
+   "art": "item-bread"
+  }
+ ],
+ "goals": [
+  {
+   "id": "key",
+   "en": "Find the key.",
+   "he": "מצא את המפתח.",
+   "hint": "Look at the rock.",
+   "hintHe": "תסתכל על הסלע."
+  },
+  {
+   "id": "enter",
+   "en": "Enter the house.",
+   "he": "היכנס לבית.",
+   "hint": "First open the door. Then enter the house.",
+   "hintHe": "קודם תפתח את הדלת. אחר כך תיכנס לבית."
+  },
+  {
+   "id": "grandma",
+   "en": "Talk to your grandmother.",
+   "he": "דבר עם סבתא שלך.",
+   "hint": "Click Talk to. Then click your grandmother.",
+   "hintHe": "לחץ על Talk to ואז לחץ על הסבתא."
+  },
+  {
+   "id": "items",
+   "en": "Take the sword and the bread.",
+   "he": "קח את החרב ואת הלחם.",
+   "hint": "The sword is in the chest. The bread is on the table.",
+   "hintHe": "החרב בתוך התיבה. הלחם על השולחן."
+  },
+  {
+   "id": "forest",
+   "en": "Go to the forest.",
+   "he": "לך אל היער.",
+   "hint": "Open the door and go outside. Then go to the forest.",
+   "hintHe": "תפתח את הדלת ותצא החוצה. אחר כך לך אל היער."
+  },
+  {
+   "id": "bridge",
+   "en": "Cross the bridge.",
+   "he": "עבור את הגשר.",
+   "hint": "The wolf is hungry. Give it something.",
+   "hintHe": "הזאב רעב. תן לו משהו."
+  },
+  {
+   "id": "end",
+   "en": "Go to the forest.",
+   "he": "לך אל היער.",
+   "hint": "Now the bridge is free. Go to the forest.",
+   "hintHe": "עכשיו הגשר פנוי. לך אל היער."
+  }
+ ],
+ "globalRules": [
+  {
+   "verb": [
+    "use"
+   ],
+   "obj": null,
+   "item": "sword",
+   "say": "No. That is not a good idea."
+  },
+  {
+   "verb": [
+    "give"
+   ],
+   "obj": null,
+   "item": "sword",
+   "say": "No. You need the sword."
+  }
+ ],
+ "scenes": [
+  {
+   "id": "outside",
+   "name": "Outside the house",
+   "intro": "You are outside your house. It is winter. It is very cold.",
+   "introAgain": "You are outside your house.",
+   "art": "village",
+   "fallbackArt": "ega:outside",
+   "music": "adventure",
+   "floor": {
+    "y0": 150,
+    "y1": 196
+   },
+   "entry": {
+    "x": 160,
+    "y": 186
+   },
+   "objects": [
+    {
+     "id": "house",
+     "name": "the house",
+     "words": [
+      "house",
+      "home"
+     ],
+     "look": "It is your house. There is a light in the window.",
+     "box": [
+      20,
+      40,
+      140,
+      110
+     ],
+     "sprite": null
+    },
+    {
+     "id": "window",
+     "name": "the window",
+     "words": [
+      "window"
+     ],
+     "look": "You see a warm fire in the house.",
+     "box": [
+      112,
+      82,
+      30,
+      24
+     ],
+     "sprite": null
+    },
+    {
+     "id": "door",
+     "name": "the door",
+     "words": [
+      "door"
+     ],
+     "look": "It is a big door. It is closed.",
+     "box": [
+      50,
+      92,
+      30,
+      58
+     ],
+     "sprite": null
+    },
+    {
+     "id": "rock",
+     "name": "the rock",
+     "words": [
+      "rock",
+      "stone"
+     ],
+     "look": "It is a big rock.",
+     "box": [
+      8,
+      152,
+      52,
+      34
+     ],
+     "sprite": null
+    },
+    {
+     "id": "key",
+     "name": "the key",
+     "words": [
+      "key"
+     ],
+     "look": "It is a small old key.",
+     "box": [
+      62,
+      180,
+      14,
+      8
+     ],
+     "sprite": "item-key",
+     "visible": {
+      "flags": [
+       "keySeen"
+      ],
+      "notFlags": [
+       "keyTaken"
+      ]
+     }
+    },
+    {
+     "id": "tree",
+     "name": "the tree",
+     "words": [
+      "tree"
+     ],
+     "look": "It is a tall tree. There is snow on it.",
+     "box": [
+      168,
+      20,
+      56,
+      140
+     ],
+     "sprite": null
+    },
+    {
+     "id": "forest",
+     "name": "the forest",
+     "words": [
+      "forest",
+      "path",
+      "woods"
+     ],
+     "look": "The path goes to the forest. It is very dark.",
+     "box": [
+      248,
+      60,
+      72,
+      100
+     ],
+     "sprite": null
+    }
+   ],
+   "rules": [
+    {
+     "verb": [
+      "look"
+     ],
+     "obj": [
+      "door"
+     ],
+     "when": {
+      "flags": [
+       "doorOpen"
+      ]
+     },
+     "say": "The door is open."
+    },
+    {
+     "verb": [
+      "look"
+     ],
+     "obj": [
+      "rock"
+     ],
+     "when": {
+      "notFlags": [
+       "keySeen"
+      ]
+     },
+     "say": "It is a big rock. Wait! There is a key under the rock!",
+     "do": {
+      "set": [
+       "keySeen"
+      ],
+      "goal": "key",
+      "fx": [
+       "flash"
+      ]
+     }
+    },
+    {
+     "verb": [
+      "take"
+     ],
+     "obj": [
+      "key"
+     ],
+     "say": "You take the key.",
+     "points": 5,
+     "pointsId": "key",
+     "do": {
+      "set": [
+       "keyTaken"
+      ],
+      "add": [
+       "key"
+      ],
+      "goal": "enter"
+     }
+    },
+    {
+     "verb": [
+      "take"
+     ],
+     "obj": [
+      "rock"
+     ],
+     "say": "The rock is too heavy."
+    },
+    {
+     "verb": [
+      "open"
+     ],
+     "obj": [
+      "door"
+     ],
+     "when": {
+      "flags": [
+       "doorOpen"
+      ]
+     },
+     "say": "The door is already open."
+    },
+    {
+     "verb": [
+      "open"
+     ],
+     "obj": [
+      "door"
+     ],
+     "when": {
+      "has": [
+       "key"
+      ]
+     },
+     "say": "You open the door with the key.",
+     "points": 5,
+     "pointsId": "door",
+     "do": {
+      "remove": [
+       "key"
+      ],
+      "set": [
+       "doorOpen"
+      ],
+      "goal": "enter"
+     }
+    },
+    {
+     "verb": [
+      "use"
+     ],
+     "obj": [
+      "door"
+     ],
+     "item": "key",
+     "when": {
+      "notFlags": [
+       "doorOpen"
+      ]
+     },
+     "say": "You open the door with the key.",
+     "points": 5,
+     "pointsId": "door",
+     "do": {
+      "remove": [
+       "key"
+      ],
+      "set": [
+       "doorOpen"
+      ],
+      "goal": "enter"
+     }
+    },
+    {
+     "verb": [
+      "open"
+     ],
+     "obj": [
+      "door"
+     ],
+     "when": {
+      "notFlags": [
+       "keySeen"
+      ]
+     },
+     "say": "The door is locked. You need a key.",
+     "do": {
+      "goal": "key"
+     }
+    },
+    {
+     "verb": [
+      "open"
+     ],
+     "obj": [
+      "door"
+     ],
+     "say": "The door is locked. You need a key."
+    },
+    {
+     "verb": [
+      "enter",
+      "go"
+     ],
+     "obj": [
+      "house",
+      "door"
+     ],
+     "when": {
+      "flags": [
+       "doorOpen"
+      ],
+      "notFlags": [
+       "talked"
+      ]
+     },
+     "say": "You enter the house.",
+     "points": 5,
+     "pointsId": "enterHouse",
+     "do": {
+      "go": "inside",
+      "goal": "grandma"
+     }
+    },
+    {
+     "verb": [
+      "enter",
+      "go"
+     ],
+     "obj": [
+      "house",
+      "door"
+     ],
+     "when": {
+      "flags": [
+       "doorOpen"
+      ]
+     },
+     "say": "You enter the house.",
+     "points": 5,
+     "pointsId": "enterHouse",
+     "do": {
+      "go": "inside"
+     }
+    },
+    {
+     "verb": [
+      "enter",
+      "go"
+     ],
+     "obj": [
+      "house",
+      "door"
+     ],
+     "say": "The door is closed."
+    },
+    {
+     "verb": [
+      "go",
+      "enter"
+     ],
+     "obj": [
+      "forest"
+     ],
+     "when": {
+      "flags": [
+       "wolfGone"
+      ]
+     },
+     "say": "You walk on the path to the forest.",
+     "points": 5,
+     "pointsId": "leave",
+     "do": {
+      "go": "bridge",
+      "goal": "end"
+     }
+    },
+    {
+     "verb": [
+      "go",
+      "enter"
+     ],
+     "obj": [
+      "forest"
+     ],
+     "when": {
+      "has": [
+       "sword",
+       "bread"
+      ]
+     },
+     "say": "You walk on the path to the forest.",
+     "points": 5,
+     "pointsId": "leave",
+     "do": {
+      "go": "bridge",
+      "goal": "bridge"
+     }
+    },
+    {
+     "verb": [
+      "go",
+      "enter"
+     ],
+     "obj": [
+      "forest"
+     ],
+     "when": {
+      "notFlags": [
+       "talked"
+      ]
+     },
+     "say": "It is dark and cold. You are not ready."
+    },
+    {
+     "verb": [
+      "go",
+      "enter"
+     ],
+     "obj": [
+      "forest"
+     ],
+     "say": "You need the sword and the bread."
+    },
+    {
+     "verb": [
+      "talk"
+     ],
+     "obj": [
+      "tree"
+     ],
+     "say": "The tree says nothing. It is a tree."
+    }
+   ]
+  },
+  {
+   "id": "inside",
+   "name": "In the house",
+   "intro": "You are in the house. It is warm. Your grandmother is next to the fire.",
+   "introAgain": "You are in the house.",
+   "art": "longhouse",
+   "fallbackArt": "ega:inside",
+   "music": "cozy",
+   "floor": {
+    "y0": 150,
+    "y1": 196
+   },
+   "entry": {
+    "x": 290,
+    "y": 182
+   },
+   "objects": [
+    {
+     "id": "fire",
+     "name": "the fire",
+     "words": [
+      "fire"
+     ],
+     "look": "The fire is hot.",
+     "box": [
+      8,
+      70,
+      74,
+      90
+     ],
+     "sprite": null
+    },
+    {
+     "id": "table",
+     "name": "the table",
+     "words": [
+      "table"
+     ],
+     "look": "It is a wooden table.",
+     "box": [
+      108,
+      118,
+      96,
+      42
+     ],
+     "sprite": null
+    },
+    {
+     "id": "bread",
+     "name": "the bread",
+     "words": [
+      "bread"
+     ],
+     "look": "It is fresh bread. It smells good.",
+     "box": [
+      146,
+      108,
+      16,
+      10
+     ],
+     "sprite": "item-bread",
+     "visible": {
+      "notFlags": [
+       "breadTaken"
+      ]
+     }
+    },
+    {
+     "id": "chest",
+     "name": "the chest",
+     "words": [
+      "chest",
+      "box"
+     ],
+     "look": "It is a big chest. It is closed.",
+     "box": [
+      228,
+      140,
+      60,
+      40
+     ],
+     "sprite": null
+    },
+    {
+     "id": "sword",
+     "name": "the sword",
+     "words": [
+      "sword"
+     ],
+     "look": "It is a big sword. It is very sharp.",
+     "box": [
+      252,
+      122,
+      14,
+      22
+     ],
+     "sprite": "item-sword",
+     "visible": {
+      "flags": [
+       "chestOpen"
+      ],
+      "notFlags": [
+       "swordTaken"
+      ]
+     }
+    },
+    {
+     "id": "door",
+     "name": "the door",
+     "words": [
+      "door",
+      "outside"
+     ],
+     "look": "The door goes outside.",
+     "box": [
+      292,
+      60,
+      28,
+      110
+     ],
+     "sprite": null
+    },
+    {
+     "id": "grandmother",
+     "name": "your grandmother",
+     "words": [
+      "grandmother",
+      "grandma",
+      "woman"
+     ],
+     "look": "It is your grandmother. She is old and wise.",
+     "box": [
+      78,
+      142,
+      30,
+      44
+     ],
+     "sprite": "grandmother"
+    }
+   ],
+   "rules": [
+    {
+     "verb": [
+      "talk"
+     ],
+     "obj": [
+      "grandmother"
+     ],
+     "when": {
+      "notFlags": [
+       "talked"
+      ],
+      "has": [
+       "sword",
+       "bread"
+      ]
+     },
+     "say": "Grandmother: \"Your father is in the forest. He needs help. Take the sword and the bread. Then go to the forest.\"",
+     "points": 5,
+     "pointsId": "talk",
+     "do": {
+      "set": [
+       "talked"
+      ],
+      "goal": "forest"
+     }
+    },
+    {
+     "verb": [
+      "talk"
+     ],
+     "obj": [
+      "grandmother"
+     ],
+     "when": {
+      "notFlags": [
+       "talked"
+      ]
+     },
+     "say": "Grandmother: \"Your father is in the forest. He needs help. Take the sword and the bread. Then go to the forest.\"",
+     "points": 5,
+     "pointsId": "talk",
+     "do": {
+      "set": [
+       "talked"
+      ],
+      "goal": "items"
+     }
+    },
+    {
+     "verb": [
+      "talk"
+     ],
+     "obj": [
+      "grandmother"
+     ],
+     "when": {
+      "has": [
+       "sword",
+       "bread"
+      ]
+     },
+     "say": "Grandmother: \"Go to the forest. Be brave!\""
+    },
+    {
+     "verb": [
+      "talk"
+     ],
+     "obj": [
+      "grandmother"
+     ],
+     "say": "Grandmother: \"Take the sword and the bread.\""
+    },
+    {
+     "verb": [
+      "give"
+     ],
+     "obj": [
+      "grandmother"
+     ],
+     "item": "bread",
+     "say": "Grandmother: \"No, the bread is for you.\""
+    },
+    {
+     "verb": [
+      "look"
+     ],
+     "obj": [
+      "table"
+     ],
+     "when": {
+      "notFlags": [
+       "breadTaken"
+      ]
+     },
+     "say": "It is a wooden table. There is bread on it."
+    },
+    {
+     "verb": [
+      "look"
+     ],
+     "obj": [
+      "chest"
+     ],
+     "when": {
+      "flags": [
+       "chestOpen"
+      ]
+     },
+     "say": "The chest is open."
+    },
+    {
+     "verb": [
+      "open"
+     ],
+     "obj": [
+      "chest"
+     ],
+     "when": {
+      "flags": [
+       "chestOpen"
+      ]
+     },
+     "say": "The chest is already open."
+    },
+    {
+     "verb": [
+      "open"
+     ],
+     "obj": [
+      "chest"
+     ],
+     "say": "You open the chest. There is a sword in it!",
+     "points": 5,
+     "pointsId": "chest",
+     "do": {
+      "set": [
+       "chestOpen"
+      ]
+     }
+    },
+    {
+     "verb": [
+      "take"
+     ],
+     "obj": [
+      "sword",
+      "bread"
+     ],
+     "when": {
+      "notFlags": [
+       "talked"
+      ]
+     },
+     "say": "Grandmother: \"Wait! First, talk to me.\""
+    },
+    {
+     "verb": [
+      "take"
+     ],
+     "obj": [
+      "sword"
+     ],
+     "when": {
+      "has": [
+       "bread"
+      ]
+     },
+     "say": "You take the sword.",
+     "points": 5,
+     "pointsId": "sword",
+     "do": {
+      "set": [
+       "swordTaken"
+      ],
+      "add": [
+       "sword"
+      ],
+      "goal": "forest"
+     }
+    },
+    {
+     "verb": [
+      "take"
+     ],
+     "obj": [
+      "sword"
+     ],
+     "say": "You take the sword.",
+     "points": 5,
+     "pointsId": "sword",
+     "do": {
+      "set": [
+       "swordTaken"
+      ],
+      "add": [
+       "sword"
+      ]
+     }
+    },
+    {
+     "verb": [
+      "take"
+     ],
+     "obj": [
+      "bread"
+     ],
+     "when": {
+      "has": [
+       "sword"
+      ]
+     },
+     "say": "You take the bread.",
+     "points": 5,
+     "pointsId": "bread",
+     "do": {
+      "set": [
+       "breadTaken"
+      ],
+      "add": [
+       "bread"
+      ],
+      "goal": "forest"
+     }
+    },
+    {
+     "verb": [
+      "take"
+     ],
+     "obj": [
+      "bread"
+     ],
+     "say": "You take the bread.",
+     "points": 5,
+     "pointsId": "bread",
+     "do": {
+      "set": [
+       "breadTaken"
+      ],
+      "add": [
+       "bread"
+      ]
+     }
+    },
+    {
+     "verb": [
+      "take"
+     ],
+     "obj": [
+      "fire"
+     ],
+     "say": "No! It is too hot!"
+    },
+    {
+     "verb": [
+      "take"
+     ],
+     "obj": [
+      "chest",
+      "table"
+     ],
+     "say": "It is too heavy."
+    },
+    {
+     "verb": [
+      "open",
+      "go",
+      "enter"
+     ],
+     "obj": [
+      "door"
+     ],
+     "say": "You go outside.",
+     "do": {
+      "go": "outside"
+     }
+    }
+   ]
+  },
+  {
+   "id": "bridge",
+   "name": "The old bridge",
+   "intro": "You are at the old bridge. A big wolf is on the bridge. The wolf is hungry.",
+   "introAgain": "You are at the old bridge.",
+   "art": "bridge",
+   "fallbackArt": "ega:bridge",
+   "music": "danger",
+   "floor": {
+    "y0": 160,
+    "y1": 196
+   },
+   "entry": {
+    "x": 40,
+    "y": 188
+   },
+   "objects": [
+    {
+     "id": "forest",
+     "name": "the forest",
+     "words": [
+      "forest",
+      "woods"
+     ],
+     "look": "Your father is in the forest.",
+     "box": [
+      60,
+      30,
+      260,
+      70
+     ],
+     "sprite": null
+    },
+    {
+     "id": "river",
+     "name": "the river",
+     "words": [
+      "river",
+      "water"
+     ],
+     "look": "The water is very cold.",
+     "box": [
+      0,
+      100,
+      320,
+      52
+     ],
+     "sprite": null
+    },
+    {
+     "id": "bridge",
+     "name": "the bridge",
+     "words": [
+      "bridge"
+     ],
+     "look": "It is an old wooden bridge.",
+     "box": [
+      120,
+      80,
+      84,
+      92
+     ],
+     "sprite": null
+    },
+    {
+     "id": "wolf",
+     "name": "the wolf",
+     "words": [
+      "wolf",
+      "dog"
+     ],
+     "look": "It is a big gray wolf. It is very thin. It is hungry.",
+     "box": [
+      142,
+      124,
+      40,
+      30
+     ],
+     "sprite": "wolf",
+     "visible": {
+      "notFlags": [
+       "wolfGone"
+      ]
+     }
+    },
+    {
+     "id": "village",
+     "name": "the village",
+     "words": [
+      "village",
+      "house",
+      "home",
+      "back"
+     ],
+     "look": "Your house is in the village.",
+     "box": [
+      0,
+      150,
+      72,
+      46
+     ],
+     "sprite": null
+    }
+   ],
+   "rules": [
+    {
+     "verb": [
+      "look"
+     ],
+     "obj": [
+      "bridge"
+     ],
+     "when": {
+      "notFlags": [
+       "wolfGone"
+      ]
+     },
+     "say": "The wolf is on the bridge."
+    },
+    {
+     "verb": [
+      "go",
+      "enter"
+     ],
+     "obj": [
+      "forest",
+      "bridge"
+     ],
+     "when": {
+      "notFlags": [
+       "wolfGone"
+      ]
+     },
+     "say": "The wolf is on the bridge. You can not go."
+    },
+    {
+     "verb": [
+      "go",
+      "enter"
+     ],
+     "obj": [
+      "forest",
+      "bridge"
+     ],
+     "say": "You cross the bridge. You go into the forest.",
+     "points": 10,
+     "pointsId": "finish",
+     "do": {
+      "finish": true
+     }
+    },
+    {
+     "verb": [
+      "use"
+     ],
+     "obj": [
+      "wolf"
+     ],
+     "item": "sword",
+     "say": "No. The wolf is not bad. It is only hungry."
+    },
+    {
+     "verb": [
+      "talk"
+     ],
+     "obj": [
+      "wolf"
+     ],
+     "say": "The wolf looks at you. It is very hungry."
+    },
+    {
+     "verb": [
+      "take"
+     ],
+     "obj": [
+      "wolf"
+     ],
+     "say": "No! It is a wolf!"
+    },
+    {
+     "verb": [
+      "give"
+     ],
+     "obj": [
+      "wolf"
+     ],
+     "item": "bread",
+     "say": "You give the bread to the wolf. The wolf eats the bread. Now it is happy. It goes away.",
+     "points": 10,
+     "pointsId": "wolf",
+     "do": {
+      "remove": [
+       "bread"
+      ],
+      "set": [
+       "wolfGone"
+      ],
+      "goal": "end",
+      "fx": [
+       "shake"
+      ]
+     }
+    },
+    {
+     "verb": [
+      "take"
+     ],
+     "obj": [
+      "river"
+     ],
+     "say": "The water is too cold."
+    },
+    {
+     "verb": [
+      "go",
+      "enter"
+     ],
+     "obj": [
+      "village"
+     ],
+     "say": "You go back to your house.",
+     "do": {
+      "go": "outside"
+     }
+    }
+   ]
+  }
+ ],
+ "ending": [
+  "You are in the forest. It is dark. Then you hear a voice. It is your father!",
+  "To be continued..."
+ ],
+ "dictionary": [],
+ "art": [
+  {
+   "key": "village",
+   "kind": "background",
+   "height": null,
+   "prompt": "a snowy Viking village in daylight, a log house with a snowy roof and a red wooden door on the left, a big grey rock in front on the left, a tall pine tree in the middle, a path going right into a dark pine forest with a wooden sign"
+  },
+  {
+   "key": "longhouse",
+   "kind": "background",
+   "height": null,
+   "prompt": "inside a warm Viking longhouse, a stone fireplace with fire on the left, a long wooden table in the middle, a wooden chest on the right, a wooden door on the right wall, a round red and yellow shield on the wall"
+  },
+  {
+   "key": "bridge",
+   "kind": "background",
+   "height": null,
+   "prompt": "a wide frozen river with an old wooden bridge going into a snowy pine forest on the far side, two small snowy wooden houses on the near side at the bottom left, daylight"
+  },
+  {
+   "key": "wolf",
+   "kind": "character",
+   "height": 30,
+   "prompt": "a big thin grey wolf standing, looking hungry, friendly, not scary"
+  },
+  {
+   "key": "item-key",
+   "kind": "item",
+   "height": 12,
+   "prompt": "an old iron key"
+  },
+  {
+   "key": "item-bread",
+   "kind": "item",
+   "height": 12,
+   "prompt": "a round loaf of bread"
+  },
+  {
+   "key": "item-sword",
+   "kind": "item",
+   "height": 16,
+   "prompt": "a Viking sword with a brown leather handle"
+  }
+ ]
+}
