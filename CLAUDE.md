@@ -162,11 +162,17 @@ The parent wants to see it work before real development starts. Keep it small:
      things the story needs (the 1987 computer). Each prop has its model, its footprint, where it can stand
      (floor, wall, on another prop), where to stand to use it, and its clickable shape. Rooms are built once
      and reused.
-   - **A layout builder places the props** from the hints. It runs in the game, or in Godot headless for
-     checks. It keeps them from overlapping, and bakes the navigation mesh at runtime.
+   - **A layout builder places the props** from the hints. It runs **on the Docker server**, in plain
+     Node, like the robot solver: no Godot, no Blender, and the parent's PC does not need to be on.
+     - It works on a top-down floor plan of the room (a grid), using each prop's footprint from the catalog.
+     - It keeps props from overlapping, and stores their final positions in the episode.
+     - The Godot game only loads the models at those positions, and bakes its navigation mesh at runtime.
+     - Blender (and Claude on the PC) is needed only when the catalog itself grows.
+     - Godot also runs headless on Linux (no GPU), so it could go in a container for a stronger check
+       later, if the grid check isn't enough.
    - **Two checks before the parent sees the episode:**
      - the robot solver (as today): the episode can be finished
-     - a new reachability check: every prop he must use can be reached on the navigation mesh
+     - a new reachability check: every prop he must use can be reached on the floor plan's walkable cells
 
      Failures go back to OpenAI in the repair loop, as today.
    - **Props missing from the catalog:** the writer uses the closest prop and adds the missing one to a wish
