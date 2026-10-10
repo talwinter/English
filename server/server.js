@@ -13,6 +13,7 @@ const { createChallenges } = require("./challenge");
 const { loadContent, ROOT } = require("./content");
 const { createArt } = require("./art");
 const { createWriter } = require("./writer");
+const { createWake } = require("./wake");
 
 const env = process.env;
 const config = {
@@ -41,6 +42,9 @@ function reloadContent() {
   content = loadContent(dataDir);
   challenges = createChallenges(content.DICT);
 }
+const wake = createWake({
+  wakeAt: env.WAKE_TIME ? parseTime(env.WAKE_TIME) : null, timeZone: config.timeZone, router, art, log: (m) => store.log(m),
+});
 writer = createWriter({ dataDir, env, getContent: () => content, reload: reloadContent, art, log: (m) => store.log(m) });
 
 // An episode with AI pictures is ready to play when all its pictures are chosen.
@@ -242,7 +246,13 @@ async function handle(req, res) {
     if (p === "/api/art/hello") return send(res, 200, { ok: true });
     if (p === "/api/art/next" && req.method === "GET") {
       const job = art.next();
-      if (!job) { res.writeHead(204); return res.end(); }
+      if (!job) {
+        // No more work. If the server woke the PC for this, the worker may shut it down.
+        const shutdown = wake.mayShutdown();
+        if (shutdown) { wake.shutdownSent(); store.log("Pictures done: told the art PC it may shut down"); }
+        res.writeHead(204, shutdown ? { "X-EQ-Shutdown": "yes" } : {});
+        return res.end();
+      }
       store.log(`Art worker took: ${job.key}`);
       return send(res, 200, job);
     }
@@ -338,6 +348,10 @@ async function handle(req, res) {
       const file = art.variantPath(p.slice(11));
       return file ? servePng(res, file) : send(res, 404, "Not found");
     }
+    if (p === "/admin/api/wake" && post) {
+      try { await wake.wake("parent pressed the button"); return send(res, 200, { ok: true }); }
+      catch (e) { return send(res, 200, { ok: false, output: e.message }); }
+    }
     if (p === "/admin/api/test" && post) {
       try { return send(res, 200, { ok: true, output: await router.run(COMMANDS.test) }); }
       catch (e) { return send(res, 200, { ok: false, output: e.message }); }
@@ -373,6 +387,7 @@ server.listen(config.port, () => {
   store.log(`Server started on port ${config.port}. Lock at ${config.lockTime} (${config.timeZone}), router: ${router.mode}`);
   reconcile(true);
   setInterval(() => reconcile(), 30 * 1000);
+  setInterval(() => wake.tick().catch((e) => store.log(`Wake error: ${e.message}`)), 30 * 1000);
   // Pictures the episodes need are made without waiting for a parent to ask.
   const needed = [...new Set(["hero", ...content.episodes.flatMap((e) => (e.data.art || []).map((a) => a.key))])];
   const queued = art.queueNew(needed);

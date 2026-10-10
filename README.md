@@ -7,6 +7,7 @@ forward by **understanding** the English, so there is no "next, next, next".
 Every morning Discord locks on his devices. He plays today's episode, passes a short word challenge,
 and Discord opens until the next morning.
 
+- **Start here: setup guide (router, Docker server, art PC)**: [docs/SETUP.md](docs/SETUP.md)
 - **The story**: [docs/STORY.md](docs/STORY.md)
 - **New episodes written automatically**: [docs/EPISODES.md](docs/EPISODES.md)
 - **Making the art automatically on your PC's graphics card**: [docs/ART-WORKER.md](docs/ART-WORKER.md)

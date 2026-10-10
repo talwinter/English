@@ -46,6 +46,7 @@ DEFAULTS = {
     "colors": 32,
     "idle_minutes": 5,          # only use the GPU when the PC was not used for this long
     "gpu_busy_percent": 25,     # ...and when the graphics card is not busy (a game); 0 = don't check
+    "shutdown_after_wake": True,  # shut down when done, if the server woke the PC and nobody logged in
     "poll_seconds": 120,
 }
 SIZES = {
@@ -108,6 +109,24 @@ def gpu_busy(cfg):
     return sum(samples) / len(samples) >= limit
 
 
+def someone_logged_in():
+    """True if a person is logged in on Windows (the desktop, explorer.exe, is running)."""
+    if os.name != "nt":
+        return True  # never shut down anything but Windows
+    try:
+        out = subprocess.run(["tasklist", "/FI", "IMAGENAME eq explorer.exe", "/NH"], capture_output=True, text=True,
+                             timeout=20, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)).stdout
+        return "explorer.exe" in out.lower()
+    except (OSError, subprocess.SubprocessError):
+        return True  # not sure: don't shut down
+
+
+def shut_down():
+    log.info("Pictures done and nobody is logged in: shutting down in 2 minutes")
+    subprocess.run(["shutdown", "/s", "/t", "120", "/c", "English Quest: the pictures are done. Shutting down."],
+                   creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+
+
 def keep_awake(on):
     """While making pictures, don't let Windows go to sleep."""
     if os.name == "nt":
@@ -129,8 +148,12 @@ class Server:
         self.auth = {"Authorization": f"Bearer {cfg['token']}"}
 
     def next_job(self):
-        status, data = http("GET", f"{self.url}/api/art/next", headers=self.auth)
-        return json.loads(data) if status == 200 and data else None
+        """Returns (job or None, may_shut_down)."""
+        req = urllib.request.Request(f"{self.url}/api/art/next", headers=self.auth)
+        with urllib.request.urlopen(req, timeout=60) as r:
+            data = r.read()
+            shutdown = r.headers.get("X-EQ-Shutdown") == "yes"
+            return (json.loads(data) if r.status == 200 and data else None), shutdown
 
     def result(self, key, n, raw, pixel):
         http("POST", f"{self.url}/api/art/result", {
@@ -314,8 +337,9 @@ def run(cfg, once=False):
     while True:
         job = None
         try:
+            may_shut_down = False
             if idle_seconds() >= cfg["idle_minutes"] * 60 and not gpu_busy(cfg):
-                job = server.next_job()
+                job, may_shut_down = server.next_job()
             if job:
                 keep_awake(True)
                 comfy.ensure_running()
@@ -324,6 +348,10 @@ def run(cfg, once=False):
                 last_work = time.time()
                 continue  # look for the next job right away
             keep_awake(False)
+            if may_shut_down and cfg["shutdown_after_wake"] and not someone_logged_in():
+                comfy.stop()
+                shut_down()
+                return
             if comfy.proc and time.time() - last_work > 300:
                 comfy.stop()
             if once:

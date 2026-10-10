@@ -89,7 +89,10 @@
   <section class="box">
     <h2>תמונות</h2>
     <div id="worker" class="muted"></div>
-    <div class="row"><button id="makeArt">🎨 צור את התמונות החסרות</button></div>
+    <div class="row">
+      <button id="makeArt">🎨 צור את התמונות החסרות</button>
+      <button id="wakePc">⏰ הער את מחשב התמונות</button>
+    </div>
     <p class="muted">לחץ על הגרסה שאתה הכי אוהב כדי לבחור אותה.</p>
     <div id="art" class="art"></div>
   </section>
@@ -200,6 +203,7 @@
 
   const refreshArt = () => call("/admin/api/art").then(renderArt).catch(() => {});
   $("#makeArt").onclick = () => post("/admin/api/art/queue", {}).then(renderArt);
+  $("#wakePc").onclick = () => post("/admin/api/wake", {}).then((r) => alert(r.ok ? "נשלחה הודעת השכמה למחשב" : "שגיאה: " + r.output));
   $("#art").onclick = (e) => {
     const img = e.target.closest("img[data-n]");
     const again = e.target.closest(".again");

@@ -266,3 +266,49 @@ test("writer: writes, fixes problems, waits for approval, places things in pictu
     fake.close();
   }
 });
+
+// ---------- Wake-on-LAN for the art PC
+test("wake: at 05:00 only when pictures wait, once a day, retries once, then allows shutdown", async () => {
+  const { createWake } = require("./wake");
+  const commands = [];
+  let pending = 3, seen = 0;
+  const wake = createWake({
+    wakeAt: parseTime("05:00"), timeZone: "Asia/Jerusalem",
+    router: { run: async (c) => { commands.push(c); } },
+    art: { pendingCount: () => pending, workerSeenAt: () => seen },
+    log: () => {},
+  });
+  // 2026-10-11 04:59 and 05:00 Israel time (UTC+3)
+  await wake.tick(new Date("2026-10-11T01:59:00Z"));
+  assert.equal(commands.length, 0);
+  await wake.tick(new Date("2026-10-11T02:00:00Z"));
+  assert.deepEqual(commands, ["/system script run eq-wake"]);
+  await wake.tick(new Date("2026-10-11T02:01:00Z"));
+  assert.equal(commands.length, 1, "only once a day");
+  assert.equal(wake.mayShutdown(), true);
+  wake.shutdownSent();
+  assert.equal(wake.mayShutdown(), false, "the shutdown signal is sent once");
+
+  // No pictures waiting: don't wake.
+  pending = 0;
+  await wake.tick(new Date("2026-10-12T02:00:00Z"));
+  assert.equal(commands.length, 1);
+});
+
+test("wake: wakes again once if the PC did not answer in 20 minutes", async () => {
+  const { createWake } = require("./wake");
+  const commands = [];
+  const wake = createWake({
+    wakeAt: parseTime("05:00"), timeZone: "Asia/Jerusalem",
+    router: { run: async (c) => { commands.push(c); } },
+    art: { pendingCount: () => 2, workerSeenAt: () => 0 },
+    log: () => {},
+  });
+  await wake.tick(new Date("2026-10-11T02:00:00Z"));
+  await wake.tick(new Date("2026-10-11T02:10:00Z"));
+  assert.equal(commands.length, 1);
+  await wake.tick(new Date("2026-10-11T02:21:00Z"));
+  assert.equal(commands.length, 2);
+  await wake.tick(new Date("2026-10-11T02:45:00Z"));
+  assert.equal(commands.length, 2, "only one retry");
+});

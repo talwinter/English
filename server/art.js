@@ -110,6 +110,8 @@ function createArt(dataDir, options = {}) {
   }
 
   const isChosen = (key) => db.jobs[key] && db.jobs[key].chosen != null;
+  const pendingCount = () => Object.values(db.jobs).filter((j) => j.status === "pending" || j.status === "working").length;
+  const workerSeenAt = () => (db.workerSeen ? Date.parse(db.workerSeen) : 0);
   const rawPath = (key) => (db.jobs[key] && db.jobs[key].chosen != null ? path.join(variantsDir, `${key}-${db.jobs[key].chosen}-raw.png`) : null);
 
   function list() {
@@ -126,7 +128,7 @@ function createArt(dataDir, options = {}) {
   const variantPath = (name) => (/^[a-z0-9-]{1,40}-\d(-raw)?\.png$/.test(name) ? path.join(variantsDir, name) : null);
   const chosenPath = (name) => (/^[a-z0-9-]{1,40}\.png$/.test(name) ? path.join(chosenDir, name) : null);
 
-  return { queue, queueNew, next, result, fail, choose, list, variantPath, chosenPath, isChosen, rawPath };
+  return { queue, queueNew, next, result, fail, choose, list, variantPath, chosenPath, isChosen, rawPath, pendingCount, workerSeenAt };
 }
 
 module.exports = { createArt, VARIANTS };

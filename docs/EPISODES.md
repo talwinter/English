@@ -29,7 +29,7 @@ The server writes new episodes by itself with OpenAI, checks them, and keeps the
 
 You can also press **✍️ כתוב את הפרק הבא עכשיו** (write the next episode now), with an optional note.
 
-## Settings (docker-compose.yml)
+## Settings (.env)
 
 | Setting | What it does |
 |---|---|

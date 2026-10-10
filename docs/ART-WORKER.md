@@ -25,7 +25,7 @@ The PC doesn't need to be on all the time. The server keeps the jobs until the P
 2. **An SDXL model.** Any good SDXL model works; the pixel conversion fixes the style.
 3. **Optional: a pixel-art LoRA for SDXL** (search "pixel art XL" in the Stability Matrix Model Browser).
    It makes the pictures look more like the old games.
-4. **The worker password.** Set `WORKER_TOKEN` in `docker-compose.yml` on the server to any long text, and
+4. **The worker password.** Set `WORKER_TOKEN` in `.env` on the server to any long text, and
    restart the server (`docker compose up -d`).
 
 ## Install (one time)
@@ -61,3 +61,10 @@ The button **🎨 צור את התמונות החסרות** (make the missing pi
   `idle_minutes` (set it to 0 to work even while the PC is in use), `gpu_busy_percent` (0 = don't check the
   graphics card).
 - To remove it: double-click `worker\uninstall.bat` and approve the admin prompt.
+
+## Wake-on-LAN (the PC turns on by itself)
+
+If `WAKE_TIME` is set in `.env` (default `05:00`) and pictures are waiting, the server asks the router to wake
+the PC at that time. The worker starts at the login screen, makes the pictures, and then **shuts the PC down**,
+but only when the server woke it and nobody is logged in. To never shut down, set `"shutdown_after_wake": false`
+in `config.json`. Setup steps (BIOS, network card, Fast Startup) are in [SETUP.md](SETUP.md), Part 4.1.

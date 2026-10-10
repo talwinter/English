@@ -41,16 +41,16 @@ Copy `data/ssh/id_ed25519.pub` to the router (drag it into Winbox > **Files**), 
 
 > If the import fails on an older RouterOS, make an RSA key instead:
 > `ssh-keygen -t rsa -b 4096 -N "" -f data/ssh/id_rsa`, import `id_rsa.pub`, and add
-> `ROUTER_SSH_KEY: /data/ssh/id_rsa` to `docker-compose.yml`.
+> `ROUTER_SSH_KEY=/data/ssh/id_rsa` to `.env`.
 
 ## Step 3: Start the server
 
-Edit `docker-compose.yml`:
+Copy `.env.example` to `.env` and fill it in:
 
 - `ADMIN_PASSWORD`: your password for the parent page.
 - `ROUTER_HOST`: your router's IP.
 - `LOCK_TIME` and `LOCK_DAYS` if you want something else (for example no lock on Saturday:
-  `LOCK_DAYS: "0,1,2,3,4,5"`).
+  `LOCK_DAYS=0,1,2,3,4,5`).
 
 Then:
 
@@ -60,7 +60,7 @@ docker compose up -d --build
 
 ## Step 4: Test it
 
-1. Open the parent page at `http://SERVER:8080/admin` (any user name, your `ADMIN_PASSWORD`).
+1. Open the parent page at `http://SERVER:8080/admin` (any user name, your `ADMIN_PASSWORD` from `.env`).
 2. Click **בדיקת חיבור לראוטר** (test router connection). It should show ✅ and the router's name.
 3. Click **🔒 נעל עכשיו** (lock now). On his computer, `discord.com` and the Discord app should stop working.
 4. Click **🔓 פתח להיום** (unlock for today). Discord works again.

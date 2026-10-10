@@ -10,8 +10,8 @@
 #    double-click > Make Static), then put the IPs here. Add a line for each device.
 # ---------------------------------------------------------------------------
 /ip firewall address-list
-add list=eq-kid address=192.168.88.50 comment="english-quest: son computer"
-add list=eq-kid address=192.168.88.51 comment="english-quest: son phone"
+add list=eq-kid address=192.168.1.50 comment="english-quest: son computer"
+add list=eq-kid address=192.168.1.51 comment="english-quest: son phone"
 
 # ---------------------------------------------------------------------------
 # 2. Firewall rules, added at the top of the forward chain, disabled for now.
@@ -42,6 +42,12 @@ add name=eq-block policy=read,write,test comment="english-quest" source={
     }
     :log info "english-quest: Discord locked"
   }
+}
+# eq-wake wakes the PC with the graphics card (Wake-on-LAN) so it can make pictures at night.
+# "bridge" is the usual name of the LAN in MikroTik's default setup; check yours with: /interface bridge print
+add name=eq-wake policy=read,write,test comment="english-quest" source={
+  /tool wol mac=E8:9C:25:0E:5B:90 interface=bridge
+  :log info "english-quest: woke the art PC"
 }
 add name=eq-unblock policy=read,write,test comment="english-quest" source={
   :local wasLocked ([:len [/ip firewall filter find where comment~"^english-quest" disabled=no]] > 0)
