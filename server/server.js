@@ -32,7 +32,9 @@ let writer = null;
 const art = createArt(dataDir, {
   episodeShots: () => (writer ? writer.episodeShots() : []),
   onChosen: (key) => writer && writer.placeThings(key).catch((e) => store.log(`Could not find things in "${key}": ${e.message}`)),
-  autoChoose: env.AUTO_PUBLISH === "true",
+  // By default the server uses each picture by itself (one version); AUTO_CHOOSE_ART=false = you choose from 3.
+  autoChoose: env.AUTO_CHOOSE_ART !== "false" || env.AUTO_PUBLISH === "true",
+  versions: env.AUTO_CHOOSE_ART !== "false" || env.AUTO_PUBLISH === "true" ? 1 : 3,
 });
 const router = createRouter(env, (m) => store.log(m));
 let content = loadContent(dataDir);
@@ -46,6 +48,7 @@ const wake = createWake({
   wakeAt: env.WAKE_TIME ? parseTime(env.WAKE_TIME) : null, timeZone: config.timeZone, router, art, log: (m) => store.log(m),
 });
 writer = createWriter({ dataDir, env, getContent: () => content, reload: reloadContent, art, log: (m) => store.log(m) });
+if (env.AUTO_CHOOSE_ART !== "false" || env.AUTO_PUBLISH === "true") art.chooseWaiting();
 
 // An episode with AI pictures is ready to play when all its pictures are chosen.
 function artReady(ep) {

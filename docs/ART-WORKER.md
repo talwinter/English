@@ -9,8 +9,8 @@ The pictures are made for free on your graphics card. You install it once, and t
   example a game), so games and work aren't slowed down. Before login only the graphics card check works,
   because Windows hides the mouse and keyboard from background tasks.
 - While it makes pictures, it keeps the PC from going to sleep. When it's done, normal sleep rules apply.
-- When there is work it **starts ComfyUI by itself** (from your Stability Matrix folder), makes 3 versions of
-  each picture, turns them into pixel art, sends them to the server, and **closes ComfyUI** to free the
+- When there is work it **starts ComfyUI by itself** (from your Stability Matrix folder), makes each picture,
+  turns it into pixel art, sends them to the server, and **closes ComfyUI** to free the
   graphics card.
 
 The PC doesn't need to be on all the time. The server keeps the jobs until the PC is on and free.
@@ -45,10 +45,10 @@ The PC doesn't need to be on all the time. The server keeps the jobs until the P
    You don't need to press anything.
 2. When the PC is free, the worker makes them. On a 3060 each SDXL picture takes about half a minute, so one
    episode (about 6 pictures × 3 versions) takes about 10 minutes.
-3. On the parent page (`http://SERVER:8080/admin`), under **תמונות** (pictures), **click the version you like best**
-   for each picture. Click **צור מחדש** (make again) for new versions. When you choose a background, the server
-   finds the door, the cave and so on in it by itself.
-4. When all pictures of an episode are chosen, it becomes his mission.
+3. The server uses each picture by itself (`AUTO_CHOOSE_ART=true` in `.env`, the default). If a picture came out
+   badly, click **צור מחדש** (make again) on the parent page, under **תמונות** (pictures). With
+   `AUTO_CHOOSE_ART=false` the PC makes 3 versions of each picture and you click the one you like.
+4. When all pictures of an episode are ready, it becomes his mission.
 
 The button **🎨 צור את התמונות החסרות** (make the missing pictures) also makes the optional pictures in
 `art/shots.json`, for example new versions of Episode 1's places.

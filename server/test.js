@@ -209,6 +209,7 @@ test("writer: writes, fixes problems, waits for approval, places things in pictu
     env: {
       ...process.env, PORT: String(port), DATA_DIR: dir, ADMIN_PASSWORD: "pw", WORKER_TOKEN: "tok", ROUTER_MODE: "mock",
       OPENAI_API_KEY: "test", OPENAI_BASE_URL: `http://localhost:${fake.address().port}/v1`, AUTO_WRITE: "false",
+      AUTO_CHOOSE_ART: "false",
     },
     stdio: "ignore",
   });
@@ -314,4 +315,19 @@ test("wake: wakes again once if the PC did not answer in 20 minutes", async () =
   assert.equal(commands.length, 2);
   await wake.tick(new Date("2026-10-11T02:45:00Z"));
   assert.equal(commands.length, 2, "only one retry");
+});
+
+test("art: by default one version per picture, used automatically", () => {
+  const { createArt } = require("./art");
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "eq-art1-"));
+  const chosen = [];
+  const art = createArt(dir, { autoChoose: true, versions: 1, onChosen: (k) => chosen.push(k) });
+  art.queue(["hero"]);
+  const job = art.next(0);
+  assert.equal(job.variants, 1);
+  const png = Buffer.from("89504e470d0a1a0a0000", "hex");
+  art.result("hero", 0, png, png);
+  assert.equal(art.isChosen("hero"), true);
+  assert.deepEqual(chosen, ["hero"]);
+  assert.throws(() => art.result("hero", 1, png, png), /bad result/);
 });

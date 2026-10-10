@@ -185,7 +185,7 @@ and give him headphones. That's all.
 |---|---|
 | Any time | When fewer than 2 new episodes are ready, the server writes one with OpenAI, checks it, and queues its pictures |
 | 05:00 | If pictures are waiting, the router wakes the art PC. It makes them and shuts down |
-| When you have a minute | On the parent page you try the new episode, approve it, and click the pictures you like |
+| When you have a minute | On the parent page you try the new episode and approve it (the pictures are used by themselves) |
 | 08:00 | Discord locks on his devices |
 | After school | He plays today's episode (or the word challenge on days with no new episode), passes the challenge, and Discord opens until tomorrow |
 

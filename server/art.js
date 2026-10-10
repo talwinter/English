@@ -26,7 +26,9 @@ const KEY = /^[a-z0-9-]{1,40}$/;
 // options.episodeShots(): pictures listed in the episodes ({key, kind, height, prompt, episode})
 // options.onChosen(key, n): called after a parent (or auto mode) picks a picture
 // options.autoChoose: pick the first version by itself when a picture is done
+// options.versions: how many versions of each picture to make (default 3; 1 is enough with autoChoose)
 function createArt(dataDir, options = {}) {
+  const versions = options.versions || VARIANTS;
   const dir = path.join(dataDir, "art");
   const variantsDir = path.join(dir, "variants");
   const chosenDir = path.join(dir, "chosen");
@@ -69,14 +71,14 @@ function createArt(dataDir, options = {}) {
     Object.assign(job(s.key), { status: "working", leaseUntil: now + LEASE_MS });
     save();
     return {
-      key: s.key, kind: s.kind, height: s.height || null, variants: VARIANTS,
+      key: s.key, kind: s.kind, height: s.height || null, variants: versions,
       prompt: STYLE[s.kind] + s.prompt, negative: NEGATIVE,
       seed: Math.floor(Math.random() * 1e9),
     };
   }
 
   function result(key, n, rawPng, pixelPng) {
-    if (!KEY.test(key) || !Number.isInteger(n) || n < 0 || n >= VARIANTS) throw new Error("bad result");
+    if (!KEY.test(key) || !Number.isInteger(n) || n < 0 || n >= versions) throw new Error("bad result");
     const j = db.jobs[key];
     if (!j || j.status !== "working") throw new Error("no such job");
     const isPng = (b) => b.length > 8 && b.readUInt32BE(0) === 0x89504e47;
@@ -85,7 +87,7 @@ function createArt(dataDir, options = {}) {
     fs.writeFileSync(path.join(variantsDir, `${key}-${n}.png`), pixelPng);
     if (!j.variants.includes(n)) j.variants.push(n);
     j.variants.sort();
-    if (j.variants.length >= VARIANTS) j.status = "done";
+    if (j.variants.length >= versions) j.status = "done";
     j.updatedAt = new Date().toISOString();
     save();
     if (j.status === "done" && options.autoChoose && j.chosen == null) choose(key, 0);
@@ -113,6 +115,13 @@ function createArt(dataDir, options = {}) {
     return fresh.length ? queue(fresh) : [];
   }
 
+  // With autoChoose: use pictures that are done but were never chosen (for example made before the switch).
+  function chooseWaiting() {
+    for (const [key, j] of Object.entries(db.jobs)) {
+      if (j.status === "done" && j.chosen == null && j.variants.length) choose(key, j.variants[0]);
+    }
+  }
+
   const isChosen = (key) => db.jobs[key] && db.jobs[key].chosen != null;
   const pendingCount = () => Object.values(db.jobs).filter((j) => j.status === "pending" || j.status === "working").length;
   const workerSeenAt = () => (db.workerSeen ? Date.parse(db.workerSeen) : 0);
@@ -132,7 +141,7 @@ function createArt(dataDir, options = {}) {
   const variantPath = (name) => (/^[a-z0-9-]{1,40}-\d(-raw)?\.png$/.test(name) ? path.join(variantsDir, name) : null);
   const chosenPath = (name) => (/^[a-z0-9-]{1,40}\.png$/.test(name) ? path.join(chosenDir, name) : null);
 
-  return { queue, queueNew, next, result, fail, choose, list, variantPath, chosenPath, isChosen, rawPath, pendingCount, workerSeenAt };
+  return { queue, queueNew, next, result, fail, choose, list, variantPath, chosenPath, isChosen, rawPath, pendingCount, workerSeenAt, chooseWaiting };
 }
 
 module.exports = { createArt, VARIANTS };
