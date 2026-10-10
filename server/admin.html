@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>English Quest · Parent</title>
+  <style>
+    :root { --red: #aa0000; --blue: #0000aa; --green: #00aa00; --gray: #555; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #000; color: #000; font-family: "Segoe UI", Arial, sans-serif; padding: 16px; }
+    main { max-width: 760px; margin: 0 auto; display: grid; gap: 14px; }
+    .box { background: #fff; border: 5px solid #fff; box-shadow: inset 0 0 0 3px var(--red); padding: 16px 20px; }
+    h1 { color: #fff; font-family: Consolas, monospace; margin: 0; font-size: 26px; }
+    h2 { margin: 0 0 10px; font-size: 20px; color: var(--red); }
+    .big { font-size: 30px; font-weight: 700; }
+    .locked { color: var(--red); }
+    .open { color: var(--green); }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+    button {
+      font: inherit; font-weight: 700; padding: 10px 16px; cursor: pointer; background: #aaa; color: #000;
+      border: 3px solid; border-color: #fff #555 #555 #fff; outline: 2px solid #000;
+    }
+    button:hover { background: #ffff55; }
+    table { width: 100%; border-collapse: collapse; }
+    td { padding: 4px 6px; border-bottom: 1px solid #ccc; }
+    .muted { color: var(--gray); font-size: 14px; }
+    pre { white-space: pre-wrap; direction: ltr; text-align: left; font-size: 13px; max-height: 300px; overflow: auto; margin: 0; }
+    .ltr { direction: ltr; unicode-bidi: embed; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>English Quest · הורים</h1>
+
+  <section class="box">
+    <h2>Discord</h2>
+    <div id="lock" class="big">…</div>
+    <div id="router" class="muted"></div>
+    <div class="row">
+      <button id="unlock">🔓 פתח להיום</button>
+      <button id="lockNow">🔒 נעל עכשיו</button>
+      <button id="test">בדיקת חיבור לראוטר</button>
+    </div>
+    <pre id="testOut" hidden></pre>
+  </section>
+
+  <section class="box">
+    <h2>המשימה של היום</h2>
+    <div id="mission"></div>
+    <div id="streak" class="muted"></div>
+  </section>
+
+  <section class="box">
+    <h2>פרקים</h2>
+    <table id="episodes"></table>
+    <div class="row"><button id="resetEpisodes">אפס התקדמות בפרקים</button></div>
+  </section>
+
+  <section class="box">
+    <h2>ימים אחרונים</h2>
+    <table id="days"></table>
+  </section>
+
+  <section class="box">
+    <h2>יומן</h2>
+    <pre id="log"></pre>
+  </section>
+</main>
+<script>
+  const $ = (s) => document.querySelector(s);
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  async function call(path, method = "GET") {
+    const r = await fetch(path, { method });
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+  }
+
+  function render(s) {
+    $("#lock").innerHTML = s.locked
+      ? `<span class="locked">🔒 נעול</span>`
+      : `<span class="open">🔓 פתוח</span>`;
+    const r = s.router;
+    $("#router").innerHTML = `ראוטר: <span class="ltr">${esc(r.mode)}</span> · ` +
+      (r.error ? `<b class="locked">שגיאה: <span class="ltr">${esc(r.error)}</span></b>`
+        : r.applied == null ? "עוד לא עודכן" : `עודכן: <span class="ltr">${esc(new Date(r.appliedAt).toLocaleString())}</span>`) +
+      ` · נעילה כל יום ב-<span class="ltr">${esc(s.config.lockTime)}</span>` +
+      (s.forceLock ? " · <b>נעול ידנית עד שיסיים משימה</b>" : "");
+    $("#mission").innerHTML = s.doneToday
+      ? "✅ המשימה של היום הושלמה"
+      : s.mission.type === "episode"
+        ? `לשחק את הפרק <b class="ltr">${esc(s.mission.title)}</b> ואז לעבור את אתגר המילים`
+        : "לעבור את אתגר המילים (8 שאלות, צריך 6 נכונות)";
+    $("#streak").textContent = `רצף: ${s.streak} ימים`;
+    $("#episodes").innerHTML = s.episodes.map((e) =>
+      `<tr><td class="ltr">${esc(e.id)}</td><td class="ltr">${esc(e.title)}</td><td>${e.done ? "✅" : "—"}</td><td class="muted">${e.words} מילים</td></tr>`).join("");
+    $("#days").innerHTML = s.completions.length
+      ? s.completions.map(([d, c]) =>
+        `<tr><td class="ltr">${esc(d)}</td><td>${c.by === "parent" ? "נפתח ע״י הורה" : `אתגר: ${c.score}/8`}</td>
+         <td class="muted ltr">${esc(new Date(c.at).toLocaleTimeString())}</td></tr>`).join("")
+      : `<tr><td class="muted">עוד אין</td></tr>`;
+    $("#log").textContent = s.log.join("\n");
+  }
+
+  const refresh = () => call("/admin/api/state").then(render).catch((e) => { $("#lock").textContent = e.message; });
+  $("#unlock").onclick = () => call("/admin/api/unlock", "POST").then(render);
+  $("#lockNow").onclick = () => call("/admin/api/lock", "POST").then(render);
+  $("#resetEpisodes").onclick = () => confirm("לאפס את ההתקדמות בפרקים?") && call("/admin/api/reset-episodes", "POST").then(render);
+  $("#test").onclick = async () => {
+    $("#testOut").hidden = false;
+    $("#testOut").textContent = "…";
+    const r = await call("/admin/api/test", "POST");
+    $("#testOut").textContent = (r.ok ? "✅ OK\n" : "❌ Failed\n") + r.output;
+  };
+  refresh();
+  setInterval(refresh, 15000);
+</script>
+</body>
+</html>

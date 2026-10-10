@@ -1,0 +1,18 @@
+services:
+  english-quest:
+    build: .
+    container_name: english-quest
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      TZ: Asia/Jerusalem
+      LOCK_TIME: "08:00"             # Discord locks every day at this time...
+      LOCK_DAYS: "0,1,2,3,4,5,6"     # ...on these days (0 = Sunday, 6 = Saturday)
+      ADMIN_PASSWORD: "change-me"    # parent page: http://SERVER:8080/admin (user name: anything)
+      ROUTER_MODE: ssh               # "mock" = test without the router
+      ROUTER_HOST: 192.168.88.1
+      ROUTER_PORT: "22"
+      ROUTER_USER: eq-lock
+    volumes:
+      - ./data:/data                 # state.json and ssh/id_ed25519 (the router key)

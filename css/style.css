@@ -47,9 +47,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
   background: var(--white); color: var(--black);
   font-family: var(--retro); font-size: 28px; line-height: 1; padding: 2px 10px;
 }
-.topbar .title { flex: 1; text-align: center; color: var(--blue); }
+.topbar .title { flex: 1; min-width: 0; text-align: center; color: var(--blue); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#score { white-space: nowrap; }
 .tools { display: flex; gap: 4px; }
-.tools button { background: none; border: 0; padding: 2px 8px; font-family: var(--retro); font-size: 26px; color: var(--black); }
+.tools button { white-space: nowrap; background: none; border: 0; padding: 2px 8px; font-family: var(--retro); font-size: 26px; color: var(--black); }
 .tools button:hover { background: var(--black); color: var(--white); }
 
 .scene-wrap { position: relative; flex: 1 1 auto; min-height: 200px; background: var(--black); }
@@ -164,17 +165,34 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .quiz-count { color: var(--dgray); margin: 0; }
 .quiz-word { font-size: 44px; font-weight: 700; text-align: center; margin: 10px 0; }
 .quiz-options { display: grid; gap: 8px; }
-.opt {
+.opt, .c-opt {
   background: var(--white); border: 3px solid var(--black); padding: 10px; font-size: 24px; color: var(--black);
 }
-.opt:hover:not(:disabled) { background: #ffff99; }
-.opt.right { background: var(--lgreen); }
-.opt.wrong { background: #ff5555; }
+.opt:hover:not(:disabled), .c-opt:hover:not(:disabled) { background: #ffff99; }
+.opt.right, .c-opt.right { background: var(--lgreen); }
+.opt.wrong, .c-opt.wrong { background: #ff5555; }
 .quiz-done { font-size: 48px; text-align: center; margin: 10px 0; }
 
 .end { text-align: center; }
 .end h2 { font-size: 54px; }
 .end-score { font-family: var(--retro); font-size: 36px; margin: 0; }
+
+/* ---------- daily mission and Discord lock */
+.tools #discord { color: var(--green); }
+.tools #discord.locked { color: var(--red); animation: blink 1.2s steps(2) infinite; }
+@keyframes blink { 50% { opacity: .35; } }
+.m-lock { font-family: var(--retro); font-size: 34px; margin: 0 0 8px; color: var(--green); }
+.m-lock.locked { color: var(--red); }
+.m-step { font-size: 24px; margin: 6px 0; }
+.m-done { font-size: 28px; font-weight: 700; color: var(--green); margin: 0; }
+.m-streak { font-family: var(--retro); font-size: 28px; margin: 12px 0 0; }
+.c-dots { display: flex; gap: 6px; justify-content: center; font-family: var(--retro); font-size: 28px; }
+.c-dots span { width: 28px; text-align: center; border: 2px solid var(--black); }
+.c-dots .right { background: var(--lgreen); }
+.c-dots .wrong { background: #ff5555; }
+.c-ask { text-align: center; color: var(--dgray); margin: 12px 0 0; }
+.c-win { font-family: var(--retro); font-size: 46px; color: var(--green); text-align: center; margin: 10px 0 0; }
+@media (prefers-reduced-motion: reduce) { .tools #discord.locked { animation: none; } }
 
 /* ---------- smaller screens */
 @media (max-width: 1000px) {

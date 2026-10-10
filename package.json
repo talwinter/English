@@ -1,0 +1,9 @@
+{
+  "name": "english-quest",
+  "private": true,
+  "description": "A King's Quest style adventure for learning English, with a daily Discord lock.",
+  "scripts": {
+    "start": "node server/server.js",
+    "test": "node --test server/test.js && node tools/check-words.js"
+  }
+}

@@ -3,6 +3,7 @@
 // must exist in dictionary.js. Run `node tools/check-words.js` after editing.
 
 window.GAME = {
+  id: "s1e1",
   title: "The Cold Village",
 
   verbs: [

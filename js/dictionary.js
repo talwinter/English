@@ -128,3 +128,10 @@ window.DICT = {
   you: "אתה / אותך",
   your: "שלך",
 };
+
+// Small grammar words. They are translated, but not used in practice quizzes and challenges.
+window.FUNCTION_WORDS = [
+  "a", "an", "the", "is", "are", "be", "do", "does", "it", "that", "to", "at", "in", "on", "for", "and",
+  "there", "then", "i", "me", "he", "she", "you", "your", "what", "into", "with", "not", "no", "too",
+  "very", "can", "only", "first", "now", "next", "already", "away", "back", "here",
+];

@@ -370,7 +370,7 @@
   const hidePopup = () => { $("#popup").hidden = true; };
 
   // ---------- word book and practice
-  const FUNCTION_WORDS = new Set(["a", "an", "the", "is", "are", "be", "do", "does", "it", "that", "to", "at", "in", "on", "for", "and", "there", "then", "i", "me", "he", "she", "you", "your", "what", "into", "with", "not", "no", "too", "very", "can", "only", "first", "now", "next", "already", "away", "back", "here"]);
+  const FUNCTION_WORDS = new Set(window.FUNCTION_WORDS);
 
   function showBook() {
     const looked = Object.entries(words.looked).sort((a, b) => b[1] - a[1]);
@@ -438,6 +438,7 @@
     $("#end-score").textContent = `Score: ${score()} of ${maxScore}`;
     $("#end-words").textContent = `Words you met: ${Object.keys(words.seen).length}`;
     $("#end").hidden = false;
+    document.dispatchEvent(new CustomEvent("eq:level-complete", { detail: { episode: G.id } }));
   }
 
   function restart() {

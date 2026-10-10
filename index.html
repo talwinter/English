@@ -16,6 +16,7 @@
         <span id="score"></span>
         <span class="title">English Quest</span>
         <span class="tools">
+          <button id="discord" hidden>Discord</button>
           <button id="book-btn">Words·מילים</button>
           <button id="help-btn">Help·עזרה</button>
           <button id="restart">Restart</button>
@@ -91,6 +92,22 @@
     </div>
   </div>
 
+  <div id="mission" class="modal" hidden>
+    <div class="card sierra">
+      <button class="close" data-close>✕</button>
+      <h2>Today's Mission</h2>
+      <div id="mission-body"></div>
+    </div>
+  </div>
+
+  <div id="challenge" class="modal" hidden>
+    <div class="card sierra">
+      <button class="close" data-close>✕</button>
+      <h2>🧠 Word Challenge</h2>
+      <div id="challenge-body"></div>
+    </div>
+  </div>
+
   <div id="end" class="modal" hidden>
     <div class="card sierra end">
       <h2 id="end-title"></h2>
@@ -106,5 +123,6 @@
   <script src="js/art.js"></script>
   <script src="js/speech.js"></script>
   <script src="js/game.js"></script>
+  <script src="js/mission.js"></script>
 </body>
 </html>
