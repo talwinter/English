@@ -34,8 +34,9 @@ Write down your son's devices' IP addresses.
    - **step 4**: the password, to any long random text (nothing uses it, it's only so the user isn't empty).
    - The art PC's MAC (`E8:9C:25:0E:5B:90`) is already in the `eq-wake` script.
 2. In Winbox open **New Terminal** and paste the whole file.
-3. Check: **IP > Firewall > Filter Rules** should show 4 rules at the top with comments starting with
+3. Check: **IP > Firewall > Filter Rules** should show 5 rules at the top with comments starting with
    `english-quest`, all **disabled** (grey). That's correct: the server turns them on.
+   In **Address Lists**, each name in `eq-discord` should get dynamic IP entries under it within a minute.
 4. Check that SSH is on: **IP > Services**, `ssh` must be enabled (it is by default).
 
 > If you get an error about `interface=bridge`, your LAN has a different name. Run `/interface bridge print`,

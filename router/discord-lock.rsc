@@ -14,9 +14,31 @@
 /ip firewall address-list add list=eq-kid address=192.168.1.51 comment="english-quest: son phone"
 
 # ---------------------------------------------------------------------------
+# 1b. Discord's servers. The router looks up these names and keeps their IP addresses up to date
+#     by itself (they show up as dynamic entries under each name).
+# ---------------------------------------------------------------------------
+/ip firewall address-list add list=eq-discord address=discord.com comment="english-quest: discord"
+/ip firewall address-list add list=eq-discord address=www.discord.com comment="english-quest: discord"
+/ip firewall address-list add list=eq-discord address=gateway.discord.gg comment="english-quest: discord"
+/ip firewall address-list add list=eq-discord address=discord.gg comment="english-quest: discord"
+/ip firewall address-list add list=eq-discord address=discordapp.com comment="english-quest: discord"
+/ip firewall address-list add list=eq-discord address=cdn.discordapp.com comment="english-quest: discord"
+/ip firewall address-list add list=eq-discord address=media.discordapp.net comment="english-quest: discord"
+/ip firewall address-list add list=eq-discord address=discordapp.net comment="english-quest: discord"
+/ip firewall address-list add list=eq-discord address=discord.media comment="english-quest: discord"
+/ip firewall address-list add list=eq-discord address=status.discord.com comment="english-quest: discord"
+/ip firewall address-list add list=eq-discord address=remote-auth-gateway.discord.gg comment="english-quest: discord"
+/ip firewall address-list add list=eq-discord address=updates.discord.com comment="english-quest: discord"
+/ip firewall address-list add list=eq-discord address=dl.discordapp.net comment="english-quest: discord"
+/ip firewall address-list add list=eq-discord address=router.discordapp.net comment="english-quest: discord"
+/ip firewall address-list add list=eq-discord address=discord.co comment="english-quest: discord"
+
+# ---------------------------------------------------------------------------
 # 2. Firewall rules, added at the top of the forward chain, disabled for now.
 #    Each "place-before=0" puts the rule first, so they end up in this order:
-#      a) reject TLS connections to any *discord* name   (Discord app and website)
+#      0) reject everything between his devices and Discord's servers (the main rule; it also cuts
+#         connections that are already open)
+#      a) reject TLS connections to any *discord* name   (extra, for Discord servers not in the list)
 #      b) reject QUIC (UDP 443), so his browser uses normal TLS that rule (a) can see
 #      c+d) keep his connections out of FastTrack while locked, so rule (a) sees every connection
 # ---------------------------------------------------------------------------
@@ -24,6 +46,7 @@
 /ip firewall filter add chain=forward action=accept connection-state=established,related src-address-list=eq-kid disabled=yes comment="english-quest: no fasttrack (out)" place-before=0
 /ip firewall filter add chain=forward action=reject reject-with=icmp-port-unreachable protocol=udp dst-port=443 src-address-list=eq-kid disabled=yes comment="english-quest: block QUIC" place-before=0
 /ip firewall filter add chain=forward action=reject reject-with=tcp-reset protocol=tcp tls-host=*discord* src-address-list=eq-kid disabled=yes comment="english-quest: block Discord" place-before=0
+/ip firewall filter add chain=forward action=reject reject-with=icmp-network-unreachable src-address-list=eq-kid dst-address-list=eq-discord disabled=yes comment="english-quest: block Discord servers" place-before=0
 
 # ---------------------------------------------------------------------------
 # 3. The two scripts the server runs.

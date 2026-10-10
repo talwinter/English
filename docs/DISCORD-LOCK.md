@@ -18,7 +18,7 @@ two small scripts: `eq-block` and `eq-unblock`.
    - the password in step 4 (any long random text; the server doesn't use it).
 3. Paste the whole file into the router terminal (Winbox > **New Terminal**).
 
-Nothing is blocked yet: the rules are added **disabled**. Check *IP > Firewall > Filter Rules*: you should see 4
+Nothing is blocked yet: the rules are added **disabled**. Check *IP > Firewall > Filter Rules*: you should see 5
 rules at the top with comments starting `english-quest`.
 
 > If you get an error on `place-before=0`, your forward chain has no rules yet. Remove `place-before=0`
@@ -98,8 +98,10 @@ not as a trap. The game is built so that deal feels short and fun.
 
 While locked, on his devices only:
 
-- new TLS connections to any name containing `discord` are rejected (this checks the TLS SNI, so it
-  covers the app and the website),
+- all traffic to Discord's servers is rejected. The router looks up Discord's names (list `eq-discord`) and
+  keeps their IP addresses up to date by itself. This also cuts connections that are already open,
+- new TLS connections to any name containing `discord` are rejected as an extra check (this reads the TLS
+  name; modern browsers often split it over two packets, so it can't be the only rule),
 - QUIC (UDP 443) is rejected, so his browser falls back to TLS, which the rule above can check (other
   sites keep working),
 - his connections skip FastTrack, so every new connection is checked,
