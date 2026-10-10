@@ -89,7 +89,7 @@ if ($loras.Count -gt 0) {
 # ---------------------------------------------------------------------------
 Say ""
 $server = (Read-Host "Server address (example: http://192.168.88.10:8080)").Trim().TrimEnd("/")
-$token = (Read-Host "Worker token (WORKER_TOKEN in docker-compose.yml)").Trim()
+$token = (Read-Host "Worker token (WORKER_TOKEN in .env on the server)").Trim()
 try {
     Invoke-RestMethod -Uri "$server/api/art/hello" -Headers @{ Authorization = "Bearer $token" } -TimeoutSec 10 | Out-Null
     Say "Server OK" Green
@@ -128,9 +128,19 @@ Say "`nShould the worker also run when the PC is on but nobody has logged in?"
 Say "(Windows will ask for admin permission once. Before login it checks that the graphics card is free.)"
 $answer = Read-Host "Run before login? (Enter = yes, n = no)"
 if ($answer -notmatch "^(n|no)") {
-    Start-Process powershell -Verb RunAs -Wait -ArgumentList @(
-        "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "`"$PSScriptRoot\install-task.ps1`"",
-        "-Python", "`"$pythonw`"", "-Folder", "`"$dest`"")
+    Copy-Item "$PSScriptRoot\install-task.ps1" $dest -Force
+    try {
+        Start-Process powershell -Verb RunAs -Wait -ArgumentList @(
+            "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "`"$dest\install-task.ps1`"",
+            "-Python", "`"$pythonw`"", "-Folder", "`"$dest`"")
+    } catch {
+        Say "The admin permission was not given." Yellow
+    }
+    if (Get-ScheduledTask -TaskName "English Quest Art Worker" -ErrorAction SilentlyContinue) {
+        Say "Before login: OK" Green
+    } else {
+        Say "Before login: NOT added. See $dest\install-task.log, or run install.bat again." Yellow
+    }
 }
 
 $startup = [Environment]::GetFolderPath("Startup")
