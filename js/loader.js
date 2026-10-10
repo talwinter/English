@@ -34,14 +34,14 @@ window.loadEpisode = async function () {
   return { game: window.Episode.compile(episode, window.BASE), dict, preview, served: location.protocol !== "file:" };
 };
 
-// A scene with fallbackArt shows its AI picture only when the background, its sprites and the hero are all
-// ready; until then it shows the old built-in drawing.
+// A scene with fallbackArt shows its AI picture only when the background and its sprites are all ready;
+// until then it shows the old built-in drawing. (People are ready-made walking sprites.)
 function useReadyArt(episode, chosen) {
   const ready = new Set(chosen);
   const ep = JSON.parse(JSON.stringify(episode));
   for (const sc of ep.scenes) {
     if (!sc.fallbackArt) continue;
-    const keys = ["hero", sc.art, ...sc.objects.map((o) => o.sprite).filter(Boolean)];
+    const keys = [sc.art, ...sc.objects.map((o) => o.sprite).filter((k) => k && !window.Episode.CHARACTERS.includes(k))];
     if (!keys.every((k) => ready.has(k))) sc.art = sc.fallbackArt;
   }
   return ep;

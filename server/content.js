@@ -1,7 +1,7 @@
 // Loads the episodes and the dictionary: the built-in episodes (js/episodes/) and the episodes
 // the episode writer made and a parent approved (data/episodes/published/).
 // When an AI background of a built-in episode is ready, the server finds where its things are and saves
-// it in data/episodes/overrides/<id>.json ({ scenes: { <scene id>: { floor, entry, boxes: { <object id>: box } } } }).
+// it in data/episodes/overrides/<id>.json ({ scenes: { <scene id>: { floor, walk, heroHeight, entry, boxes: { <object id>: box } } } }).
 
 const fs = require("fs");
 const path = require("path");
@@ -51,6 +51,8 @@ function applyOverride(ep, override) {
     if (!o) continue;
     if (o.floor) sc.floor = o.floor;
     if (o.entry) sc.entry = o.entry;
+    if (o.walk) sc.walk = o.walk;
+    if (o.heroHeight) sc.heroHeight = o.heroHeight;
     for (const obj of sc.objects) if (o.boxes && o.boxes[obj.id]) obj.box = o.boxes[obj.id];
   }
   return ep;

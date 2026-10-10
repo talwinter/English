@@ -102,6 +102,9 @@ function validate(ep, ctx) {
       if (!artKeys.has(sc.art)) err(`${where}: picture "${sc.art}" is not in the art list`);
       const f = sc.floor || {};
       if (!(f.y0 >= 60 && f.y1 <= H - 2 && f.y1 - f.y0 >= 15)) err(`${where}: floor must be inside 60..198 and at least 15 high`);
+      if (sc.walk != null && !(Array.isArray(sc.walk) && sc.walk.length >= 3 && sc.walk.every((p) => Array.isArray(p) && p.length === 2))) {
+        err(`${where}: walk must be the floor outline [[x, y], ...] with at least 3 points`);
+      }
       const e = sc.entry || {};
       if (!(e.x >= 0 && e.x <= W && e.y >= f.y0 && e.y <= f.y1)) err(`${where}: entry must be on the floor`);
       for (const o of sc.objects) {
@@ -109,7 +112,9 @@ function validate(ep, ctx) {
         if (!Array.isArray(b) || b.length !== 4 || b[2] < 4 || b[3] < 4 || b[0] < 0 || b[1] < 0 || b[0] + b[2] > W || b[1] + b[3] > H) {
           err(`${where}: object ${o.id} needs box [x, y, w, h] inside 320x200`);
         }
-        if (o.sprite && !artKeys.has(o.sprite)) err(`${where}: sprite "${o.sprite}" is not in the art list`);
+        const person = Episode.CHARACTERS.includes(o.sprite);
+        if (o.sprite && !person && !artKeys.has(o.sprite)) err(`${where}: sprite "${o.sprite}" is not in the art list`);
+        if (o.pose && !(person && o.pose === "lying")) err(`${where}: object ${o.id}: pose "lying" is only for people (${Episode.CHARACTERS.join(", ")})`);
       }
     }
     for (const o of sc.objects) {

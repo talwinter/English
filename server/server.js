@@ -72,17 +72,17 @@ if (env.AUTO_CHOOSE_ART !== "false" || env.AUTO_PUBLISH === "true") art.chooseWa
 
 // An episode with AI pictures is ready to play when all its pictures are chosen.
 // A scene with fallbackArt (an old drawing) can always be played: it shows the drawing until its pictures are ready.
+// (People such as the hero and grandmother are ready-made walking sprites, not AI pictures.)
+const isPicture = (k) => k && !String(k).startsWith("ega:") && !Episode.CHARACTERS.includes(k);
 function artReady(ep) {
-  const keys = ep.scenes.flatMap((sc) =>
-    (String(sc.art).startsWith("ega:") || sc.fallbackArt ? [] : [sc.art, ...sc.objects.map((o) => o.sprite)]));
-  if (keys.length) keys.push("hero");
-  return keys.filter(Boolean).every((k) => art.isChosen(k));
+  const keys = ep.scenes.flatMap((sc) => (sc.fallbackArt ? [] : [sc.art, ...sc.objects.map((o) => o.sprite)]));
+  return keys.filter(isPicture).every((k) => art.isChosen(k));
 }
 
 // The AI pictures of this episode that are ready (the game uses them instead of the old drawings).
 function chosenArt(ep) {
-  const keys = ["hero", ...ep.scenes.flatMap((sc) => [sc.art, ...sc.objects.map((o) => o.sprite)])];
-  return [...new Set(keys.filter((k) => k && !String(k).startsWith("ega:") && art.isChosen(k)))];
+  const keys = ep.scenes.flatMap((sc) => [sc.art, ...sc.objects.map((o) => o.sprite)]);
+  return [...new Set(keys.filter((k) => isPicture(k) && art.isChosen(k)))];
 }
 
 // Backgrounds of the built-in episodes that were made before the server knew their scenes (for example the
@@ -474,7 +474,7 @@ server.listen(config.port, () => {
   setInterval(() => reconcile(), 30 * 1000);
   setInterval(() => wake.tick().catch((e) => store.log(`Wake error: ${e.message}`)), 30 * 1000);
   // Pictures the episodes need are made without waiting for a parent to ask.
-  const needed = [...new Set(["hero", ...content.episodes.flatMap((e) => (e.data.art || []).map((a) => a.key))])];
+  const needed = [...new Set(content.episodes.flatMap((e) => (e.data.art || []).map((a) => a.key)))];
   const queued = art.queueNew(needed);
   if (queued.length) store.log(`Pictures queued: ${queued.join(", ")}`);
   placeMadeBackgrounds();

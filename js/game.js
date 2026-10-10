@@ -197,7 +197,7 @@ window.startGame = function (G, DICT, { preview = false, served = false } = {}) 
   const canvas = $("#scene");
   const ctx = canvas.getContext("2d");
   let view = null, viewScene = null;
-  let walk = null;   // where the hero is walking: { x, y, then }
+  let walk = null;   // where the hero is walking: { route: [[x, y], ...], then, face }
   let steps = 0;
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
@@ -238,17 +238,51 @@ window.startGame = function (G, DICT, { preview = false, served = false } = {}) 
     };
   }
 
+  // Walking characters: LPC sprite sheets in assets/characters (rows 0-3 walk, 9 frames; rows 4-7 stand,
+  // 2 frames; each row faces up, left, down, right). A frame is 64x64 with the feet at y 62; a person is
+  // about 52 pixels tall in it.
+  const FACES = { up: 0, left: 1, down: 2, right: 3 };
+  const sheets = {};
+  function sheet(name) {
+    if (!Episode.CHARACTERS.includes(name)) return null;
+    if (!sheets[name]) {
+      const img = new Image();
+      sheets[name] = { img, ok: false };
+      img.onload = () => { sheets[name].ok = true; };
+      img.src = `assets/characters/${name}.png`;
+    }
+    return sheets[name].ok ? sheets[name].img : null;
+  }
+  const faceFrom = (dx, dy) => (Math.abs(dx) > Math.abs(dy) * 1.2 ? (dx > 0 ? "right" : "left") : dy > 0 ? "down" : "up");
+
   // AI pictures: a 320x200 background, characters and items drawn on top, things placed by box.
+  // Drawn at 1280x800, so characters can be sized in quarter steps without uneven pixels.
   function imageView(sc) {
-    const W = 320, H = 200;
-    const floor = { x0: 6, x1: W - 6, y0: sc.floor.y0, y1: sc.floor.y1 };
+    const W = 320, H = 200, PX = 4;
+    const floorPoly = Walk.outline(sc);
+    const ys = floorPoly.map((p) => p[1]);
+    const floor = { x0: 0, x1: W, y0: Math.min(...ys), y1: Math.max(...ys) };
+    // Everyone is the same size in a scene: heroHeight (how tall a person looks in this picture) or 68.
+    const S = Math.max(1, Math.round(((sc.heroHeight || 68) / 52) * PX) / PX);
+    const half = (v) => Math.round(v * PX) / PX;
     let rects = [];
+    const npcFace = (cx) => (state.hero.x < cx - 12 ? "left" : state.hero.x > cx + 12 ? "right" : "down");
     const rectOf = (o) => {
       const [x, y, w, h] = o.box;
+      const cx = x + w / 2, feet = y + h;
+      const person = o.sprite ? sheet(o.sprite) : null;
+      if (person || Episode.CHARACTERS.includes(o.sprite)) {
+        return { x: cx - 14 * S, y: feet - 54 * S, w: 28 * S, h: 54 * S, person, cx, feet };
+      }
       const img = o.sprite ? pic(o.sprite) : null;
-      if (img) return { x: Math.round(x + w / 2 - img.naturalWidth / 2), y: y + h - img.naturalHeight, w: img.naturalWidth, h: img.naturalHeight, img };
+      if (img) return { x: Math.round(cx - img.naturalWidth / 2), y: feet - img.naturalHeight, w: img.naturalWidth, h: img.naturalHeight, img };
       return { x, y, w, h, img: null };
     };
+    function drawPose(img, x, y, row, frame) {
+      ctx.drawImage(img, frame * 64, row * 64, 64, 64, half(x - 32 * S), half(y - 62 * S), 64 * S, 64 * S);
+    }
+    // Rows 0-3 walk, 4-7 stand; row 8 falls down (frame 4: on the ground, "lying").
+    const drawPerson = (img, x, y, face, frame, walking) => drawPose(img, x, y, (walking ? 0 : 4) + FACES[face], frame);
     function placeholder() {
       const g = ctx.createLinearGradient(0, 0, 0, H);
       g.addColorStop(0, "#5555ff"); g.addColorStop(floor.y0 / H, "#aaaaff");
@@ -268,39 +302,41 @@ window.startGame = function (G, DICT, { preview = false, served = false } = {}) 
       ctx.font = "8px monospace";
       ctx.fillText(o.name.replace(/^(the|your|a|an) /, ""), r.x + 2, r.y + 9, r.w - 4);
     }
-    function drawHero() {
+    function drawHero(now) {
       const h = state.hero;
-      const bob = walk && steps % 2 ? 1 : 0;
-      const img = pic("hero");
-      ctx.save();
-      if (img) {
-        ctx.translate(Math.round(h.x), Math.round(h.y) - bob);
-        if (h.dir < 0) ctx.scale(-1, 1);
-        ctx.drawImage(img, -Math.round(img.naturalWidth / 2), -img.naturalHeight);
-      } else {
-        // The pixel hero from the built-in drawings, at double size.
-        const frame = PIX.HERO[walk ? [1, 0, 2, 0][Math.floor(steps / 2) % 4] : 0];
-        const x0 = Math.round(h.x) - PIX.HERO_WIDTH, y0 = Math.round(h.y) - frame.length * 2 - bob;
-        frame.forEach((row, j) => {
-          for (let i = 0; i < row.length; i++) {
-            const ch = h.dir < 0 ? row[row.length - 1 - i] : row[i];
-            const c = PIX.HERO_MAP[ch];
-            if (ch === "." || c == null) continue;
-            ctx.fillStyle = `#${PIX.PALETTE[c].toString(16).padStart(6, "0")}`;
-            ctx.fillRect(x0 + i * 2, y0 + j * 2, 2, 2);
-          }
-        });
-      }
-      ctx.restore();
+      const img = sheet("hero");
+      if (!img) return;
+      const walking = !!walk;
+      const frame = walking ? 1 + (Math.floor(walked / (5 * S)) % 8) : Math.floor(now / 700) % 2;
+      drawPerson(img, h.x, h.y, h.face || "down", frame, walking);
     }
     return {
-      w: W, h: H, xScale: 1, floor, rebuild() {},
-      entry: () => [sc.entry.x, sc.entry.y],
+      w: W, h: H, px: PX, xScale: 1, floor, rebuild() {},
+      speed: 2 + S,
+      entry: () => Walk.nearest(floorPoly, sc.entry.x, sc.entry.y),
+      route: (from, [x, y]) => {
+        const to = Walk.nearest(floorPoly, x, y);
+        return Walk.path(floorPoly, Walk.nearest(floorPoly, from[0], from[1]), to);
+      },
+      // Where to stand for a thing: on the floor in front of it, or next to a person.
       spot: (id) => {
         const o = sceneObj(id);
         if (!o || !o.box) return null;
         const [x, y, w, h] = o.box;
-        return [x + w / 2, clamp(y + h + 4, floor.y0, floor.y1)];
+        const cx = x + w / 2;
+        if (Episode.CHARACTERS.includes(o.sprite)) {
+          const side = state.hero.x < cx ? -1 : 1;
+          return Walk.nearest(floorPoly, cx + side * 24 * S, y + h);
+        }
+        return Walk.nearest(floorPoly, cx, y + h + 4);
+      },
+      // Which way to look at a thing when he gets there.
+      faceTo: (id) => {
+        const o = sceneObj(id);
+        if (!o || !o.box) return null;
+        const [x, y, w, h] = o.box;
+        const dx = x + w / 2 - state.hero.x, dy = y + h / 2 - (state.hero.y - 26 * S);
+        return Math.abs(dx) > 18 * S ? (dx > 0 ? "right" : "left") : dy < 0 ? "up" : "down";
       },
       hitAt(cx, cy) {
         for (let i = rects.length - 1; i >= 0; i--) {
@@ -309,8 +345,10 @@ window.startGame = function (G, DICT, { preview = false, served = false } = {}) 
         }
         return null;
       },
-      toWorld: (cx, cy) => ({ x: Math.floor(cx), y: Math.floor(cy) }),
-      draw() {
+      toWorld: (cx, cy) => ({ x: cx, y: cy }),
+      draw(now) {
+        ctx.setTransform(PX, 0, 0, PX, 0, 0);
+        ctx.imageSmoothingEnabled = false;
         const bgImg = pic(sc.art);
         if (bgImg) ctx.drawImage(bgImg, 0, 0, W, H);
         else placeholder();
@@ -321,11 +359,14 @@ window.startGame = function (G, DICT, { preview = false, served = false } = {}) 
           const r = { id: o.id, ...rectOf(o) };
           rects.push(r);
           const base = o.box[1] + o.box[3];
-          if (r.img) layers.push({ base, draw: () => ctx.drawImage(r.img, r.x, r.y) });
+          if (r.person && o.pose === "lying") layers.push({ base, draw: () => drawPose(r.person, r.cx, r.feet, 8, 4) });
+          else if (r.person) layers.push({ base, draw: () => drawPerson(r.person, r.cx, r.feet, npcFace(r.cx), Math.floor(now / 800) % 2, false) });
+          else if (r.img) layers.push({ base, draw: () => ctx.drawImage(r.img, r.x, r.y) });
           else if (!bgImg) layers.push({ base, draw: () => placeholderThing(o, r) });
         }
-        layers.push({ base: state.hero.y + 0.5, draw: drawHero });
+        layers.push({ base: state.hero.y + 0.5, draw: () => drawHero(now) });
         layers.sort((a, b) => a.base - b.base).forEach((l) => l.draw());
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
       },
     };
   }
@@ -336,32 +377,43 @@ window.startGame = function (G, DICT, { preview = false, served = false } = {}) 
     view = String(sc.art).startsWith("ega:") ? egaView(sc.art.slice(4)) : imageView(sc);
     viewScene = state.scene;
     if (state.started && !state.finished && window.Sound) Sound.music(sceneMusic());
-    canvas.width = view.w;
-    canvas.height = view.h;
+    canvas.width = view.w * (view.px || 1);
+    canvas.height = view.h * (view.px || 1);
     canvas.style.aspectRatio = `${view.w} / ${view.h}`;
   }
 
   function placeHero([x, y]) {
-    state.hero = { x, y, dir: x > view.w / view.xScale / 2 ? -1 : 1 };
+    const dir = x > view.w / view.xScale / 2 ? -1 : 1;
+    state.hero = { x, y, dir, face: dir < 0 ? "left" : "right" };
     walk = null;
   }
 
+  // One step (every 50 ms) toward the next point of the route.
+  let walked = 0;
   function step() {
     if (!walk) return;
     steps++;
-    const h = state.hero, SPEED = 4;
-    const dx = (walk.x - h.x) * view.xScale, dy = walk.y - h.y;   // in screen units
+    const h = state.hero, SPEED = view.speed || 4;
+    const [tx, ty] = walk.route[0];
+    const dx = (tx - h.x) * view.xScale, dy = ty - h.y;   // in screen units
     const dist = Math.hypot(dx, dy);
     if (Math.abs(dx) > 1) h.dir = dx > 0 ? 1 : -1;
+    if (dist > 0.5) h.face = faceFrom(dx, dy);
     if (dist <= SPEED) {
-      h.x = walk.x; h.y = walk.y;
-      const then = walk.then;
+      h.x = tx; h.y = ty;
+      walked += dist;
+      walk.route.shift();
+      if (walk.route.length) return;
+      const { then, face } = walk;
       walk = null;
+      const looking = typeof face === "function" ? face() : face;
+      if (looking) h.face = looking;
       save();
       if (then) then();
     } else {
       h.x += (dx / dist) * SPEED / view.xScale;
       h.y += (dy / dist) * SPEED;
+      walked += SPEED;
     }
   }
 
@@ -374,9 +426,15 @@ window.startGame = function (G, DICT, { preview = false, served = false } = {}) 
     requestAnimationFrame(loop);
   }
 
-  function walkTo(x, y, then) {
-    const f = view.floor;
-    walk = { x: clamp(x, f.x0, f.x1), y: clamp(y, f.y0, f.y1), then };
+  function walkTo(x, y, then, face) {
+    const h = state.hero;
+    let route;
+    if (view.route) route = view.route([h.x, h.y], [x, y]);
+    else {
+      const f = view.floor;
+      route = [[clamp(x, f.x0, f.x1), clamp(y, f.y0, f.y1)]];
+    }
+    walk = { route, then, face };
   }
 
   // Walk to the thing first (like in the old games), then do the action. Looking works from far away.
@@ -387,7 +445,7 @@ window.startGame = function (G, DICT, { preview = false, served = false } = {}) 
     pending = sentence(v, itemId, thing(objId).name);
     verb = null; item = null;
     render();
-    walkTo(spot[0], spot[1], () => { pending = null; act(v, objId, itemId); });
+    walkTo(spot[0], spot[1], () => { pending = null; act(v, objId, itemId); }, () => view.faceTo && view.faceTo(objId));
   }
 
   function canvasPoint(e) {
@@ -396,7 +454,8 @@ window.startGame = function (G, DICT, { preview = false, served = false } = {}) 
     const x = (e.clientX - r.left - (r.width - canvas.width * scale) / 2) / scale;
     const y = (e.clientY - r.top - (r.height - canvas.height * scale) / 2) / scale;
     if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) return null;
-    return { cx: x, cy: y };
+    const px = view.px || 1;
+    return { cx: x / px, cy: y / px };
   }
 
   // ---------- typed commands (King's Quest style)

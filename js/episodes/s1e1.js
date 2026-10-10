@@ -203,8 +203,6 @@
       prompt: "inside a warm Viking longhouse, a stone fireplace with fire on the left, a long wooden table in the middle, a wooden chest on the right, a wooden door on the right wall, a round red and yellow shield on the wall" },
     { key: "bridge", kind: "background", height: null,
       prompt: "a wide frozen river with an old wooden bridge going into a snowy pine forest on the far side, two small snowy wooden houses on the near side at the bottom left, daylight" },
-    { key: "grandmother", kind: "character", height: 44,
-      prompt: "an old Viking woman with grey hair in a bun, a purple dress, a white apron and a wooden walking stick" },
     { key: "wolf", kind: "character", height: 30, prompt: "a big thin grey wolf standing, looking hungry, friendly, not scary" },
     { key: "item-key", kind: "item", height: 12, prompt: "an old iron key" },
     { key: "item-bread", kind: "item", height: 12, prompt: "a round loaf of bread" },

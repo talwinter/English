@@ -39,7 +39,7 @@ function createArt(dataDir, options = {}) {
   // Pictures the episodes use are "needed"; the others in art/shots.json are optional upgrades for later.
   const shots = () => {
     const fromEpisodes = options.episodeShots ? options.episodeShots() : [];
-    const needed = new Set(["hero", ...fromEpisodes.map((s) => s.key)]);
+    const needed = new Set(fromEpisodes.map((s) => s.key));
     const all = [...fromEpisodes, ...JSON.parse(fs.readFileSync(path.join(ROOT, "art", "shots.json"), "utf8")).shots];
     const seen = new Set();
     return all.filter((s) => !seen.has(s.key) && seen.add(s.key)).map((s) => ({ ...s, needed: needed.has(s.key) }));

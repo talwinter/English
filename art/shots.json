@@ -1,13 +1,6 @@
 {
   "shots": [
     {
-      "key": "hero",
-      "episode": "s1e0",
-      "kind": "character",
-      "height": 48,
-      "prompt": "a teenage boy in a red hoodie, blue jeans and white sneakers, short brown hair"
-    },
-    {
       "key": "byte",
       "episode": "s1e0",
       "kind": "character",

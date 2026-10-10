@@ -154,12 +154,12 @@ test("built-in episodes use the places found in their AI pictures", () => {
 test("art queue: worker takes jobs, sends 3 versions, parent picks one", () => {
   const { createArt } = require("./art");
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "eq-art-"));
-  const art = createArt(dir);
+  const art = createArt(dir, { episodeShots: () => [{ key: "village", kind: "background", prompt: "a village", episode: "s1e1" }] });
   assert.equal(art.next(), null);
-  // Without keys only needed pictures are made (here only the hero); optional ones by name.
-  assert.deepEqual(art.queue(), ["hero"]);
-  const queued = art.queue(["hero", "byte"]);
-  assert.deepEqual([...queued].sort(), ["byte", "hero"]);
+  // Without keys only needed pictures are made (the ones episodes use); optional ones by name.
+  assert.deepEqual(art.queue(), ["village"]);
+  const queued = art.queue(["village", "byte"]);
+  assert.deepEqual([...queued].sort(), ["byte", "village"]);
   assert.equal(art.list().shots.find((x) => x.key === "byte").needed, false);
   const job = art.next(0);
   assert.equal(job.key, queued[0]);
@@ -392,14 +392,14 @@ test("art: by default one version per picture, used automatically", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "eq-art1-"));
   const chosen = [];
   const art = createArt(dir, { autoChoose: true, versions: 1, onChosen: (k) => chosen.push(k) });
-  art.queue(["hero"]);
+  art.queue(["byte"]);
   const job = art.next(0);
   assert.equal(job.variants, 1);
   const png = Buffer.from("89504e470d0a1a0a0000", "hex");
-  art.result("hero", 0, png, png);
-  assert.equal(art.isChosen("hero"), true);
-  assert.deepEqual(chosen, ["hero"]);
-  assert.throws(() => art.result("hero", 1, png, png), /bad result/);
+  art.result("byte", 0, png, png);
+  assert.equal(art.isChosen("byte"), true);
+  assert.deepEqual(chosen, ["byte"]);
+  assert.throws(() => art.result("byte", 1, png, png), /bad result/);
 });
 
 test("writer: refuses a new episode while a draft waits for the parent", async () => {

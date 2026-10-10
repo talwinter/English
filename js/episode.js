@@ -17,11 +17,17 @@
 //       boot (an old computer starts), askname (he types his name; texts can then use {name}), pullin
 //       (the screen pulls him in). Sounds for items, points and goals play by themselves.
 // A scene may have "music": mystery, adventure, cozy, danger or glitch.
+// In picture scenes: "walk" is the floor outline [[x, y], ...] (where people can walk), and "heroHeight" how
+// tall a person looks in the picture (pixels of 200). People (grandmother, father) are objects whose sprite
+// is one of CHARACTERS; their box's bottom middle is where their feet are.
 
 (function (root) {
   const VERBS = ["look", "take", "open", "use", "give", "talk", "enter", "go"];
   const FX = ["shake", "flash", "glitch", "crt", "boot", "askname", "pullin"];
   const MUSIC = ["mystery", "adventure", "cozy", "danger", "glitch"];
+  // Walking characters drawn from ready-made sprite sheets (assets/characters); an object with one of these
+  // as its sprite is that person. Other sprites are AI pictures.
+  const CHARACTERS = ["hero", "grandmother", "father"];
   const WORD = /[A-Za-z]+(?:'[A-Za-z]+)?/g;
   const list = (v) => (v == null ? [] : [].concat(v));
 
@@ -114,7 +120,7 @@
 
   const wordsIn = (textList) => new Set(textList.flatMap((t) => (t.match(WORD) || []).map((w) => w.toLowerCase())));
 
-  const API = { compile, findRule, texts, wordsIn, condition, VERBS, FX, MUSIC, WORD };
+  const API = { compile, findRule, texts, wordsIn, condition, VERBS, FX, MUSIC, CHARACTERS, WORD };
   if (typeof module !== "undefined" && module.exports) module.exports = API;
   else root.Episode = API;
 })(this);
