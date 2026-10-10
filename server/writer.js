@@ -137,7 +137,7 @@ PICTURES
   Background "height" is null. Keys are lowercase with - (like "ice-lake", "char-troll", "item-axe").
 - Reuse an existing picture key when the place or character is the same, and do not list it again in "art".`;
 
-function createWriter({ dataDir, env, getContent, reload, art, log }) {
+function createWriter({ dataDir, env, getContent, reload, art, log, getProfile = () => ({}) }) {
   const dir = path.join(dataDir, "episodes");
   for (const d of ["published", "drafts"]) fs.mkdirSync(path.join(dir, d), { recursive: true });
   const indexFile = path.join(dir, "index.json");
@@ -185,6 +185,8 @@ function createWriter({ dataDir, env, getContent, reload, art, log }) {
         content: [
           `Write episode ${id}. Its "id" must be "${id}".`,
           note ? `\nNOTE FROM THE PARENT (follow it): ${note}` : "",
+          `\nHERO NAME: ${getProfile().name ? `"${getProfile().name}"` : "not typed yet"}. ` +
+            "A character may call him by name, rarely, and only by writing {name} in the text (the game puts the real name there).",
           `\nSERIES BIBLE:\n${bible}`,
           `\nSTORY SO FAR:\n${storySoFar}`,
           `\nKNOWN WORDS (no dictionary entry needed):\n${known.join(", ")}`,

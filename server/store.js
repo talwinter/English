@@ -7,7 +7,7 @@ function createStore(dataDir) {
   const file = path.join(dataDir, "state.json");
   fs.mkdirSync(dataDir, { recursive: true });
 
-  const fresh = { completions: {}, episodesDone: [], forceLock: false, log: [] };
+  const fresh = { completions: {}, episodesDone: [], forceLock: false, log: [], profile: {} };
   let state = fresh;
   try {
     state = { ...fresh, ...JSON.parse(fs.readFileSync(file, "utf8")) };

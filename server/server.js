@@ -54,12 +54,17 @@ function reloadContent() {
 }
 
 // Make the voices ahead of time: the episodes he has not played first, then the shared lines, then the words.
+// {name} in an episode is his name (he types it in the prologue; the game tells the server). The voices are made
+// with the real name, so every line already exists when he plays.
+const heroName = () => (store.state.profile && store.state.profile.name) || "friend";
+const withName = (t) => t.replace(/\{name\}/g, heroName());
+
 function prepareVoices() {
   if (!voice.enabled) return;
   const done = (e) => store.state.episodesDone.includes(e.id);
   const eps = [...content.episodes.filter((e) => !done(e)), ...content.episodes.filter(done)];
   const lines = [
-    ...eps.flatMap((e) => Episode.texts(e.data).slice(1).map((text) => ({ text }))),
+    ...eps.flatMap((e) => Episode.texts(e.data).slice(1).map((text) => ({ text: withName(text) }))),
     ...content.baseTexts.map((text) => ({ text })),
     ...eps.flatMap((e) => Episode.commandLines(e.data, content.base).map((text) => ({ text }))),
     ...Object.keys(content.DICT).map((text) => ({ text, slow: true })),
@@ -70,7 +75,8 @@ function prepareVoices() {
 const wake = createWake({
   wakeAt: env.WAKE_TIME ? parseTime(env.WAKE_TIME) : null, timeZone: config.timeZone, router, art, log: (m) => store.log(m),
 });
-writer = createWriter({ dataDir, env, getContent: () => content, reload: reloadContent, art, log: (m) => store.log(m) });
+writer = createWriter({ dataDir, env, getContent: () => content, reload: reloadContent, art, log: (m) => store.log(m),
+  getProfile: () => store.state.profile || {} });
 if (env.AUTO_CHOOSE_ART !== "false" || env.AUTO_PUBLISH === "true") art.chooseWaiting();
 
 // An episode with AI pictures is ready to play when all its pictures are chosen.
@@ -234,6 +240,7 @@ function status() {
     lockTime: config.lockTime,
     mission: mission(),
     streak: streak(now),
+    name: (state().profile || {}).name || null,
   };
 }
 
@@ -266,7 +273,21 @@ async function handle(req, res) {
     const id = wanted || (nextEpisode() || {}).id || lastDone || firstReady.id;
     const ep = content.episodes.find((e) => e.id === id);
     if (!ep) return send(res, 404, { error: "unknown episode" });
-    return send(res, 200, { episode: ep.data, dictionary: content.DICT, chosen: chosenArt(ep.data) });
+    return send(res, 200, { episode: ep.data, dictionary: content.DICT, chosen: chosenArt(ep.data),
+      profile: { name: (state().profile || {}).name || null } });
+  }
+
+  // The hero's name, typed in the prologue. Kept here so new episodes can use it and their voices are made
+  // before he plays.
+  if (p === "/api/profile" && post) {
+    const body = await readJson(req);
+    const name = String(body.name || "").replace(/[^\p{L} '-]/gu, "").trim().slice(0, 16);
+    if (!name) return send(res, 400, { error: "name" });
+    state().profile = { ...(state().profile || {}), name };
+    store.save();
+    store.log(`Hero name: ${name}`);
+    prepareVoices();
+    return send(res, 200, { name });
   }
 
   if (p === "/api/episode-done" && post) {

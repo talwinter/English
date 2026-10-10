@@ -20,6 +20,7 @@
       useWhat: "Use what? First click a thing in your bag.",
       giveWhat: "Give what? First click a thing in your bag.",
       levelDone: "Level complete!",
+      practiceIntro: "Byte: \"Let's practice the new words!\"",
       defaults: {
         look: "You see nothing special.",
         take: "You can not take that.",

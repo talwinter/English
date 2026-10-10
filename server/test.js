@@ -253,6 +253,14 @@ test("writer: writes, fixes problems, waits for approval, places things in pictu
       await new Promise((r) => setTimeout(r, 100));
     }
     const draft = w.drafts[0];
+    // The hero's name is kept, cleaned, and sent with the episode.
+    const prof = await (await fetch(base + "/api/profile", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: "  Alex<>  " }),
+    })).json();
+    assert.equal(prof.name, "Alex");
+    const played = await (await fetch(base + "/api/play?episode=s1e0")).json();
+    assert.equal(played.profile.name, "Alex");
+    assert.equal((await (await fetch(base + "/api/status")).json()).name, "Alex");
     assert.equal(draft.id, "s1e3");
     assert.equal(draft.status, "ready", JSON.stringify(draft.errors));
     assert.equal(episodeCalls, 2, "the first answer had a word without Hebrew, so it asks again");

@@ -127,6 +127,14 @@ window.DICT = {
   work: "עובד / לעבוד",
   you: "אתה / אותך",
   your: "שלך",
+  // words of the game's own screens (practice, word book)
+  practice: "לתרגל / תרגול",
+  word: "מילה",
+  words: "מילים",
+  new: "חדש / חדשה",
+  let: "תן / בוא (Let's = בוא נ...)",
+  "let's": "בוא נ...",
+  us: "אנחנו / אותנו",
 };
 
 // Small grammar words. They are translated, but not used in practice quizzes and challenges.
