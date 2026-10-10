@@ -23,7 +23,9 @@ The server writes new episodes by itself with OpenAI, checks them, and keeps the
    - **❌ דחה וכתוב מחדש** (reject and write again) asks you what to change ("funnier", "fewer new words",
      "more about BYTE") and writes it again.
 5. **When a background picture is chosen**, the server asks OpenAI where the things are in it (the door,
-   the cave, the tree), so clicks land in the right place. This also works for the built-in episodes (the
+   the cave, the tree), the outline of the floor, and how tall a person looks there, so clicks land in the
+   right place and the hero walks only on the floor. One call per picture (less than a cent).
+   **🔍 בדוק תמונות** (check pictures) shows the result on top of each picture. This also works for the built-in episodes (the
    prologue and Episode 1); their places are kept in `data/episodes/overrides/`.
 6. **It becomes his mission** once all its pictures are ready. An episode still waiting for pictures is
    skipped, and comes later when they are ready; with nothing ready, his mission is the word challenge, so he

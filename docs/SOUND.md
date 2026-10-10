@@ -9,9 +9,10 @@ voice: the narrator, Byte, Grandmother, Father, and so on (the list is in `js/vo
 - It runs as a second container, `kokoro`, in `docker-compose.yml`. `docker compose up -d --build` starts it.
   The first start downloads about 2–3 GB; after that it uses about 1–2 GB of memory.
 - The server makes each line **once** and keeps it in `data/voice/`. It makes the lines of the episodes ahead
-  of time, one by one, so the game plays them at once. A new line (for example with his name in it) takes a
-  second or two the first time.
-- The first time, making all the lines of the existing episodes takes some time (around half an hour on an
+  of time, one by one, including every command line ("Open the door"), so the game plays them at once.
+  A line that is not made yet (for example with his name in it) is read by the browser's voice right away,
+  and the server makes the human voice for next time.
+- The first time, making all the lines of the existing episodes takes some time (an hour or two on an
   i3). Meanwhile the game uses the browser's voice for lines that are not ready yet.
 - The parent page shows how many lines are ready (**קולות אנושיים**).
 - When a word is spoken it lights up on the screen, like before.

@@ -53,6 +53,8 @@ types his name, and is pulled into the game.
 | `js/speech.js` | Reading aloud: the server's voices (Kokoro), or the browser's. |
 | `js/voices.js` | Which character says a line, and with which voice. |
 | `js/audio.js` | Music and sound effects. |
+| `js/walk.js` | Where people can walk in a picture (the floor outline) and the way around corners. |
+| `assets/characters/` | The walking characters (LPC sprites) and their artists' credits; `tools/lpc/build.py` makes them. |
 | `js/fx.js` | Special effects (shake, flash, glitch, an old computer starting, being pulled into the game). |
 | `server/` | The server: daily lock, router control (SSH), challenge, picture queue, episode writer and checks, parent page. |
 | `router/discord-lock.rsc` | The MikroTik setup to paste into the router. |

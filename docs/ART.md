@@ -69,14 +69,26 @@ repository. I'll place them in the scenes and mark the clickable areas (door, ch
   shield on the wall.
 - **The bridge**: a wide frozen river with an old wooden bridge going into a pine forest on the far
   side, and two small snowy houses on the near side at the bottom left.
-- **The hero**: a teenage boy in a red hoodie, blue jeans and white sneakers, brown hair.
-- **Grandmother**: an old Viking woman with grey hair in a bun, a purple dress, a white apron and a
-  wooden walking stick.
 - **The wolf**: a big thin grey wolf, standing, looking hungry, not scary.
 - **Items**: an old iron key, a round loaf of bread, a Viking sword.
 
-## Animation
+## People: ready-made walking characters
 
-AI images are great for backgrounds, characters and items. They can't reliably draw the same character in
-several walking poses. With AI art the characters will glide with a small step bounce. If he loves the
-game, a pixel artist can draw real walking frames for the hero later (a few hours of work for an artist).
+The hero, Grandmother and Father are not AI pictures. They are LPC (Liberated Pixel Cup) sprites: free
+pixel characters that really walk, with 9 frames in each of 4 directions (like Stardew Valley), and stand
+with a small breathing movement. They live in `assets/characters/` and are built by `tools/lpc/build.py`
+from the LPC character generator (the script says how). The artists are credited in
+`assets/characters/CREDITS.md`, linked from the start screen (their license asks for that).
+
+- Everyone is the same size in a scene. The picture check finds how tall a person looks in each
+  background (people are about a third of the picture if it doesn't know).
+- More people can be added in `tools/lpc/build.py` (a body, head, hair and clothes from the generator)
+  and in `Episode.CHARACTERS` in `js/episode.js`.
+- Animals (the wolf, the bear) are still AI pictures.
+
+## Checking a scene
+
+On the parent page, **🔍 בדוק תמונות** (check pictures) opens an episode with the floor drawn in green,
+the things you can click in yellow, and where the hero comes in in red, with a button for each scene.
+If the floor or a thing is wrong, press **צור מחדש** (make again) on that background: the picture check
+runs again on the new picture.
