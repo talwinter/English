@@ -184,7 +184,8 @@
     $("#episodes").innerHTML = e.episodes.map((x) =>
       `<tr><td class="ltr">${esc(x.id)}</td><td class="ltr">${esc(x.title)}</td>
         <td>${x.done ? "✅ שוחק" : "—"}</td><td>${x.ready ? "🖼️ מוכן" : "⏳ מחכה לתמונות"}</td>
-        <td class="muted">${x.words} מילים</td></tr>`).join("");
+        <td class="muted">${x.words} מילים</td>
+        <td><a href="/?episode=${esc(x.id)}&check=1" target="_blank" title="מראה את הרצפה ואת הדברים שאפשר ללחוץ עליהם">🔍 בדוק תמונות</a></td></tr>`).join("");
     const w = e.writer;
     $("#writer").innerHTML = !w.enabled
       ? "כדי לכתוב פרקים צריך להגדיר OPENAI_API_KEY ב-docker-compose.yml"
@@ -204,6 +205,7 @@
       ${(d.warnings || []).length ? `<ul class="muted ltr">${d.warnings.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
       <div class="row">
         ${d.status === "ready" ? `<a class="button" href="/?draft=${esc(d.id)}" target="_blank">▶ נסה את הפרק</a>
+          <a class="button" href="/?draft=${esc(d.id)}&check=1" target="_blank">🔍 בדוק תמונות</a>
           <button data-approve="${esc(d.id)}">✅ אשר</button>` : ""}
         ${d.status !== "writing" ? `<button data-reject="${esc(d.id)}">❌ דחה וכתוב מחדש</button>` : ""}
       </div>

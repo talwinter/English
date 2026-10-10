@@ -9,6 +9,7 @@ const Episode = require("../js/episode");
 const { validate } = require("./validate");
 const { chatJson } = require("./openai");
 const { locate } = require("./hotspots");
+const Walk = require("../js/walk");
 const { ROOT, BUILTIN, readOverride, overrideFile } = require("./content");
 
 const SEASON_LENGTH = 7;
@@ -57,6 +58,7 @@ const SCHEMA = {
             id: str, name: str, words: strs, look: str,
             box: { type: "array", items: { type: "integer" } },
             sprite: strOrNull,
+            pose: { type: ["string", "null"], enum: ["lying", null] },
             visible: { $ref: "#/$defs/cond" },
           }),
         },
@@ -125,6 +127,10 @@ PICTURES
   (usually y0 about 140-155 and y1 about 196). Characters and things on the ground stand on the floor: the
   bottom of their box (y + height) is inside the floor. Exits are near the left or right edge.
 - "entry" is where the hero appears in the scene (on the floor). The hero is drawn by the game: never add him.
+- People who are ready-made walking characters: ${Episode.CHARACTERS.filter((c) => c !== "hero").map((c) => `"${c}"`).join(", ")}.
+  Use one as the sprite of a person object (with no picture in "art"); its box is [x, y, 30, 60] with the feet
+  (y + 60) on the floor. Set pose "lying" for a person lying on the ground (hurt, trapped, asleep), else null.
+  Other people and animals need a character picture in "art".
 - "art" lists every NEW picture: background prompts describe the place and where the big things are (left,
   middle, right); character/item prompts describe only the character or thing. Character "height" is its size
   in pixels (a grown-up about 46, a child about 40, a big animal about 30-40, small things 10-16).
@@ -320,7 +326,7 @@ function createWriter({ dataDir, env, getContent, reload, art, log }) {
       for (const sc of ep.scenes.filter((s) => s.art === key)) {
         const placed = await placeScene(JSON.parse(JSON.stringify(sc)), png, key, id);
         override.scenes[sc.id] = {
-          floor: placed.floor, entry: placed.entry,
+          floor: placed.floor, walk: placed.walk || null, heroHeight: placed.heroHeight || null, entry: placed.entry,
           boxes: Object.fromEntries(placed.objects.map((o) => [o.id, o.box])),
         };
       }
@@ -337,17 +343,24 @@ function createWriter({ dataDir, env, getContent, reload, art, log }) {
     const found = await locate(env, png, fixed.map((o) => ({ id: o.id, name: o.name, look: o.look })));
     const oldFloor = sc.floor || { y0: 0, y1: 199 };
     sc.floor = found.floor;
+    sc.walk = found.walk || null; // null: no outline found, the floor band is used
+    if (found.heroHeight) sc.heroHeight = found.heroHeight;
+    const floor = Walk.outline(sc);
     for (const o of sc.objects) {
       if (!o.sprite && found.boxes[o.id]) o.box = found.boxes[o.id];
       if (o.sprite && o.box) {
         const bottom = o.box[1] + o.box[3];
         if (bottom < oldFloor.y0 - 4) continue; // on a table or a wall: leave it
-        const target = Math.max(sc.floor.y0 + 2, Math.min(sc.floor.y1, bottom));
-        o.box = [o.box[0], o.box[1] + target - bottom, o.box[2], o.box[3]];
+        // People and things standing on the floor: put their feet on the nearest floor point.
+        const [fx, fy] = Walk.nearest(floor, o.box[0] + o.box[2] / 2, bottom).map(Math.round);
+        o.box = [Math.max(0, fx - Math.round(o.box[2] / 2)), Math.max(0, fy - o.box[3]), o.box[2], o.box[3]];
       }
     }
-    sc.entry = { ...sc.entry, y: Math.max(sc.floor.y0, Math.min(sc.floor.y1, sc.entry.y)) };
-    log(`Found things in "${key}" for ${id}/${sc.id}: ${Object.keys(found.boxes).join(", ") || "none"}`);
+    const [ex, ey] = Walk.nearest(floor, sc.entry.x, sc.entry.y).map(Math.round);
+    sc.entry = { x: ex, y: ey };
+    log(`Found things in "${key}" for ${id}/${sc.id}: ${Object.keys(found.boxes).join(", ") || "none"}` +
+      (found.walk ? `; floor outline with ${found.walk.length} points` : "") +
+      (found.heroHeight ? `; people ${found.heroHeight} pixels tall` : ""));
     return sc;
   }
 

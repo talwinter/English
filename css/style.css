@@ -259,3 +259,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 @media (prefers-reduced-motion: reduce) {
   .scene-wrap.fx-shake, .scene-wrap.fx-glitch, #scene.fx-pullin { animation-duration: .01s; }
 }
+
+/* Parent's picture check (?check=1) */
+.check-bar { background: #222; color: #ff0; font-size: 14px; padding: 6px 8px; direction: rtl; }
+.check-bar button { margin: 2px; font-size: 13px; direction: ltr; color: #000; }

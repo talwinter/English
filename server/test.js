@@ -296,7 +296,11 @@ test("server: a built-in background made before its scene existed gets its thing
     req.on("data", (c) => { body += c; });
     req.on("end", () => {
       asked.push(JSON.parse(body).response_format.json_schema.name);
-      const answer = { objects: [{ id: "computer", found: true, left: 0.5, top: 0.4, right: 0.75, bottom: 0.7 }], groundTop: 0.75, groundBottom: 0.98 };
+      const answer = {
+        objects: [{ id: "computer", found: true, left: 0.5, top: 0.4, right: 0.75, bottom: 0.7 }],
+        floorOutline: [{ x: 0.1, y: 0.75 }, { x: 0.9, y: 0.75 }, { x: 1, y: 1 }, { x: 0, y: 1 }],
+        personHeight: 0.4, groundTop: 0.75, groundBottom: 0.98,
+      };
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ choices: [{ message: { content: JSON.stringify(answer) } }], usage: { total_tokens: 10 } }));
     });
@@ -327,7 +331,14 @@ test("server: a built-in background made before its scene existed gets its thing
     const play = await (await fetch(`http://localhost:${port}/api/play?episode=s1e0`)).json();
     const attic = play.episode.scenes.find((sc) => sc.id === "attic");
     assert.deepEqual(attic.objects.find((o) => o.id === "computer").box, [160, 80, 80, 60]);
-    assert.deepEqual(attic.floor, { y0: 150, y1: 196 });
+    assert.deepEqual(attic.floor, { y0: 150, y1: 198 });
+    assert.deepEqual(attic.walk, [[32, 150], [288, 150], [320, 200], [0, 200]]);
+    assert.equal(attic.heroHeight, 80);
+    // Things lying on the floor were moved onto it; where he comes in is on the floor.
+    const Walk = require("../js/walk");
+    const cable = attic.objects.find((o) => o.id === "cable").box;
+    assert.ok(Walk.inside(attic.walk, cable[0] + cable[2] / 2, cable[1] + cable[3] - 0.5));
+    assert.ok(Walk.inside(attic.walk, attic.entry.x, attic.entry.y));
     // Next start: already placed, OpenAI is not asked again.
     proc.kill();
     await new Promise((r) => setTimeout(r, 200));

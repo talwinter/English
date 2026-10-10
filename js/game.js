@@ -3,7 +3,10 @@
 
 window.startGame = function (G, DICT, { preview = false, served = false } = {}) {
   const ART = window.ART;
-  const SAVE_KEY = `eq.save.${G.id}${preview ? ".preview" : ""}`;
+  // ?check=1: the parent checks the pictures: the floor and the clickable things are drawn on top, and
+  // buttons jump to each scene. Its progress is kept apart from his.
+  const CHECK = new URLSearchParams(location.search).has("check");
+  const SAVE_KEY = `eq.save.${G.id}${preview ? ".preview" : ""}${CHECK ? ".check" : ""}`;
   const WORDS_KEY = "englishQuest.words.v1";
   const WORD = window.Episode.WORD;
   const TWO_STEP = new Set(["use", "give"]);
@@ -272,6 +275,7 @@ window.startGame = function (G, DICT, { preview = false, served = false } = {}) 
       const cx = x + w / 2, feet = y + h;
       const person = o.sprite ? sheet(o.sprite) : null;
       if (person || Episode.CHARACTERS.includes(o.sprite)) {
+        if (o.pose === "lying") return { x: cx - 18 * S, y: feet - 26 * S, w: 36 * S, h: 26 * S, person, cx, feet };
         return { x: cx - 14 * S, y: feet - 54 * S, w: 28 * S, h: 54 * S, person, cx, feet };
       }
       const img = o.sprite ? pic(o.sprite) : null;
@@ -301,6 +305,29 @@ window.startGame = function (G, DICT, { preview = false, served = false } = {}) 
       ctx.fillStyle = "#000";
       ctx.font = "8px monospace";
       ctx.fillText(o.name.replace(/^(the|your|a|an) /, ""), r.x + 2, r.y + 9, r.w - 4);
+    }
+    // Check mode: the floor in green, clickable things in yellow, where he comes in in red.
+    function drawCheck() {
+      ctx.fillStyle = "rgba(0,255,80,.25)";
+      ctx.strokeStyle = "#00ff50";
+      ctx.lineWidth = 0.75;
+      ctx.beginPath();
+      floorPoly.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.font = "6px monospace";
+      for (const r of rects) {
+        ctx.strokeStyle = "#ffff00";
+        ctx.strokeRect(r.x, r.y, r.w, r.h);
+        ctx.fillStyle = "rgba(0,0,0,.6)";
+        ctx.fillRect(r.x, r.y, ctx.measureText(r.id).width + 3, 7);
+        ctx.fillStyle = "#ffff00";
+        ctx.fillText(r.id, r.x + 1.5, r.y + 5.5);
+      }
+      const [ex, ey] = Walk.nearest(floorPoly, sc.entry.x, sc.entry.y);
+      ctx.fillStyle = "#ff3030";
+      ctx.fillRect(ex - 2, ey - 2, 4, 4);
     }
     function drawHero(now) {
       const h = state.hero;
@@ -366,6 +393,7 @@ window.startGame = function (G, DICT, { preview = false, served = false } = {}) 
         }
         layers.push({ base: state.hero.y + 0.5, draw: () => drawHero(now) });
         layers.sort((a, b) => a.base - b.base).forEach((l) => l.draw());
+        if (CHECK) drawCheck();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
       },
     };
@@ -819,6 +847,23 @@ window.startGame = function (G, DICT, { preview = false, served = false } = {}) 
   $("#music").textContent = Sound.musicOn ? "Music:on" : "Music:off";
   if (state.started) $("#help").hidden = true;
   if (state.finished) { render(); renderLog(); showEnd(); } else begin();
+
+  if (CHECK) {
+    $("#help").hidden = true;
+    const bar = document.createElement("div");
+    bar.className = "check-bar";
+    bar.innerHTML = "🔍 בדיקת תמונות: ירוק = רצפה, צהוב = אפשר ללחוץ, אדום = איפה הוא נכנס · " +
+      Object.keys(G.scenes).map((id) => `<button data-scene="${id}">${G.scenes[id].name}</button>`).join(" ");
+    bar.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-scene]");
+      if (!b) return;
+      state.scene = b.dataset.scene;
+      ensureView();
+      placeHero(view.entry("start"));
+      render();
+    });
+    document.querySelector(".scene-wrap").before(bar);
+  }
 };
 
 window.loadEpisode().then(({ game, dict, preview, served }) => {

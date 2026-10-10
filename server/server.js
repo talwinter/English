@@ -85,15 +85,17 @@ function chosenArt(ep) {
   return [...new Set(keys.filter((k) => isPicture(k) && art.isChosen(k)))];
 }
 
-// Backgrounds of the built-in episodes that were made before the server knew their scenes (for example the
-// attic, made before the prologue existed): find where the things are in them now.
+// Backgrounds that were chosen before the server knew their scenes (for example the attic, made before the
+// prologue existed), or before it found floor outlines: find where things are in them now (once each).
 async function placeMadeBackgrounds() {
   if (!env.OPENAI_API_KEY) return;
   const keys = new Set();
-  for (const e of content.episodes.filter((x) => BUILTIN.includes(x.id))) {
-    const placed = readOverride(dataDir, e.id).scenes || {};
+  for (const e of content.episodes) {
+    const placed = BUILTIN.includes(e.id) ? readOverride(dataDir, e.id).scenes || {} : null;
     for (const sc of e.data.scenes) {
-      if (!String(sc.art).startsWith("ega:") && art.isChosen(sc.art) && !placed[sc.id]) keys.add(sc.art);
+      if (String(sc.art).startsWith("ega:") || !art.isChosen(sc.art)) continue;
+      const done = placed ? placed[sc.id] && "walk" in placed[sc.id] : sc.walk !== undefined;
+      if (!done) keys.add(sc.art);
     }
   }
   for (const key of keys) {
