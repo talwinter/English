@@ -600,12 +600,14 @@ window.startGame = function (G, DICT, { preview = false, served = false } = {}) 
     if (!preview) document.dispatchEvent(new CustomEvent("eq:level-complete", { detail: { episode: G.id } }));
   }
 
+  // Start the episode again from the start screen, like the first time (Start shows the title and reads aloud).
   function restart() {
+    Speech.stop();
     state = freshState();
-    state.started = true;
     verb = null; item = null; hoverName = null; pending = null;
     store.del(SAVE_KEY);
     $("#end").hidden = true;
+    $("#help").hidden = false;
     begin();
   }
 
