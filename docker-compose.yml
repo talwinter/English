@@ -14,6 +14,11 @@ services:
       TTS_URL: http://kokoro:8880    # human-sounding voices (the kokoro container below); remove = browser voices
     volumes:
       - ./data:/data                 # progress, episodes, pictures, and ssh/id_ed25519 (the router key)
+    logging: &small-logs             # keep at most 3 x 10 MB of log
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
 
   # Kokoro: free text-to-speech on the CPU (about 1-2 GB of memory). It makes the game's voices; the server keeps
   # every line it made in data/voice, so this only works hard when new episodes arrive.
@@ -21,3 +26,6 @@ services:
     image: ghcr.io/remsky/kokoro-fastapi-cpu:v0.8.2
     container_name: kokoro
     restart: unless-stopped
+    environment:
+      API_LOG_LEVEL: WARNING         # only warnings and errors (the default writes every word)
+    logging: *small-logs
