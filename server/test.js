@@ -139,8 +139,11 @@ test("art queue: worker takes jobs, sends 3 versions, parent picks one", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "eq-art-"));
   const art = createArt(dir);
   assert.equal(art.next(), null);
-  const queued = art.queue();
-  assert.ok(queued.includes("village") && queued.includes("hero"));
+  // Without keys only needed pictures are made (here only the hero); optional ones by name.
+  assert.deepEqual(art.queue(), ["hero"]);
+  const queued = art.queue(["hero", "village"]);
+  assert.deepEqual([...queued].sort(), ["hero", "village"]);
+  assert.equal(art.list().shots.find((x) => x.key === "village").needed, false);
   const job = art.next(0);
   assert.equal(job.key, queued[0]);
   assert.match(job.prompt, /King's Quest V/);

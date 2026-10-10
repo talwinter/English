@@ -34,21 +34,25 @@ function createArt(dataDir, options = {}) {
   fs.mkdirSync(chosenDir, { recursive: true });
   const file = path.join(dir, "art.json");
 
+  // Pictures the episodes use are "needed"; the others in art/shots.json are optional upgrades for later.
   const shots = () => {
-    const all = [...JSON.parse(fs.readFileSync(path.join(ROOT, "art", "shots.json"), "utf8")).shots,
-      ...(options.episodeShots ? options.episodeShots() : [])];
+    const fromEpisodes = options.episodeShots ? options.episodeShots() : [];
+    const needed = new Set(["hero", ...fromEpisodes.map((s) => s.key)]);
+    const all = [...fromEpisodes, ...JSON.parse(fs.readFileSync(path.join(ROOT, "art", "shots.json"), "utf8")).shots];
     const seen = new Set();
-    return all.filter((s) => !seen.has(s.key) && seen.add(s.key));
+    return all.filter((s) => !seen.has(s.key) && seen.add(s.key)).map((s) => ({ ...s, needed: needed.has(s.key) }));
   };
   let db = { jobs: {}, workerSeen: null };
   try { db = { ...db, ...JSON.parse(fs.readFileSync(file, "utf8")) }; } catch (e) { if (e.code !== "ENOENT") throw e; }
   const save = () => { fs.writeFileSync(`${file}.tmp`, JSON.stringify(db, null, 2)); fs.renameSync(`${file}.tmp`, file); };
   const job = (key) => (db.jobs[key] = db.jobs[key] || { status: "none", variants: [], chosen: null });
 
-  // Queue pictures: the given keys (made again from scratch), or every picture not made yet.
+  // Queue pictures: the given keys (made again from scratch), or every needed picture not made yet.
   function queue(keys) {
     const all = shots();
-    const list = keys && keys.length ? all.filter((s) => keys.includes(s.key)) : all.filter((s) => job(s.key).status === "none" || job(s.key).status === "failed");
+    const list = keys && keys.length
+      ? all.filter((s) => keys.includes(s.key))
+      : all.filter((s) => s.needed && (job(s.key).status === "none" || job(s.key).status === "failed"));
     for (const s of list) Object.assign(job(s.key), { status: "pending", variants: [], error: null, leaseUntil: 0 });
     save();
     return list.map((s) => s.key);
@@ -119,7 +123,7 @@ function createArt(dataDir, options = {}) {
       workerSeen: db.workerSeen,
       shots: shots().map((s) => {
         const j = db.jobs[s.key] || { status: "none", variants: [], chosen: null };
-        return { key: s.key, episode: s.episode, kind: s.kind, prompt: s.prompt, status: j.status, variants: j.variants, chosen: j.chosen, error: j.error || null };
+        return { key: s.key, episode: s.episode, kind: s.kind, prompt: s.prompt, needed: s.needed, status: j.status, variants: j.variants, chosen: j.chosen, error: j.error || null };
       }),
     };
   }

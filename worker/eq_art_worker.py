@@ -138,8 +138,22 @@ def http(method, url, body=None, headers=None, timeout=60):
     data = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(url, data=data, method=method, headers={
         **({"Content-Type": "application/json"} if data else {}), **(headers or {})})
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        return r.status, r.read()
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return r.status, r.read()
+    except urllib.error.HTTPError as e:
+        # Keep the reason the other side gave (ComfyUI explains which setting it did not accept).
+        detail = e.read().decode("utf-8", "replace")
+        try:
+            j = json.loads(detail)
+            parts = [j.get("error", {}).get("message", "")] if isinstance(j.get("error"), dict) else [str(j.get("error", ""))]
+            for node in (j.get("node_errors") or {}).values():
+                for err in node.get("errors", []):
+                    parts.append(f"{err.get('message', '')}: {err.get('details', '')}")
+            detail = " | ".join(p for p in parts if p) or detail
+        except ValueError:
+            pass
+        raise RuntimeError(f"HTTP {e.code} from {url.split('?')[0]}: {detail[:600]}") from None
 
 
 class Server:
