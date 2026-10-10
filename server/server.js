@@ -10,7 +10,7 @@ const { shouldLock, missionDate, addDays, parseTime, parseDays } = require("./sc
 const { createRouter, COMMANDS } = require("./router");
 const { createStore } = require("./store");
 const { createChallenges } = require("./challenge");
-const { loadContent, ROOT } = require("./content");
+const { loadContent, readOverride, ROOT, BUILTIN } = require("./content");
 const { createArt } = require("./art");
 const { createWriter } = require("./writer");
 const { createWake } = require("./wake");
@@ -83,6 +83,22 @@ function artReady(ep) {
 function chosenArt(ep) {
   const keys = ["hero", ...ep.scenes.flatMap((sc) => [sc.art, ...sc.objects.map((o) => o.sprite)])];
   return [...new Set(keys.filter((k) => k && !String(k).startsWith("ega:") && art.isChosen(k)))];
+}
+
+// Backgrounds of the built-in episodes that were made before the server knew their scenes (for example the
+// attic, made before the prologue existed): find where the things are in them now.
+async function placeMadeBackgrounds() {
+  if (!env.OPENAI_API_KEY) return;
+  const keys = new Set();
+  for (const e of content.episodes.filter((x) => BUILTIN.includes(x.id))) {
+    const placed = readOverride(dataDir, e.id).scenes || {};
+    for (const sc of e.data.scenes) {
+      if (!String(sc.art).startsWith("ega:") && art.isChosen(sc.art) && !placed[sc.id]) keys.add(sc.art);
+    }
+  }
+  for (const key of keys) {
+    await writer.placeThings(key).catch((err) => store.log(`Could not find things in "${key}": ${err.message}`));
+  }
 }
 
 // ---------- mission and lock state
@@ -461,6 +477,7 @@ server.listen(config.port, () => {
   const needed = [...new Set(["hero", ...content.episodes.flatMap((e) => (e.data.art || []).map((a) => a.key))])];
   const queued = art.queueNew(needed);
   if (queued.length) store.log(`Pictures queued: ${queued.join(", ")}`);
+  placeMadeBackgrounds();
   // Voices: now, and every hour (if Kokoro was not there yet, or new lines came).
   setTimeout(prepareVoices, 20 * 1000);
   setInterval(prepareVoices, 60 * 60 * 1000);

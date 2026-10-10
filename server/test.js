@@ -288,6 +288,59 @@ test("writer: writes, fixes problems, waits for approval, places things in pictu
   }
 });
 
+test("server: a built-in background made before its scene existed gets its things placed on start", async () => {
+  const http = require("http");
+  let asked = [];
+  const fake = http.createServer((req, res) => {
+    let body = "";
+    req.on("data", (c) => { body += c; });
+    req.on("end", () => {
+      asked.push(JSON.parse(body).response_format.json_schema.name);
+      const answer = { objects: [{ id: "computer", found: true, left: 0.5, top: 0.4, right: 0.75, bottom: 0.7 }], groundTop: 0.75, groundBottom: 0.98 };
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ choices: [{ message: { content: JSON.stringify(answer) } }], usage: { total_tokens: 10 } }));
+    });
+  });
+  await new Promise((r) => fake.listen(0, r));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "eq-place-"));
+  const png = Buffer.from(
+    "89504e470d0a1a0a0000000d4948445200000001000000010806000000" + "1f15c4890000000d49444154789c6360000002000154a24f5d0000000049454e44ae426082", "hex");
+  fs.mkdirSync(path.join(dir, "art", "variants"), { recursive: true });
+  fs.writeFileSync(path.join(dir, "art", "variants", "attic-0-raw.png"), png);
+  fs.writeFileSync(path.join(dir, "art", "art.json"), JSON.stringify({ jobs: { attic: { status: "done", variants: [0], chosen: 0 } } }));
+  const port = 17000 + Math.floor(Math.random() * 1000);
+  const run = () => spawn(process.execPath, [path.join(__dirname, "server.js")], {
+    env: { ...process.env, PORT: String(port), DATA_DIR: dir, ROUTER_MODE: "mock", AUTO_WRITE: "false",
+      OPENAI_API_KEY: "test", OPENAI_BASE_URL: `http://localhost:${fake.address().port}/v1` },
+    stdio: "ignore",
+  });
+  const waitUp = async () => {
+    for (let i = 0; i < 50; i++) {
+      try { await fetch(`http://localhost:${port}/api/status`); return; } catch { await new Promise((r) => setTimeout(r, 100)); }
+    }
+  };
+  let proc = run();
+  try {
+    await waitUp();
+    for (let i = 0; i < 30 && !fs.existsSync(path.join(dir, "episodes", "overrides", "s1e0.json")); i++) await new Promise((r) => setTimeout(r, 100));
+    assert.equal(asked.length, 1);
+    const play = await (await fetch(`http://localhost:${port}/api/play?episode=s1e0`)).json();
+    const attic = play.episode.scenes.find((sc) => sc.id === "attic");
+    assert.deepEqual(attic.objects.find((o) => o.id === "computer").box, [160, 80, 80, 60]);
+    assert.deepEqual(attic.floor, { y0: 150, y1: 196 });
+    // Next start: already placed, OpenAI is not asked again.
+    proc.kill();
+    await new Promise((r) => setTimeout(r, 200));
+    proc = run();
+    await waitUp();
+    await new Promise((r) => setTimeout(r, 300));
+    assert.equal(asked.length, 1);
+  } finally {
+    proc.kill();
+    fake.close();
+  }
+});
+
 // ---------- Wake-on-LAN for the art PC
 test("wake: at 05:00 only when pictures wait, once a day, retries once, then allows shutdown", async () => {
   const { createWake } = require("./wake");
