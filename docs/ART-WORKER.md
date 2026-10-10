@@ -60,6 +60,8 @@ The button **🎨 צור את התמונות החסרות** (make the missing pi
 - Settings are in `%LOCALAPPDATA%\EnglishQuestWorker\config.json`: model, LoRA, steps, colors,
   `idle_minutes` (set it to 0 to work even while the PC is in use), `gpu_busy_percent` (0 = don't check the
   graphics card).
+- After changing `config.json`, or to install a newer worker from a new ZIP: double-click `worker\restart.bat`
+  (in the new ZIP's folder) and approve the admin prompt. It copies the new worker in and restarts it.
 - To remove it: double-click `worker\uninstall.bat` and approve the admin prompt.
 
 ## Wake-on-LAN (the PC turns on by itself)

@@ -103,6 +103,8 @@ try {
 $dest = "$env:LOCALAPPDATA\EnglishQuestWorker"
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
 Copy-Item "$PSScriptRoot\eq_art_worker.py" $dest -Force
+Copy-Item "$PSScriptRoot\restart.ps1" $dest -Force
+Copy-Item "$PSScriptRoot\restart.bat" $dest -Force
 @{
     server     = $server
     token      = $token
