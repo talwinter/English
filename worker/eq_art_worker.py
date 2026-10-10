@@ -320,22 +320,58 @@ def do_job(job, comfy, server, cfg):
         server.result(job["key"], n, raw, pixelate(raw, job["kind"], job.get("height"), cfg["colors"]))
 
 
-def single_instance():
-    """Only one worker at a time: hold a local port."""
-    s = socket.socket()
-    try:
-        s.bind(("127.0.0.1", 47811))
-    except OSError:
-        return None
-    return s
+class Lock:
+    """Only one worker works at a time: the one that holds a local port."""
+    def __init__(self):
+        self.sock = None
+
+    @property
+    def held(self):
+        return self.sock is not None
+
+    def acquire(self):
+        if self.sock:
+            return True
+        s = socket.socket()
+        try:
+            s.bind(("127.0.0.1", 47811))
+        except OSError:
+            s.close()
+            return False
+        self.sock = s
+        return True
+
+    def release(self):
+        if self.sock:
+            self.sock.close()
+            self.sock = None
 
 
-def run(cfg, once=False):
+def background_copy():
+    """True for the copy started by Windows before login (the SYSTEM account). It can't see the mouse
+    and keyboard, so it steps aside while someone is logged in and the login copy does the work."""
+    return os.name == "nt" and os.environ.get("USERPROFILE", "").lower().endswith("systemprofile")
+
+
+def run(cfg, lock, once=False):
     server, comfy = Server(cfg), Comfy(cfg)
     last_work = 0.0
-    log.info("Worker started. Server %s", server.url)
+    log.info("Worker started (%s). Server %s", "before-login copy" if background_copy() else "login copy", server.url)
     while True:
         job = None
+        # Take turns: the before-login copy works only while nobody is logged in.
+        if not once and background_copy() and someone_logged_in():
+            if lock.held:
+                comfy.stop()
+                lock.release()
+                log.info("Someone logged in: the login copy of the worker takes over")
+            time.sleep(60)
+            continue
+        if not lock.held:
+            if not lock.acquire():
+                time.sleep(60)  # the other copy is working
+                continue
+            log.info("This copy is now the active worker")
         try:
             may_shut_down = False
             if idle_seconds() >= cfg["idle_minutes"] * 60 and not gpu_busy(cfg):
@@ -396,11 +432,12 @@ def main():
         return
     if not cfg["server"] or not cfg["token"]:
         sys.exit("Set server and token in config.json")
-    lock = single_instance()
-    if not lock:
+    once = "--once" in sys.argv
+    lock = Lock()
+    if once and not lock.acquire():
         log.info("Another worker is already running")
         return
-    run(cfg, once="--once" in sys.argv)
+    run(cfg, lock, once=once)
 
 
 if __name__ == "__main__":
