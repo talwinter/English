@@ -477,6 +477,10 @@ test("voices: each character has a voice, lines are made once, word times when K
     assert.equal(voice.prepare([{ text: "It is cold." }, { text: "Hello, {name}!" }, { text: "Byte: \"Hello, Noam!\"" }]), 1);
     for (let i = 0; i < 50 && voice.status().waiting; i++) await new Promise((r) => setTimeout(r, 20));
     assert.equal(voice.status().ready, 5);
+    // Asking without waiting: null at once, made for next time.
+    assert.equal(await voice.ready("Open the door"), null);
+    for (let i = 0; i < 50 && voice.status().waiting; i++) await new Promise((r) => setTimeout(r, 20));
+    assert.match((await voice.ready("Open the door")).audio, /^\/voice\/[0-9a-f]{24}\.mp3$/);
     await assert.rejects(voice.get("x".repeat(500)), /bad text/);
     assert.equal(voice.audioPath("../state.json"), null);
   } finally {

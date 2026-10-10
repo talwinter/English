@@ -59,6 +59,7 @@ function prepareVoices() {
   const lines = [
     ...eps.flatMap((e) => Episode.texts(e.data).slice(1).map((text) => ({ text }))),
     ...content.baseTexts.map((text) => ({ text })),
+    ...eps.flatMap((e) => Episode.commandLines(e.data, content.base).map((text) => ({ text }))),
     ...Object.keys(content.DICT).map((text) => ({ text, slow: true })),
   ];
   const n = voice.prepare(lines);
@@ -171,6 +172,7 @@ const MIME = {
   ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8",
   ".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp", ".svg": "image/svg+xml",
   ".json": "application/json", ".mp3": "audio/mpeg", ".ogg": "audio/ogg", ".woff2": "font/woff2",
+  ".md": "text/plain; charset=utf-8",
 };
 // Only these files and folders are public. The server code and data folder are not.
 const PUBLIC = ["index.html", "css", "js", "assets", "tools/pixelate.html"];
@@ -328,7 +330,10 @@ async function handle(req, res) {
   if (p === "/api/voice" && req.method === "GET") {
     if (!voice.enabled) return send(res, 404, { error: "off" });
     try {
-      return send(res, 200, await voice.get(url.searchParams.get("text"), { slow: url.searchParams.get("slow") === "1" }));
+      const text = url.searchParams.get("text"), slow = url.searchParams.get("slow") === "1";
+      // wait=0: answer at once ({ audio: null } when the line is not made yet; it is made for next time).
+      if (url.searchParams.get("wait") === "0") return send(res, 200, (await voice.ready(text, { slow })) || { audio: null });
+      return send(res, 200, await voice.get(text, { slow }));
     } catch (e) {
       return send(res, 503, { error: e.message });
     }

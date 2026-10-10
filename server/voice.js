@@ -135,6 +135,18 @@ function createVoice({ dataDir, url, log = () => {}, fetchImpl = fetch, timeoutM
     return promise;
   }
 
+  // The voice for a line if it is made already; else start making it (for next time) and return null at once.
+  async function ready(text, { slow = false } = {}) {
+    if (!base) throw new Error("voices are off");
+    text = String(text || "").trim();
+    if (!text || text.length > MAX_TEXT) throw new Error("bad text");
+    if (!voices) await knownVoices().catch(() => null);
+    const { id } = plan(text, slow);
+    if (fs.existsSync(files(id).audio)) return answer(id);
+    get(text, { slow }).catch(() => { /* logged in status */ });
+    return null;
+  }
+
   // Make these lines ahead of time ([{ text, slow }]), one by one, when nothing else is waiting.
   function prepare(lines) {
     if (!base) return 0;
@@ -157,7 +169,7 @@ function createVoice({ dataDir, url, log = () => {}, fetchImpl = fetch, timeoutM
 
   const audioPath = (name) => (/^[0-9a-f]{24}\.mp3$/.test(name) ? path.join(dir, name) : null);
 
-  return { get, prepare, status, audioPath, plan, enabled: !!base };
+  return { get, ready, prepare, status, audioPath, plan, enabled: !!base };
 }
 
 module.exports = { createVoice, SPEED };

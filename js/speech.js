@@ -7,7 +7,7 @@ window.Speech = (function () {
   let voice = null;
   let enabled = true;
   let server = location.protocol !== "file:"; // until the server says its voices are off
-  const WAIT_MS = 8000;                       // a new line can take a few seconds to make
+  const WAIT_MS = 3000;                       // the server answers at once; this is only for a slow network
   const jobs = [];
   let current = null;
   let gen = 0;                                // changes on stop(): old work ends quietly
@@ -52,14 +52,15 @@ window.Speech = (function () {
 
   // Ask the server for the line now, so it is ready (or being made) when its turn comes.
   function request(job) {
-    const url = `/api/voice?text=${encodeURIComponent(job.text)}${job.slow ? "&slow=1" : ""}`;
+    // wait=0: if the human voice is not made yet, the browser says it now (the server makes it for next time).
+    const url = `/api/voice?wait=0&text=${encodeURIComponent(job.text)}${job.slow ? "&slow=1" : ""}`;
     job.info = fetch(url)
       .then((r) => {
         if (r.status === 404) server = false;
         return r.ok ? r.json() : null;
       })
       .then((info) => {
-        if (info) { job.audio = new Audio(info.audio); job.audio.preload = "auto"; }
+        if (info && info.audio) { job.audio = new Audio(info.audio); job.audio.preload = "auto"; }
         return info;
       })
       .catch(() => null);

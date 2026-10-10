@@ -263,3 +263,5 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* Parent's picture check (?check=1) */
 .check-bar { background: #222; color: #ff0; font-size: 14px; padding: 6px 8px; direction: rtl; }
 .check-bar button { margin: 2px; font-size: 13px; direction: ltr; color: #000; }
+#help .credits { font-size: 12px; opacity: .7; margin-top: 10px; }
+#help .credits a { color: inherit; }

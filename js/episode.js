@@ -118,9 +118,21 @@
     return out;
   }
 
+  // Every command line the game can show for this episode ("Open the door", "Use the key on the door"),
+  // built like the game builds them, so their voices can be made ahead of time.
+  function commandLines(ep, base) {
+    const out = new Set();
+    const things = [...list(ep.items), ...list(ep.scenes).flatMap((sc) => sc.objects)].map((t) => t.name);
+    for (const v of base.verbs) {
+      for (const name of things) out.add(`${v.label} ${name}`);
+      if (v.link) for (const it of list(ep.items)) for (const name of things) out.add(`${v.label} ${it.name} ${v.link} ${name}`);
+    }
+    return [...out];
+  }
+
   const wordsIn = (textList) => new Set(textList.flatMap((t) => (t.match(WORD) || []).map((w) => w.toLowerCase())));
 
-  const API = { compile, findRule, texts, wordsIn, condition, VERBS, FX, MUSIC, CHARACTERS, WORD };
+  const API = { compile, findRule, texts, commandLines, wordsIn, condition, VERBS, FX, MUSIC, CHARACTERS, WORD };
   if (typeof module !== "undefined" && module.exports) module.exports = API;
   else root.Episode = API;
 })(this);
