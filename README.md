@@ -8,7 +8,8 @@ Every morning Discord locks on his devices. He plays today's episode, passes a s
 and Discord opens until the next morning.
 
 - **The story**: [docs/STORY.md](docs/STORY.md)
-- **Making the art with AI images**: [docs/ART.md](docs/ART.md)
+- **Making the art automatically on your PC's graphics card**: [docs/ART-WORKER.md](docs/ART-WORKER.md)
+- **Making the art by hand**: [docs/ART.md](docs/ART.md)
 - **Setting up the server and the MikroTik Discord lock**: [docs/DISCORD-LOCK.md](docs/DISCORD-LOCK.md)
 
 ## Playing
@@ -43,7 +44,9 @@ Without the server: double-click `index.html`. The game works the same, just wit
 | `js/speech.js` | Reading aloud with the browser's voices. |
 | `server/` | The server: daily lock schedule, router control (SSH), challenge, parent page. |
 | `router/discord-lock.rsc` | The MikroTik setup to paste into the router. |
-| `tools/pixelate.html` | Turns AI images into VGA pixel art. |
+| `art/shots.json` | The pictures the episodes need (descriptions for Stable Diffusion). |
+| `worker/` | The art worker for the Windows PC with the GPU, and its one-click installer. |
+| `tools/pixelate.html` | Turns AI images into VGA pixel art by hand. |
 | `tools/check-words.js` | Checks that every English word in the game has a Hebrew translation. |
 
 ## Development

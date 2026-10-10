@@ -132,3 +132,29 @@ test("server: locks through ssh, opens after the challenge", async () => {
     proc.kill();
   }
 });
+
+// ---------- picture queue
+test("art queue: worker takes jobs, sends 3 versions, parent picks one", () => {
+  const { createArt } = require("./art");
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "eq-art-"));
+  const art = createArt(dir);
+  assert.equal(art.next(), null);
+  const queued = art.queue();
+  assert.ok(queued.includes("village") && queued.includes("hero"));
+  const job = art.next(0);
+  assert.equal(job.key, queued[0]);
+  assert.match(job.prompt, /King's Quest V/);
+  // Another worker does not get the same job while the first one works on it...
+  assert.notEqual(art.next(1000).key, job.key);
+  // ...but gets it if the first one disappears for 30 minutes.
+  assert.equal(art.next(31 * 60 * 1000).key, job.key);
+  const png = Buffer.from("89504e470d0a1a0a0000", "hex");
+  assert.throws(() => art.result(job.key, 0, Buffer.from("nope"), png), /PNG/);
+  assert.throws(() => art.result("../evil", 0, png, png), /bad result/);
+  for (let n = 0; n < 3; n++) art.result(job.key, n, png, png);
+  assert.equal(art.list().shots.find((s) => s.key === job.key).status, "done");
+  art.choose(job.key, 1);
+  assert.ok(fs.existsSync(path.join(dir, "art", "chosen", `${job.key}.png`)));
+  assert.equal(art.variantPath("../art.json"), null);
+  assert.equal(art.chosenPath("x/../../state.json"), null);
+});

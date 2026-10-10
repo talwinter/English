@@ -1,5 +1,9 @@
 # Making the art with AI images
 
+> **Automatic way (recommended):** the art worker on your PC makes all of this by itself with Stable
+> Diffusion on your graphics card, for free. See [ART-WORKER.md](ART-WORKER.md). The picture list is
+> `art/shots.json`. The manual steps below are only for making a picture yourself.
+
 The look we want is **King's Quest V / Monkey Island 1 VGA**: hand-painted pixel art, 320 × 200,
 rich colors. AI makes the painting, then the **Pixel Tool** (`tools/pixelate.html`) turns it into real
 low-resolution pixel art with a small color palette, so every picture matches.

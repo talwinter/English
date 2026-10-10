@@ -14,5 +14,6 @@ services:
       ROUTER_HOST: 192.168.88.1
       ROUTER_PORT: "22"
       ROUTER_USER: eq-lock
+      WORKER_TOKEN: "change-me-too"  # password for the art worker on the PC with the GPU
     volumes:
       - ./data:/data                 # state.json and ssh/id_ed25519 (the router key)

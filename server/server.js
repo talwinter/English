@@ -11,6 +11,7 @@ const { createRouter, COMMANDS } = require("./router");
 const { createStore } = require("./store");
 const { createChallenges } = require("./challenge");
 const { loadContent, ROOT } = require("./content");
+const { createArt } = require("./art");
 
 const env = process.env;
 const config = {
@@ -20,9 +21,12 @@ const config = {
   lockTime: env.LOCK_TIME || "08:00",
   days: parseDays(env.LOCK_DAYS || "0,1,2,3,4,5,6"),
   adminPassword: env.ADMIN_PASSWORD || "",
+  workerToken: env.WORKER_TOKEN || "",
 };
 
-const store = createStore(env.DATA_DIR || path.join(ROOT, "data"));
+const dataDir = env.DATA_DIR || path.join(ROOT, "data");
+const store = createStore(dataDir);
+const art = createArt(dataDir);
 const router = createRouter(env, (m) => store.log(m));
 const content = loadContent();
 const challenges = createChallenges(content.DICT);
@@ -115,12 +119,23 @@ function send(res, status, body, headers = {}) {
   res.end(json ? JSON.stringify(body) : body);
 }
 
-function readJson(req) {
+function readJson(req, limit = 10000) {
   return new Promise((resolve, reject) => {
     let raw = "";
-    req.on("data", (c) => { raw += c; if (raw.length > 10000) { reject(new Error("too big")); req.destroy(); } });
+    req.on("data", (c) => { raw += c; if (raw.length > limit) { reject(new Error("too big")); req.destroy(); } });
     req.on("end", () => { try { resolve(raw ? JSON.parse(raw) : {}); } catch { reject(new Error("bad json")); } });
   });
+}
+
+const sameSecret = (given, secret) => {
+  const a = crypto.createHash("sha256").update(given).digest();
+  const b = crypto.createHash("sha256").update(secret).digest();
+  return crypto.timingSafeEqual(a, b);
+};
+
+function isWorker(req) {
+  const [type, token] = (req.headers.authorization || "").split(" ");
+  return !!config.workerToken && type === "Bearer" && !!token && sameSecret(token, config.workerToken);
 }
 
 function isAdmin(req) {
@@ -128,9 +143,7 @@ function isAdmin(req) {
   const [type, value] = (req.headers.authorization || "").split(" ");
   if (type !== "Basic" || !value) return false;
   const pass = Buffer.from(value, "base64").toString().split(":").slice(1).join(":");
-  const a = crypto.createHash("sha256").update(pass).digest();
-  const b = crypto.createHash("sha256").update(config.adminPassword).digest();
-  return crypto.timingSafeEqual(a, b);
+  return sameSecret(pass, config.adminPassword);
 }
 
 function status() {
@@ -192,6 +205,35 @@ async function handle(req, res) {
     return send(res, 200, { ...result, status: result.done ? status() : undefined });
   }
 
+  // ---------- art worker (the PC with the GPU)
+  if (p.startsWith("/api/art/")) {
+    if (!isWorker(req)) return send(res, 401, { error: "bad worker token" });
+    if (p === "/api/art/hello") return send(res, 200, { ok: true });
+    if (p === "/api/art/next" && req.method === "GET") {
+      const job = art.next();
+      if (!job) { res.writeHead(204); return res.end(); }
+      store.log(`Art worker took: ${job.key}`);
+      return send(res, 200, job);
+    }
+    if (p === "/api/art/result" && post) {
+      const { key, n, raw, pixel } = await readJson(req, 30 * 1024 * 1024);
+      art.result(String(key), Number(n), Buffer.from(String(raw), "base64"), Buffer.from(String(pixel), "base64"));
+      return send(res, 200, { ok: true });
+    }
+    if (p === "/api/art/fail" && post) {
+      const { key, error } = await readJson(req);
+      art.fail(String(key), error);
+      store.log(`Art worker failed on ${key}: ${String(error).slice(0, 200)}`);
+      return send(res, 200, { ok: true });
+    }
+    return send(res, 404, { error: "not found" });
+  }
+
+  if (p.startsWith("/art/") && req.method === "GET") {
+    const file = art.chosenPath(p.slice(5));
+    return file ? servePng(res, file) : send(res, 404, "Not found");
+  }
+
   if (p === "/admin" || p.startsWith("/admin/")) {
     if (!config.adminPassword) return send(res, 503, "Set ADMIN_PASSWORD to use the parent page.");
     if (!isAdmin(req)) return send(res, 401, "Password needed", { "WWW-Authenticate": 'Basic realm="English Quest parent"' });
@@ -211,6 +253,22 @@ async function handle(req, res) {
       store.save();
       return send(res, 200, adminState());
     }
+    if (p === "/admin/api/art") return send(res, 200, art.list());
+    if (p === "/admin/api/art/queue" && post) {
+      const { keys } = await readJson(req);
+      const queued = art.queue(Array.isArray(keys) ? keys.map(String) : null);
+      if (queued.length) store.log(`Pictures queued: ${queued.join(", ")}`);
+      return send(res, 200, art.list());
+    }
+    if (p === "/admin/api/art/choose" && post) {
+      const { key, n } = await readJson(req);
+      art.choose(String(key), Number(n));
+      return send(res, 200, art.list());
+    }
+    if (p.startsWith("/admin/art/")) {
+      const file = art.variantPath(p.slice(11));
+      return file ? servePng(res, file) : send(res, 404, "Not found");
+    }
     if (p === "/admin/api/test" && post) {
       try { return send(res, 200, { ok: true, output: await router.run(COMMANDS.test) }); }
       catch (e) { return send(res, 200, { ok: false, output: e.message }); }
@@ -220,6 +278,14 @@ async function handle(req, res) {
 
   if (req.method === "GET") return serveStatic(req, res, p);
   return send(res, 404, "Not found");
+}
+
+function servePng(res, file) {
+  fs.readFile(file, (err, data) => {
+    if (err) return send(res, 404, "Not found");
+    res.writeHead(200, { "Content-Type": "image/png", "Cache-Control": "no-cache" });
+    res.end(data);
+  });
 }
 
 function serveFile(res, file) {

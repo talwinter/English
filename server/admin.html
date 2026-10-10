@@ -26,6 +26,21 @@
     .muted { color: var(--gray); font-size: 14px; }
     pre { white-space: pre-wrap; direction: ltr; text-align: left; font-size: 13px; max-height: 300px; overflow: auto; margin: 0; }
     .ltr { direction: ltr; unicode-bidi: embed; }
+    .art { display: grid; gap: 14px; }
+    .shot { border-top: 1px solid #ccc; padding-top: 10px; }
+    .shot-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+    .shot-head b { direction: ltr; }
+    .shot-prompt { direction: ltr; text-align: left; font-size: 13px; color: var(--gray); margin: 4px 0; }
+    .variants { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+    .variants img {
+      image-rendering: pixelated; cursor: pointer; border: 3px solid transparent; background: #ddd;
+      height: 120px; width: auto; max-width: 100%;
+      background-image: repeating-conic-gradient(#ccc 0 25%, #fff 0 50%); background-size: 12px 12px;
+    }
+    .variants img.small { height: 96px; }
+    .variants img:hover { border-color: #ffff55; }
+    .variants img.chosen { border-color: var(--green); }
+    .again { padding: 4px 10px; font-size: 14px; }
   </style>
 </head>
 <body>
@@ -48,6 +63,14 @@
     <h2>המשימה של היום</h2>
     <div id="mission"></div>
     <div id="streak" class="muted"></div>
+  </section>
+
+  <section class="box">
+    <h2>תמונות</h2>
+    <div id="worker" class="muted"></div>
+    <div class="row"><button id="makeArt">🎨 צור את התמונות החסרות</button></div>
+    <p class="muted">לחץ על הגרסה שאתה הכי אוהב כדי לבחור אותה.</p>
+    <div id="art" class="art"></div>
   </section>
 
   <section class="box">
@@ -101,6 +124,35 @@
       : `<tr><td class="muted">עוד אין</td></tr>`;
     $("#log").textContent = s.log.join("\n");
   }
+
+  const STATUS = { none: "—", pending: "⏳ ממתין למחשב", working: "🎨 בעבודה", done: "✅ מוכן", failed: "❌ נכשל" };
+  function renderArt(a) {
+    $("#worker").innerHTML = a.workerSeen
+      ? `מחשב התמונות נראה לאחרונה: <span class="ltr">${esc(new Date(a.workerSeen).toLocaleString())}</span>`
+      : "מחשב התמונות עוד לא התחבר (ראה docs/ART-WORKER.md)";
+    $("#art").innerHTML = a.shots.map((s) => `<div class="shot">
+      <div class="shot-head"><b>${esc(s.key)}</b><span class="muted ltr">${esc(s.episode)}</span>
+        <span>${STATUS[s.status] || esc(s.status)}${s.chosen != null ? " · נבחרה גרסה " + (s.chosen + 1) : ""}</span>
+        ${s.status === "pending" || s.status === "working" ? "" : `<button class="again" data-key="${esc(s.key)}">${s.status === "none" ? "צור" : "צור מחדש"}</button>`}</div>
+      <div class="shot-prompt">${esc(s.prompt)}</div>
+      ${s.error ? `<div class="locked ltr">${esc(s.error)}</div>` : ""}
+      <div class="variants">${s.variants.map((n) => `<img src="/admin/art/${esc(s.key)}-${n}.png?v=${Date.now()}"
+        class="${s.kind === "background" ? "" : "small"}${s.chosen === n ? " chosen" : ""}" data-key="${esc(s.key)}" data-n="${n}"
+        alt="${esc(s.key)} ${n + 1}" title="בחר גרסה ${n + 1}">`).join("")}</div>
+    </div>`).join("");
+  }
+  const post = (path, body) => fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+    .then((r) => r.json());
+  const refreshArt = () => call("/admin/api/art").then(renderArt).catch(() => {});
+  $("#makeArt").onclick = () => post("/admin/api/art/queue", {}).then(renderArt);
+  $("#art").onclick = (e) => {
+    const img = e.target.closest("img[data-n]");
+    const again = e.target.closest(".again");
+    if (img) post("/admin/api/art/choose", { key: img.dataset.key, n: Number(img.dataset.n) }).then(renderArt);
+    if (again) post("/admin/api/art/queue", { keys: [again.dataset.key] }).then(renderArt);
+  };
+  refreshArt();
+  setInterval(refreshArt, 30000);
 
   const refresh = () => call("/admin/api/state").then(render).catch((e) => { $("#lock").textContent = e.message; });
   $("#unlock").onclick = () => call("/admin/api/unlock", "POST").then(render);

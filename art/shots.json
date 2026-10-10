@@ -1,0 +1,26 @@
+{
+  "shots": [
+    { "key": "attic", "episode": "s1e0", "kind": "background",
+      "prompt": "a dusty wooden attic at night, a desk with an old beige 1980s computer and monitor, a box of floppy disks, cardboard boxes, a small round window with moonlight, a hanging light bulb" },
+    { "key": "village", "episode": "s1e1", "kind": "background",
+      "prompt": "a snowy Viking village in daylight, a log house with a snowy roof and a red wooden door on the left, a big grey rock in front on the left, a tall pine tree in the middle, a path going right into a dark pine forest with a wooden sign" },
+    { "key": "longhouse", "episode": "s1e1", "kind": "background",
+      "prompt": "inside a warm Viking longhouse, a stone fireplace with fire on the left, a long wooden table in the middle, a wooden chest on the right, a wooden door on the right wall, a round red and yellow shield on the wall" },
+    { "key": "bridge", "episode": "s1e1", "kind": "background",
+      "prompt": "a wide frozen river with an old wooden bridge going into a snowy pine forest on the far side, two small snowy wooden houses on the near side at the bottom left, daylight" },
+    { "key": "hero", "episode": "s1e0", "kind": "character", "height": 48,
+      "prompt": "a teenage boy in a red hoodie, blue jeans and white sneakers, short brown hair" },
+    { "key": "byte", "episode": "s1e0", "kind": "character", "height": 16,
+      "prompt": "a small white computer mouse pointer arrow with big cartoon eyes and tiny wings, glowing" },
+    { "key": "grandmother", "episode": "s1e1", "kind": "character", "height": 46,
+      "prompt": "an old Viking woman with grey hair in a bun, a purple dress, a white apron and a wooden walking stick" },
+    { "key": "wolf", "episode": "s1e1", "kind": "character", "height": 30,
+      "prompt": "a big thin grey wolf standing, looking hungry, friendly, not scary" },
+    { "key": "item-key", "episode": "s1e1", "kind": "item", "height": 12,
+      "prompt": "an old iron key" },
+    { "key": "item-bread", "episode": "s1e1", "kind": "item", "height": 12,
+      "prompt": "a round loaf of bread" },
+    { "key": "item-sword", "episode": "s1e1", "kind": "item", "height": 16,
+      "prompt": "a Viking sword with a brown leather handle" }
+  ]
+}
