@@ -224,6 +224,19 @@ class Comfy:
                 self.proc.kill()
         self.proc = None
 
+    def lora_ok(self):
+        """Is the LoRA from config.json really there? If not, make pictures without it (and say so)."""
+        try:
+            _, data = http("GET", f"{self.url}/object_info/LoraLoader")
+            names = json.loads(data)["LoraLoader"]["input"]["required"]["lora_name"][0]
+        except Exception:
+            return True  # can't tell: try it
+        if self.cfg["lora"] in names:
+            return True
+        log.warning("LoRA %r is not in ComfyUI's LoRA folder, making pictures without it. Found: %s",
+                    self.cfg["lora"], ", ".join(names) or "none")
+        return False
+
     def checkpoint(self):
         if self.cfg["checkpoint"]:
             return self.cfg["checkpoint"]
@@ -251,7 +264,7 @@ class Comfy:
             "decode": {"class_type": "VAEDecode", "inputs": {"samples": ["sample", 0], "vae": ["ckpt", 2]}},
             "save": {"class_type": "SaveImage", "inputs": {"filename_prefix": "english-quest", "images": ["decode", 0]}},
         }
-        if cfg["lora"]:
+        if cfg["lora"] and self.lora_ok():
             graph["lora"] = {"class_type": "LoraLoader", "inputs": {
                 "lora_name": cfg["lora"], "strength_model": cfg["lora_strength"], "strength_clip": cfg["lora_strength"],
                 "model": model, "clip": clip}}
