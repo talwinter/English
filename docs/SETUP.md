@@ -43,6 +43,10 @@ Write down your son's devices' IP addresses.
 > and in **System > Scripts > eq-wake** change `bridge` to that name.
 >
 > If you get an error about `place-before=0`, remove `place-before=0` from the 4 firewall lines and paste again.
+>
+> If the Docker server is on another network (for example an IoT VLAN) and your router blocks it, add an input
+> rule that allows **only the Docker server's IP to port 22**, above the blocking rule. Don't start its comment
+> with `english-quest`: the lock scripts switch those rules on and off.
 
 You come back to the router once more in Part 2.3, to add the server's key.
 

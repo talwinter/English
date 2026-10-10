@@ -4,7 +4,9 @@
 # Every line has its full path, so you can paste it all at once or one line at a time.
 # It only ADDS things. Everything has the comment "english-quest" so it is easy to find or remove.
 # Nothing is blocked yet: the rules start disabled. The English Quest server turns them on and off
-# by running the scripts eq-block and eq-unblock.
+# by running the scripts eq-block and eq-unblock. The scripts only touch rules in the forward chain whose
+# comment starts with "english-quest". Don't give your own rules (for example an input rule that lets the
+# server reach the router) a comment starting with "english-quest", or the scripts will switch them off.
 
 # ---------------------------------------------------------------------------
 # 1. His devices. Give each one a static DHCP lease first (IP > DHCP Server > Leases >
@@ -54,8 +56,8 @@
 #    session is dropped too. Running it again while locked does nothing more.
 # ---------------------------------------------------------------------------
 /system script add name=eq-block policy=read,write,test comment="english-quest" source={
-  :local wasOpen ([:len [/ip firewall filter find where comment~"^english-quest" disabled=yes]] > 0)
-  /ip firewall filter enable [find where comment~"^english-quest"]
+  :local wasOpen ([:len [/ip firewall filter find where chain=forward comment~"^english-quest" disabled=yes]] > 0)
+  /ip firewall filter enable [find where chain=forward comment~"^english-quest"]
   :if ($wasOpen) do={
     :foreach entry in=[/ip firewall address-list find where list="eq-kid"] do={
       :local ip [/ip firewall address-list get $entry address]
@@ -71,8 +73,8 @@
   :log info "english-quest: woke the art PC"
 }
 /system script add name=eq-unblock policy=read,write,test comment="english-quest" source={
-  :local wasLocked ([:len [/ip firewall filter find where comment~"^english-quest" disabled=no]] > 0)
-  /ip firewall filter disable [find where comment~"^english-quest"]
+  :local wasLocked ([:len [/ip firewall filter find where chain=forward comment~"^english-quest" disabled=no]] > 0)
+  /ip firewall filter disable [find where chain=forward comment~"^english-quest"]
   :if ($wasLocked) do={ :log info "english-quest: Discord unlocked" }
 }
 
