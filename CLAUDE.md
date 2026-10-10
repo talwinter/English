@@ -67,6 +67,19 @@ The parent updates machines with `git pull` (server: then `docker compose up -d 
   The parent page is under `/admin`. The art worker uses `/api/art/*` with `WORKER_TOKEN`.
 - **Docs for the parent:** `docs/SETUP.md` (start here), `DISCORD-LOCK.md`, `EPISODES.md`, `ART-WORKER.md`, `ART.md`, `SOUND.md`, `STORY.md`.
 
+## Current state (at the move to the parent's PC)
+
+- **Art worker:** the Stable Diffusion art worker was removed from the PC (`worker/uninstall.bat`).
+- **Server settings** in `.env`:
+  - `WAKE_TIME=` is empty, so the router no longer wakes the PC.
+  - `AUTO_WRITE=false`, so no new episodes are written: they would wait forever for AI pictures.
+- **The game:**
+  - The web game keeps running with the built-in episodes. Episode 1 shows its old drawings.
+  - On days with no new episode, the mission is the word challenge, and the Discord lock works as usual.
+- **Building episodes:** this will be a new mechanism, built from the 3D rooms and objects catalog (step 2
+  of the plan below). Design it with the parent. Turn writing back on (`AUTO_WRITE`) only when the Godot
+  game can play its episodes.
+
 ## Lessons learned (don't repeat these)
 
 - **AI backgrounds + guessing where things are does not work.** Flat Stable Diffusion pictures have no
