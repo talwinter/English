@@ -80,6 +80,8 @@ The parent updates machines with `git pull` (server: then `docker compose up -d 
   and the parent only tries and approves. What changes is how rooms are made: from a catalog of 3D objects
   instead of AI pictures (step 2 of the plan below). The parent designs the mechanism once, not each episode.
   Turn writing back on (`AUTO_WRITE`) only when the Godot game can play its episodes.
+- **Daily lock:** `LOCK_ENABLED=false` in the server's `.env` turns the 08:00 Discord lock off until the Godot
+  game is tested (the parent page's "Lock now" still works). Set it back to `true` (or remove it) to resume.
 
 ## Lessons learned (don't repeat these)
 
@@ -101,18 +103,43 @@ The parent updates machines with `git pull` (server: then `docker compose up -d 
 - Sandbox lesson (cloud only): `pkill -f <pattern>` can kill your own shell if the pattern is in the command
   line; use `pgrep -f "^node ..."`.
 
-## The plan: a Godot game in low-poly 3D with a pixel look
+## The plan: a Godot game in stylized low-poly 3D
 
-The parent chose this direction:
-- Every room is real low-poly 3D, rendered at low resolution (about 320x180, scaled up with nearest-neighbor)
-  so it looks like retro pixel art.
+The parent chose this direction (updated after the proof of concept; the first idea, a 320x180 pixel look,
+was judged too retro for a kid who plays Fortnite and Roblox):
+- Every room is real low-poly 3D at **full resolution**, in a modern stylized look: soft light and shadows,
+  ambient occlusion, bloom on lights and screens, warm filmic colors, rounded (beveled) models, dust in the
+  light. The pixel look stays available as an option (`-- --pixel` renders 480x270 with no filtering).
 - Each room has a fixed camera angle, like King's Quest framing but with real depth.
 - The walkable area is a navigation mesh baked from the room itself, so the hero can never stand on a desk
   or a wall, and clicks hit real objects (raycasts).
 - The game is a Windows EXE that downloads new episodes from the existing server, so it never needs
   reinstalling for new content.
 
-### Step 0: proof of concept first (do this before anything else)
+### Step 0: proof of concept (BUILT; waiting for the parent's go-ahead for step 1)
+
+Status: done and working in `godot/`. Grandpa's attic and the hero are modeled in Blender (by Python scripts in
+`godot/blender/`, run through the Blender MCP), exported to `godot/assets/*.glb`, and played in Godot 4.7.2.
+- Run it: `Godot_v4.7.2-stable_win64.exe --path godot` (Godot is in
+  `%LOCALAPPDATA%\Microsoft\WinGet\Packages\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\`).
+  After changing a `.glb`: `Godot_..._console.exe --headless --path godot --import`.
+- Scripted check with screenshots in `godot/shots/`: add `-- --demo` (the output prints `PROOF:` and `REACH`
+  lines; 16,800 simulated clicks must end with 0 destinations on furniture). `-- --still` takes one picture.
+- Rebuild the models: in Blender, `exec(open(r"...\godotlenderttic.py").read())` and `boy.py`
+  (`lib.py` has the mesh helpers). Models are made from code, flat colors, Bevel modifiers for rounded edges.
+- **The catalog contract (names in the glTF that `godot/main.gd` reads; step 1 will formalise it):**
+  `nav_floor` (walkable floor, the navmesh is baked from it), `block_<Id>` (furniture footprint carved out of
+  the navmesh), `pick_<Id>` (clickable volume), `stand_<Id>` (empty: where the hero stands to use it),
+  `spawn_Hero`, `light_bulb`. Everything else is scenery.
+- Navigation: a `NavigationRegion3D` baked at runtime from `nav_floor` plus `NavigationObstacle3D` footprints.
+  A click that hits a `pick_` goes to its `stand_` point; any other click is projected on the floor plane and
+  snapped to the closest navmesh point, so a wall or a desk top never becomes a destination.
+- The Godot MCP (`@coding-solo/godot-mcp`) is added to Claude Code in local scope (`claude mcp get godot`);
+  its tools load in a new session. Everything above also works from the command line.
+- Known gaps: the hero is procedural (no Kenney/Quaternius download was needed yet); baking parses render
+  meshes at runtime (a warning), later it should use the layout JSON; no sound yet.
+
+Original checklist, kept for reference:
 
 The parent wants to see it work before real development starts. Keep it small:
 
