@@ -1,0 +1,28 @@
+{
+ "id": "item_bread",
+ "name": "loaf of bread",
+ "kind": "item",
+ "glb": "props/item_bread.glb",
+ "desc": "a fresh round loaf of bread",
+ "words": [
+  "bread",
+  "loaf"
+ ],
+ "footprint": [
+  0.33,
+  0.236
+ ],
+ "height": 0.15,
+ "center_offset": [
+  0.005,
+  0.0
+ ],
+ "place": [
+  "floor",
+  "surface",
+  "inside"
+ ],
+ "stand": 0.5,
+ "surface": false,
+ "container": false
+}

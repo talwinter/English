@@ -1,0 +1,26 @@
+{
+ "id": "table_long",
+ "name": "long wooden table",
+ "kind": "furniture",
+ "glb": "props/table_long.glb",
+ "desc": "a long wooden table; small things can be put on it",
+ "words": [
+  "table"
+ ],
+ "footprint": [
+  2.0,
+  0.9
+ ],
+ "height": 0.82,
+ "center_offset": [
+  0.0,
+  0.0
+ ],
+ "place": [
+  "floor"
+ ],
+ "stand": 0.65,
+ "surface": true,
+ "container": false,
+ "surface_height": 0.82
+}

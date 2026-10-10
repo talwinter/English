@@ -1,0 +1,27 @@
+{
+ "id": "item_rope",
+ "name": "rope",
+ "kind": "item",
+ "glb": "props/item_rope.glb",
+ "desc": "a coil of rope",
+ "words": [
+  "rope"
+ ],
+ "footprint": [
+  0.252,
+  0.252
+ ],
+ "height": 0.095,
+ "center_offset": [
+  0.0,
+  0.0
+ ],
+ "place": [
+  "floor",
+  "surface",
+  "inside"
+ ],
+ "stand": 0.5,
+ "surface": false,
+ "container": false
+}

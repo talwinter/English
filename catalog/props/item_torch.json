@@ -1,0 +1,43 @@
+{
+ "id": "item_torch",
+ "name": "torch",
+ "kind": "item",
+ "glb": "props/item_torch.glb",
+ "desc": "a wooden torch with a small fire",
+ "words": [
+  "torch"
+ ],
+ "footprint": [
+  0.14,
+  0.121
+ ],
+ "height": 0.8,
+ "center_offset": [
+  0.0,
+  0.0
+ ],
+ "place": [
+  "floor",
+  "surface",
+  "inside"
+ ],
+ "stand": 0.5,
+ "surface": false,
+ "container": false,
+ "anims": {
+  "flicker": [
+   "flame",
+   "flame_core"
+  ]
+ },
+ "lights": [
+  {
+   "kind": "lantern",
+   "at": [
+    0,
+    0,
+    0.9
+   ]
+  }
+ ]
+}

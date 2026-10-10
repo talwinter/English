@@ -1,0 +1,25 @@
+{
+ "id": "bed_simple",
+ "name": "bed",
+ "kind": "furniture",
+ "glb": "props/bed_simple.glb",
+ "desc": "a simple wooden bed with a blue blanket",
+ "words": [
+  "bed"
+ ],
+ "footprint": [
+  1.0,
+  2.0
+ ],
+ "height": 0.62,
+ "center_offset": [
+  0.0,
+  0.0
+ ],
+ "place": [
+  "floor"
+ ],
+ "stand": 0.6,
+ "surface": false,
+ "container": false
+}

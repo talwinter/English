@@ -1,0 +1,28 @@
+{
+ "id": "shelf_wall",
+ "name": "wooden shelf",
+ "kind": "decor",
+ "glb": "props/shelf_wall.glb",
+ "desc": "a small wooden shelf with jars",
+ "words": [
+  "shelf",
+  "jar",
+  "jars"
+ ],
+ "footprint": [
+  1.2,
+  0.24
+ ],
+ "height": 1.56,
+ "center_offset": [
+  0.0,
+  0.0
+ ],
+ "place": [
+  "wall"
+ ],
+ "stand": 0.6,
+ "surface": false,
+ "container": false,
+ "wall": true
+}

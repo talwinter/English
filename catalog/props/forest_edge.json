@@ -1,0 +1,28 @@
+{
+ "id": "forest_edge",
+ "name": "dark forest",
+ "kind": "exit",
+ "glb": "props/forest_edge.glb",
+ "desc": "a thick group of pine trees: the way into the forest",
+ "words": [
+  "forest",
+  "woods",
+  "path"
+ ],
+ "footprint": [
+  4.779,
+  3.013
+ ],
+ "height": 4.01,
+ "center_offset": [
+  0.171,
+  0.319
+ ],
+ "place": [
+  "edge",
+  "floor"
+ ],
+ "stand": 0.9,
+ "surface": false,
+ "container": false
+}

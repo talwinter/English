@@ -1,0 +1,26 @@
+{
+ "id": "shield_wall",
+ "name": "round shield",
+ "kind": "decor",
+ "glb": "props/shield_wall.glb",
+ "desc": "a red and yellow round shield on the wall",
+ "words": [
+  "shield"
+ ],
+ "footprint": [
+  0.8,
+  0.12
+ ],
+ "height": 1.94,
+ "center_offset": [
+  0.0,
+  -0.025
+ ],
+ "place": [
+  "wall"
+ ],
+ "stand": 0.6,
+ "surface": false,
+ "container": false,
+ "wall": true
+}

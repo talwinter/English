@@ -1,0 +1,25 @@
+{
+ "id": "fence_section",
+ "name": "fence",
+ "kind": "decor",
+ "glb": "props/fence_section.glb",
+ "desc": "a short wooden fence",
+ "words": [
+  "fence"
+ ],
+ "footprint": [
+  1.96,
+  0.16
+ ],
+ "height": 1.02,
+ "center_offset": [
+  0.0,
+  0.0
+ ],
+ "place": [
+  "floor"
+ ],
+ "stand": 0.5,
+ "surface": false,
+ "container": false
+}

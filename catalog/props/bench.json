@@ -1,0 +1,26 @@
+{
+ "id": "bench",
+ "name": "wooden bench",
+ "kind": "furniture",
+ "glb": "props/bench.glb",
+ "desc": "a simple wooden bench",
+ "words": [
+  "bench",
+  "seat"
+ ],
+ "footprint": [
+  1.6,
+  0.44
+ ],
+ "height": 0.45,
+ "center_offset": [
+  0.0,
+  0.0
+ ],
+ "place": [
+  "floor"
+ ],
+ "stand": 0.5,
+ "surface": false,
+ "container": false
+}

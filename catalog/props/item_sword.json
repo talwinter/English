@@ -1,0 +1,27 @@
+{
+ "id": "item_sword",
+ "name": "sword",
+ "kind": "item",
+ "glb": "props/item_sword.glb",
+ "desc": "a big Viking sword with a leather handle",
+ "words": [
+  "sword"
+ ],
+ "footprint": [
+  1.15,
+  0.2
+ ],
+ "height": 0.045,
+ "center_offset": [
+  0.175,
+  0.0
+ ],
+ "place": [
+  "floor",
+  "surface",
+  "inside"
+ ],
+ "stand": 0.55,
+ "surface": false,
+ "container": false
+}

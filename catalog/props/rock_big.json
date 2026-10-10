@@ -1,0 +1,27 @@
+{
+ "id": "rock_big",
+ "name": "big rock",
+ "kind": "scenery",
+ "glb": "props/rock_big.glb",
+ "desc": "a big grey boulder with snow on top",
+ "words": [
+  "rock",
+  "stone",
+  "boulder"
+ ],
+ "footprint": [
+  1.632,
+  1.221
+ ],
+ "height": 0.82,
+ "center_offset": [
+  0.083,
+  0.0
+ ],
+ "place": [
+  "floor"
+ ],
+ "stand": 0.7,
+ "surface": false,
+ "container": false
+}

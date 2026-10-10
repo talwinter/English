@@ -1,0 +1,26 @@
+{
+ "id": "pine_tree",
+ "name": "pine tree",
+ "kind": "scenery",
+ "glb": "props/pine_tree.glb",
+ "desc": "a tall pine tree with snow",
+ "words": [
+  "tree",
+  "pine"
+ ],
+ "footprint": [
+  2.02,
+  2.072
+ ],
+ "height": 3.135,
+ "center_offset": [
+  0.053,
+  0.0
+ ],
+ "place": [
+  "floor"
+ ],
+ "stand": 0.8,
+ "surface": false,
+ "container": false
+}

@@ -1,0 +1,27 @@
+{
+ "id": "item_fish",
+ "name": "fish",
+ "kind": "item",
+ "glb": "props/item_fish.glb",
+ "desc": "a silver fish",
+ "words": [
+  "fish"
+ ],
+ "footprint": [
+  0.462,
+  0.095
+ ],
+ "height": 0.09,
+ "center_offset": [
+  0.069,
+  0.0
+ ],
+ "place": [
+  "floor",
+  "surface",
+  "inside"
+ ],
+ "stand": 0.5,
+ "surface": false,
+ "container": false
+}

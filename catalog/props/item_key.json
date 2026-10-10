@@ -1,0 +1,27 @@
+{
+ "id": "item_key",
+ "name": "small iron key",
+ "kind": "item",
+ "glb": "props/item_key.glb",
+ "desc": "a small old iron key",
+ "words": [
+  "key"
+ ],
+ "footprint": [
+  0.337,
+  0.108
+ ],
+ "height": 0.075,
+ "center_offset": [
+  0.032,
+  0.0
+ ],
+ "place": [
+  "floor",
+  "surface",
+  "inside"
+ ],
+ "stand": 0.5,
+ "surface": false,
+ "container": false
+}

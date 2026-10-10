@@ -1,0 +1,32 @@
+{
+ "id": "chest_wood",
+ "name": "wooden chest",
+ "kind": "furniture",
+ "glb": "props/chest_wood.glb",
+ "desc": "a wooden chest with an iron lock; small things can be inside",
+ "words": [
+  "chest",
+  "box"
+ ],
+ "footprint": [
+  1.14,
+  0.685
+ ],
+ "height": 0.6,
+ "center_offset": [
+  0.0,
+  -0.002
+ ],
+ "place": [
+  "floor"
+ ],
+ "stand": 0.65,
+ "surface": false,
+ "container": true,
+ "opens": {
+  "node": "chest_lid",
+  "axis": "x",
+  "angle": -105
+ },
+ "inside_height": 0.4
+}

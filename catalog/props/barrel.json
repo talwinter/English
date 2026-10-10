@@ -1,0 +1,25 @@
+{
+ "id": "barrel",
+ "name": "barrel",
+ "kind": "scenery",
+ "glb": "props/barrel.glb",
+ "desc": "a wooden barrel",
+ "words": [
+  "barrel"
+ ],
+ "footprint": [
+  0.67,
+  0.637
+ ],
+ "height": 0.815,
+ "center_offset": [
+  0.0,
+  0.0
+ ],
+ "place": [
+  "floor"
+ ],
+ "stand": 0.6,
+ "surface": false,
+ "container": false
+}

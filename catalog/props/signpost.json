@@ -1,0 +1,27 @@
+{
+ "id": "signpost",
+ "name": "wooden sign",
+ "kind": "scenery",
+ "glb": "props/signpost.glb",
+ "desc": "a wooden signpost with two boards",
+ "words": [
+  "sign",
+  "signpost",
+  "post"
+ ],
+ "footprint": [
+  1.18,
+  0.185
+ ],
+ "height": 1.56,
+ "center_offset": [
+  0.04,
+  -0.002
+ ],
+ "place": [
+  "floor"
+ ],
+ "stand": 0.6,
+ "surface": false,
+ "container": false
+}
