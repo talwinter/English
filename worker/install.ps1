@@ -113,8 +113,17 @@ if ($LASTEXITCODE -ne 0) { Fail "The test picture failed. Look at $dest\worker.l
 Start-Process "$dest\test-pixel.png"
 
 # ---------------------------------------------------------------------------
-# 6. Start with Windows (shortcut in the Startup folder, no window)
+# 6. Start with Windows: before login (a Windows task, needs admin) and/or at login (Startup folder)
 # ---------------------------------------------------------------------------
+Say "`nShould the worker also run when the PC is on but nobody has logged in?"
+Say "(Windows will ask for admin permission once. Before login it checks that the graphics card is free.)"
+$answer = Read-Host "Run before login? (Enter = yes, n = no)"
+if ($answer -notmatch "^(n|no)") {
+    Start-Process powershell -Verb RunAs -Wait -ArgumentList @(
+        "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "`"$PSScriptRoot\install-task.ps1`"",
+        "-Python", "`"$pythonw`"", "-Folder", "`"$dest`"")
+}
+
 $startup = [Environment]::GetFolderPath("Startup")
 $shell = New-Object -ComObject WScript.Shell
 $link = $shell.CreateShortcut("$startup\English Quest Art Worker.lnk")
@@ -126,4 +135,6 @@ Start-Process -FilePath $pythonw -ArgumentList "`"$dest\eq_art_worker.py`"" -Wor
 
 Say "`nDone! The art worker runs now and starts with Windows." Green
 Say "It only uses the graphics card when nobody has used the PC for 5 minutes."
+Say "Tip: in Windows power settings, set sleep to Never (or 1-2 hours) when plugged in,"
+Say "so the PC stays awake long enough to get work. It never sleeps in the middle of a picture."
 Say "Log: $dest\worker.log"

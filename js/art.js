@@ -436,6 +436,6 @@
     }
   }
 
-  window.PIX = { W, H, Painter, blit, HERO, HERO_MAP, HERO_HEIGHT: HERO[0].length, HERO_WIDTH: 8 };
+  window.PIX = { W, H, Painter, blit, PALETTE, HERO, HERO_MAP, HERO_HEIGHT: HERO.length ? HERO[0].length : 0, HERO_WIDTH: 8 };
   window.ART = SCENES;
 })();

@@ -1,26 +1,29 @@
-// Checks that every English word the player can see has a Hebrew translation.
+// Checks the built-in episodes: every English word has a Hebrew translation, and a robot can
+// play each episode to the end.
 // Usage: node tools/check-words.js
-const { loadScripts, collectTexts, WORD } = require("../server/content");
+const Episode = require("../js/episode");
+const { loadContent } = require("../server/content");
+const { validate } = require("../server/validate");
 
-const { GAME, DICT } = loadScripts(["js/dictionary.js", "js/game-data.js"]);
-const texts = collectTexts(GAME);
+const content = loadContent();
+let failed = false;
 
-const missing = new Map();
-const used = new Set();
-for (const text of texts) {
-  for (const m of text.match(WORD) || []) {
-    const w = m.toLowerCase();
-    used.add(w);
-    if (!DICT[w]) missing.set(w, text);
-  }
+const baseMissing = [...Episode.wordsIn(content.baseTexts)].filter((w) => !content.DICT[w]);
+if (baseMissing.length) {
+  console.error(`Missing from dictionary (verbs and messages): ${baseMissing.join(", ")}`);
+  failed = true;
 }
 
-const unused = Object.keys(DICT).filter((w) => !used.has(w));
-console.log(`${texts.length} texts, ${used.size} different words, ${Object.keys(DICT).length} in dictionary.`);
-if (unused.length) console.log(`Not used in the game (fine): ${unused.join(", ")}`);
-if (missing.size) {
-  console.error(`\nMissing from dictionary (${missing.size}):`);
-  for (const [w, text] of missing) console.error(`  ${w.padEnd(14)} in: ${text}`);
-  process.exit(1);
+const artKeys = new Set(require("../art/shots.json").shots.map((s) => s.key));
+for (const ep of content.episodes) {
+  const r = validate(ep.data, {
+    base: content.base, dict: content.DICT, knownWords: new Set(), functionWords: content.functionWords, artKeys,
+  });
+  console.log(`${ep.id} ${ep.title}: ${r.ok ? "OK" : "PROBLEMS"}, ${ep.words.length} words, solved in ${r.solution ? r.solution.steps.length : "-"} steps`);
+  for (const e of r.errors) console.error(`  ✗ ${e}`);
+  for (const w of r.warnings) console.log(`  ! ${w}`);
+  if (!r.ok) failed = true;
 }
+
+if (failed) process.exit(1);
 console.log("All words have a translation.");

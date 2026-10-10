@@ -5,6 +5,7 @@
   const $ = (s) => document.querySelector(s);
   const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   if (location.protocol === "file:") return;
+  if (new URLSearchParams(location.search).has("draft")) return; // parent preview: no lock
 
   let status = null;
 

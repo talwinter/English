@@ -8,6 +8,7 @@ Every morning Discord locks on his devices. He plays today's episode, passes a s
 and Discord opens until the next morning.
 
 - **The story**: [docs/STORY.md](docs/STORY.md)
+- **New episodes written automatically**: [docs/EPISODES.md](docs/EPISODES.md)
 - **Making the art automatically on your PC's graphics card**: [docs/ART-WORKER.md](docs/ART-WORKER.md)
 - **Making the art by hand**: [docs/ART.md](docs/ART.md)
 - **Setting up the server and the MikroTik Discord lock**: [docs/DISCORD-LOCK.md](docs/DISCORD-LOCK.md)
@@ -36,13 +37,15 @@ Without the server: double-click `index.html`. The game works the same, just wit
 
 | File | What it is |
 | --- | --- |
-| `js/game-data.js` | Episode 1: scenes, objects, puzzles, goals and hints. |
+| `js/episodes/` | Episodes 1 and 2. Episodes are data; the format is described in `js/episode.js`. |
+| `js/base.js` | The verb buttons and the game's own messages, shared by all episodes. |
+| `js/loader.js` | Picks today's episode from the server (or Episode 1 without a server). |
 | `js/dictionary.js` | English → Hebrew for every word in the game. |
 | `js/art.js` | The pictures: King's Quest style EGA pixel art, the hero and other sprites. |
 | `js/game.js` | The game engine and screen. |
 | `js/mission.js` | The daily mission, the Discord indicator and the Word Challenge. |
 | `js/speech.js` | Reading aloud with the browser's voices. |
-| `server/` | The server: daily lock schedule, router control (SSH), challenge, parent page. |
+| `server/` | The server: daily lock, router control (SSH), challenge, picture queue, episode writer and checks, parent page. |
 | `router/discord-lock.rsc` | The MikroTik setup to paste into the router. |
 | `art/shots.json` | The pictures the episodes need (descriptions for Stable Diffusion). |
 | `worker/` | The art worker for the Windows PC with the GPU, and its one-click installer. |

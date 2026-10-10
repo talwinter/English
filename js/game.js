@@ -1,17 +1,16 @@
-// Game engine and interface. Content lives in game-data.js, pictures in art.js.
+// Game engine and interface. Episodes are data (js/episode.js), pictures are either the built-in
+// pixel drawings (js/art.js) or AI pictures from the art worker (/art/<key>.png).
 
-(function () {
-  const G = window.GAME, DICT = window.DICT, ART = window.ART;
-  const SAVE_KEY = "coldVillage.save.v1";
+window.startGame = function (G, DICT, { preview = false, served = false } = {}) {
+  const ART = window.ART;
+  const SAVE_KEY = `eq.save.${G.id}${preview ? ".preview" : ""}`;
   const WORDS_KEY = "englishQuest.words.v1";
-  const WORD = /[A-Za-z]+(?:'[A-Za-z]+)?/g;
+  const WORD = window.Episode.WORD;
   const TWO_STEP = new Set(["use", "give"]);
   const ICONS = { key: "🗝️", sword: "⚔️", bread: "🍞" };
 
   const $ = (sel) => document.querySelector(sel);
   const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const list = (v) => (v == null ? [] : [].concat(v));
-  const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 
   // ---------- storage (may be unavailable; the game still works without it)
   const store = {
@@ -25,9 +24,11 @@
     scene: G.start.scene, goal: G.start.goal, flags: {}, bag: [], points: {},
     visited: {}, hints: {}, finished: false, log: [], started: false,
   });
-  let state = Object.assign(freshState(), store.get(SAVE_KEY) || {});
+  const saved = store.get(SAVE_KEY) || (G.id === "s1e1" && !preview ? store.get("coldVillage.save.v1") : null);
+  let state = Object.assign(freshState(), saved || {});
+  if (!G.scenes[state.scene]) state = freshState();
   const words = Object.assign({ looked: {}, seen: {}, quiz: {} }, store.get(WORDS_KEY) || {});
-  const save = () => { store.set(SAVE_KEY, state); store.set(WORDS_KEY, words); };
+  const save = () => { store.set(SAVE_KEY, state); if (!preview) store.set(WORDS_KEY, words); };
 
   let verb = null;          // selected verb id
   let item = null;          // selected bag item for Use/Give
@@ -39,6 +40,7 @@
   const S = {
     flag: (f) => !!state.flags[f],
     set: (f) => { state.flags[f] = true; },
+    unset: (f) => { delete state.flags[f]; },
     has: (i) => state.bag.includes(i),
     add: (i) => { if (!state.bag.includes(i)) state.bag.push(i); },
     remove: (i) => { state.bag = state.bag.filter((x) => x !== i); },
@@ -74,6 +76,7 @@
   }
 
   function markSeen(text) {
+    if (preview) return;
     for (const m of text.match(WORD) || []) words.seen[m.toLowerCase()] = 1;
   }
 
@@ -86,15 +89,6 @@
     return t;
   }
 
-  function findRule(v, objId, itemId) {
-    const rules = [...scene().rules, ...G.globalRules];
-    return rules.find((r) =>
-      list(r.verb).includes(v) &&
-      (!r.obj || list(r.obj).includes(objId)) &&
-      (r.item ? r.item === itemId : !itemId) &&
-      (!r.when || r.when(S)));
-  }
-
   function act(v, objId, itemId) {
     const target = objId ? thing(objId) : null;
     const msgs = [{ kind: "cmd", text: sentence(v, itemId, target && target.name) }];
@@ -103,7 +97,7 @@
     if (TWO_STEP.has(v) && !itemId) {
       msgs.push({ kind: "say", text: v === "use" ? G.ui.useWhat : G.ui.giveWhat });
     } else {
-      const rule = findRule(v, objId, itemId);
+      const rule = window.Episode.findRule(G, state.scene, v, objId, itemId, S);
       if (rule) {
         msgs.push({ kind: "say", text: rule.say });
         if (rule.points) state.points[rule.points[0]] = rule.points[1];
@@ -121,7 +115,8 @@
     if (fx.scene) {
       const from = state.scene;
       state.scene = fx.scene;
-      placeHero(ART[fx.scene].entry[from] || ART[fx.scene].entry.start);
+      ensureView();
+      placeHero(view.entry(from));
       const sc = scene();
       msgs.push({ kind: "intro", text: state.visited[fx.scene] ? sc.introAgain : sc.intro });
       state.visited[fx.scene] = true;
@@ -153,56 +148,180 @@
     const els = [...document.querySelectorAll("#log .msg.new")];
     els.forEach((el) => {
       if (el.dataset.lang === "he") return;
-      Speech.say(el.dataset.text, { el, queue: true, pitch: el.dataset.text.startsWith("Grandmother") ? 1.15 : 1 });
+      Speech.say(el.dataset.text, { el, queue: true, pitch: /^[A-Z][a-z]+: "/.test(el.dataset.text) ? 1.15 : 1 });
     });
   }
 
-  // ---------- picture and hero
+  // ---------- pictures from the art worker
+  const pics = {};
+  function pic(key) {
+    if (!served || !key) return null;
+    if (!pics[key]) {
+      const img = new Image();
+      pics[key] = { img, ok: false };
+      img.onload = () => { pics[key].ok = true; render(); };
+      img.src = `/art/${encodeURIComponent(key)}.png`;
+    }
+    return pics[key].ok ? pics[key].img : null;
+  }
+
+  // ---------- views: how a scene is drawn and clicked
   const canvas = $("#scene");
-  canvas.width = PIX.W * 2;
-  canvas.height = PIX.H;
   const ctx = canvas.getContext("2d");
-  const image = ctx.createImageData(canvas.width, canvas.height);
-  let bg = null, work = null, bgKey = "";
+  let view = null, viewScene = null;
   let walk = null;   // where the hero is walking: { x, y, then }
   let steps = 0;
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-  function buildScene() {
-    const key = JSON.stringify([state.scene, state.flags, state.bag]);
-    if (key === bgKey) return;
-    bgKey = key;
-    bg = new PIX.Painter();
-    ART[state.scene].draw(bg, S, (id) => !!sceneObj(id));
-    work = new PIX.Painter(bg);
+  // The built-in pixel drawings (160x168 pixels, each twice as wide).
+  function egaView(name) {
+    const art = ART[name];
+    const image = ctx.createImageData(PIX.W * 2, PIX.H);
+    let bg = null, work = null, key = "";
+    const rebuild = () => {
+      const k = JSON.stringify([state.flags, state.bag]);
+      if (k === key) return;
+      key = k;
+      bg = new PIX.Painter();
+      art.draw(bg, S, (id) => !!sceneObj(id));
+      work = new PIX.Painter(bg);
+    };
+    return {
+      w: PIX.W * 2, h: PIX.H, xScale: 2, floor: art.floor, rebuild,
+      entry: (from) => art.entry[from] || art.entry.start,
+      spot: (id) => art.spots[id] || null,
+      hitAt: (cx, cy) => (rebuild(), bg.idAt(Math.floor(cx / 2), Math.floor(cy))),
+      toWorld: (cx, cy) => ({ x: Math.floor(cx / 2), y: Math.floor(cy) }),
+      draw(now) {
+        rebuild();
+        work.reset();
+        if (art.anim) art.anim(work, now / 1000, S);
+        const h = state.hero;
+        const sx = Math.round(h.x) - PIX.HERO_WIDTH / 2, sy = Math.round(h.y) - PIX.HERO_HEIGHT;
+        if (S.has("sword")) {
+          const back = h.dir > 0 ? sx : sx + PIX.HERO_WIDTH - 1;
+          work.sprite(back, sy + 3, ["n", "n", "g", "g", "g", "g", "g", "g", "g", "g", "g"], PIX.HERO_MAP, false, h.y);
+        }
+        const frame = walk ? [1, 0, 2, 0][Math.floor(steps / 2) % 4] : 0;
+        work.sprite(sx, sy, PIX.HERO[frame], PIX.HERO_MAP, h.dir < 0, h.y);
+        PIX.blit(work.c, image);
+        ctx.putImageData(image, 0, 0);
+      },
+    };
+  }
+
+  // AI pictures: a 320x200 background, characters and items drawn on top, things placed by box.
+  function imageView(sc) {
+    const W = 320, H = 200;
+    const floor = { x0: 6, x1: W - 6, y0: sc.floor.y0, y1: sc.floor.y1 };
+    let rects = [];
+    const rectOf = (o) => {
+      const [x, y, w, h] = o.box;
+      const img = o.sprite ? pic(o.sprite) : null;
+      if (img) return { x: Math.round(x + w / 2 - img.naturalWidth / 2), y: y + h - img.naturalHeight, w: img.naturalWidth, h: img.naturalHeight, img };
+      return { x, y, w, h, img: null };
+    };
+    function placeholder() {
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, "#5555ff"); g.addColorStop(floor.y0 / H, "#aaaaff");
+      g.addColorStop(floor.y0 / H, "#55aa55"); g.addColorStop(1, "#005500");
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "8px monospace";
+      ctx.fillText("picture coming soon", W - 98, 10);
+    }
+    function placeholderThing(o, r) {
+      ctx.fillStyle = "rgba(255,255,255,.35)";
+      ctx.fillRect(r.x, r.y, r.w, r.h);
+      ctx.strokeStyle = "#000"; ctx.lineWidth = 1;
+      ctx.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1);
+      ctx.fillStyle = "#000";
+      ctx.font = "8px monospace";
+      ctx.fillText(o.name.replace(/^(the|your|a|an) /, ""), r.x + 2, r.y + 9, r.w - 4);
+    }
+    function drawHero() {
+      const h = state.hero;
+      const bob = walk && steps % 2 ? 1 : 0;
+      const img = pic("hero");
+      ctx.save();
+      if (img) {
+        ctx.translate(Math.round(h.x), Math.round(h.y) - bob);
+        if (h.dir < 0) ctx.scale(-1, 1);
+        ctx.drawImage(img, -Math.round(img.naturalWidth / 2), -img.naturalHeight);
+      } else {
+        // The pixel hero from the built-in drawings, at double size.
+        const frame = PIX.HERO[walk ? [1, 0, 2, 0][Math.floor(steps / 2) % 4] : 0];
+        const x0 = Math.round(h.x) - PIX.HERO_WIDTH, y0 = Math.round(h.y) - frame.length * 2 - bob;
+        frame.forEach((row, j) => {
+          for (let i = 0; i < row.length; i++) {
+            const ch = h.dir < 0 ? row[row.length - 1 - i] : row[i];
+            const c = PIX.HERO_MAP[ch];
+            if (ch === "." || c == null) continue;
+            ctx.fillStyle = `#${PIX.PALETTE[c].toString(16).padStart(6, "0")}`;
+            ctx.fillRect(x0 + i * 2, y0 + j * 2, 2, 2);
+          }
+        });
+      }
+      ctx.restore();
+    }
+    return {
+      w: W, h: H, xScale: 1, floor, rebuild() {},
+      entry: () => [sc.entry.x, sc.entry.y],
+      spot: (id) => {
+        const o = sceneObj(id);
+        if (!o || !o.box) return null;
+        const [x, y, w, h] = o.box;
+        return [x + w / 2, clamp(y + h + 4, floor.y0, floor.y1)];
+      },
+      hitAt(cx, cy) {
+        for (let i = rects.length - 1; i >= 0; i--) {
+          const r = rects[i];
+          if (cx >= r.x && cx < r.x + r.w && cy >= r.y && cy < r.y + r.h) return r.id;
+        }
+        return null;
+      },
+      toWorld: (cx, cy) => ({ x: Math.floor(cx), y: Math.floor(cy) }),
+      draw() {
+        const bgImg = pic(sc.art);
+        if (bgImg) ctx.drawImage(bgImg, 0, 0, W, H);
+        else placeholder();
+        rects = [];
+        const layers = [];
+        for (const o of sc.objects) {
+          if (!visible(o) || !o.box) continue;
+          const r = { id: o.id, ...rectOf(o) };
+          rects.push(r);
+          const base = o.box[1] + o.box[3];
+          if (r.img) layers.push({ base, draw: () => ctx.drawImage(r.img, r.x, r.y) });
+          else if (!bgImg) layers.push({ base, draw: () => placeholderThing(o, r) });
+        }
+        layers.push({ base: state.hero.y + 0.5, draw: drawHero });
+        layers.sort((a, b) => a.base - b.base).forEach((l) => l.draw());
+      },
+    };
+  }
+
+  function ensureView() {
+    if (viewScene === state.scene && view) return;
+    const sc = scene();
+    view = String(sc.art).startsWith("ega:") ? egaView(sc.art.slice(4)) : imageView(sc);
+    viewScene = state.scene;
+    canvas.width = view.w;
+    canvas.height = view.h;
+    canvas.style.aspectRatio = `${view.w} / ${view.h}`;
   }
 
   function placeHero([x, y]) {
-    state.hero = { x, y, dir: x > PIX.W / 2 ? -1 : 1 };
+    state.hero = { x, y, dir: x > view.w / view.xScale / 2 ? -1 : 1 };
     walk = null;
-  }
-
-  function drawFrame(now) {
-    work.reset();
-    const art = ART[state.scene];
-    if (art.anim) art.anim(work, now / 1000, S);
-    const h = state.hero;
-    const sx = Math.round(h.x) - PIX.HERO_WIDTH / 2, sy = Math.round(h.y) - PIX.HERO_HEIGHT;
-    if (S.has("sword")) {
-      const back = h.dir > 0 ? sx : sx + PIX.HERO_WIDTH - 1;
-      work.sprite(back, sy + 3, ["n", "n", "g", "g", "g", "g", "g", "g", "g", "g", "g"], PIX.HERO_MAP, false, h.y);
-    }
-    const frame = walk ? [1, 0, 2, 0][Math.floor(steps / 2) % 4] : 0;
-    work.sprite(sx, sy, PIX.HERO[frame], PIX.HERO_MAP, h.dir < 0, h.y);
-    PIX.blit(work.c, image);
-    ctx.putImageData(image, 0, 0);
   }
 
   function step() {
     if (!walk) return;
     steps++;
     const h = state.hero, SPEED = 4;
-    const dx = (walk.x - h.x) * 2, dy = walk.y - h.y;   // in screen units: pixels are twice as wide
+    const dx = (walk.x - h.x) * view.xScale, dy = walk.y - h.y;   // in screen units
     const dist = Math.hypot(dx, dy);
     if (Math.abs(dx) > 1) h.dir = dx > 0 ? 1 : -1;
     if (dist <= SPEED) {
@@ -212,7 +331,7 @@
       save();
       if (then) then();
     } else {
-      h.x += (dx / dist) * SPEED / 2;
+      h.x += (dx / dist) * SPEED / view.xScale;
       h.y += (dy / dist) * SPEED;
     }
   }
@@ -220,18 +339,19 @@
   let lastStep = 0;
   function loop(now) {
     if (now - lastStep >= 50) { lastStep = now; step(); }
-    drawFrame(now);
+    ensureView();
+    view.draw(now);
     requestAnimationFrame(loop);
   }
 
   function walkTo(x, y, then) {
-    const f = ART[state.scene].floor;
+    const f = view.floor;
     walk = { x: clamp(x, f.x0, f.x1), y: clamp(y, f.y0, f.y1), then };
   }
 
   // Walk to the thing first (like in the old games), then do the action. Looking works from far away.
   function perform(v, objId, itemId) {
-    const spot = ART[state.scene].spots[objId];
+    const spot = view.spot(objId);
     const walkFirst = spot && sceneObj(objId) && v !== "look" && !(TWO_STEP.has(v) && !itemId);
     if (!walkFirst) { walk = null; pending = null; act(v, objId, itemId); return; }
     pending = sentence(v, itemId, thing(objId).name);
@@ -240,13 +360,13 @@
     walkTo(spot[0], spot[1], () => { pending = null; act(v, objId, itemId); });
   }
 
-  function pixelAt(e) {
+  function canvasPoint(e) {
     const r = canvas.getBoundingClientRect();
     const scale = Math.min(r.width / canvas.width, r.height / canvas.height);
     const x = (e.clientX - r.left - (r.width - canvas.width * scale) / 2) / scale;
     const y = (e.clientY - r.top - (r.height - canvas.height * scale) / 2) / scale;
     if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) return null;
-    return { x: Math.floor(x / 2), y: Math.floor(y) };
+    return { cx: x, cy: y };
   }
 
   // ---------- typed commands (King's Quest style)
@@ -259,6 +379,7 @@
     ["go to", "go"], ["go", "go"], ["walk to", "go"], ["walk", "go"], ["cross", "go"], ["run to", "go"],
   ].sort((a, b) => b[0].length - a[0].length);
   const STOP = new Set(["the", "a", "an", "at", "to", "on", "with", "in", "into", "my", "your", "up", "please", "and", "of"]);
+  const ALL_THINGS = [...Object.values(G.items), ...Object.values(G.scenes).flatMap((sc) => sc.objects)];
 
   function parse(input) {
     const text = input.toLowerCase().replace(/[^a-z\s]/g, " ").replace(/\s+/g, " ").trim();
@@ -279,7 +400,6 @@
     }
     return { v, nouns };
   }
-  const ALL_THINGS = [...Object.values(G.items), ...Object.values(G.scenes).flatMap((sc) => sc.objects)];
 
   function typed(input) {
     if (!input.trim()) return;
@@ -316,17 +436,25 @@
   }
 
   // ---------- rendering
+  function itemIcon(id) {
+    const art = G.items[id] && G.items[id].art;
+    const img = art ? pic(art) : null;
+    return img ? `<img class="icon-img" src="${esc(img.src)}" alt="">` : `<span class="icon">${ICONS[id] || "❔"}</span>`;
+  }
+
   function render() {
     const sc = scene();
-    buildScene();
+    ensureView();
+    view.rebuild();
     $("#scene-name").innerHTML = wordsHTML(sc.name);
     $("#goal-text").innerHTML = wordsHTML(G.goals[state.goal].en);
     $("#score").textContent = `Score:${score()} of ${maxScore}`;
     $("#bag-label").innerHTML = wordsHTML(G.ui.bag);
+    $(".topbar .title").textContent = preview ? `PREVIEW: ${G.title}` : `English Quest · ${G.title}`;
     document.querySelectorAll(".verb").forEach((b) => b.classList.toggle("on", b.dataset.verb === verb));
     $("#bag").innerHTML = state.bag.length
       ? state.bag.map((id) => `<button class="item${item === id ? " on" : ""}" data-item="${id}">
-          <span class="icon">${ICONS[id] || "❔"}</span><span>${esc(id)}</span></button>`).join("")
+          ${itemIcon(id)}<span>${esc(G.items[id].words[0] || id)}</span></button>`).join("")
       : `<span class="empty">—</span>`;
     renderSentence();
   }
@@ -354,7 +482,7 @@
   // ---------- word popup
   function showWord(span) {
     const w = span.dataset.w;
-    words.looked[w] = (words.looked[w] || 0) + 1;
+    if (!preview) words.looked[w] = (words.looked[w] || 0) + 1;
     save();
     const pop = $("#popup");
     pop.innerHTML = `<div class="en">${esc(span.textContent)} <button class="say" data-say="${esc(w)}">🔊</button></div>
@@ -438,23 +566,24 @@
     $("#end-score").textContent = `Score: ${score()} of ${maxScore}`;
     $("#end-words").textContent = `Words you met: ${Object.keys(words.seen).length}`;
     $("#end").hidden = false;
-    document.dispatchEvent(new CustomEvent("eq:level-complete", { detail: { episode: G.id } }));
+    if (!preview) document.dispatchEvent(new CustomEvent("eq:level-complete", { detail: { episode: G.id } }));
   }
 
   function restart() {
     state = freshState();
     state.started = true;
-    verb = null; item = null; hoverName = null;
+    verb = null; item = null; hoverName = null; pending = null;
     store.del(SAVE_KEY);
     $("#end").hidden = true;
     begin();
   }
 
   function begin() {
+    ensureView();
     if (!state.log.length) {
       const sc = scene();
       state.visited[state.scene] = true;
-      placeHero(ART[state.scene].entry.start);
+      placeHero(view.entry("start"));
       render();
       // Browsers only allow speech after a click, so the first lines are read when he presses Start.
       addMessages([{ kind: "intro", text: sc.intro }, { kind: "goal", text: G.goals[state.goal].en }],
@@ -479,8 +608,8 @@
     });
 
     const objAt = (e) => {
-      const p = pixelAt(e);
-      const id = p && bg.idAt(p.x, p.y);
+      const p = canvasPoint(e);
+      const id = p && view.hitAt(p.cx, p.cy);
       return { p, o: id ? sceneObj(id) : null };
     };
     canvas.addEventListener("mousemove", (e) => {
@@ -499,7 +628,8 @@
         perform(verb || "look", o.id, TWO_STEP.has(verb) ? item : null);
       } else {
         pending = null;
-        walkTo(p.x, p.y);
+        const w = view.toWorld(p.cx, p.cy);
+        walkTo(w.x, w.y);
         renderSentence();
       }
     });
@@ -565,9 +695,15 @@
   }
 
   bind();
-  if (!state.hero) placeHero(ART[state.scene].entry.start);
+  ensureView();
+  if (!state.hero) placeHero(view.entry("start"));
   requestAnimationFrame(loop);
   if (!Speech.available) $("#sound").hidden = true;
   if (state.started) $("#help").hidden = true;
   if (state.finished) { render(); renderLog(); showEnd(); } else begin();
-})();
+};
+
+window.loadEpisode().then(({ game, dict, preview, served }) => {
+  window.EQ_PREVIEW = preview;
+  window.startGame(game, dict, { preview, served });
+});

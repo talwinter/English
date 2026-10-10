@@ -15,5 +15,9 @@ services:
       ROUTER_PORT: "22"
       ROUTER_USER: eq-lock
       WORKER_TOKEN: "change-me-too"  # password for the art worker on the PC with the GPU
+      OPENAI_API_KEY: ""             # for the episode writer (empty = no new episodes)
+      OPENAI_MODEL: gpt-5-mini       # any OpenAI model that supports structured output and images
+      EPISODES_AHEAD: "2"            # keep this many new episodes ready
+      AUTO_PUBLISH: "false"          # "true" = publish new episodes without asking you
     volumes:
       - ./data:/data                 # state.json and ssh/id_ed25519 (the router key)

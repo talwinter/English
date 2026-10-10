@@ -158,3 +158,111 @@ test("art queue: worker takes jobs, sends 3 versions, parent picks one", () => {
   assert.equal(art.variantPath("../art.json"), null);
   assert.equal(art.chosenPath("x/../../state.json"), null);
 });
+
+// ---------- episode writer with a fake OpenAI
+test("writer: writes, fixes problems, waits for approval, places things in pictures", async () => {
+  const http = require("http");
+  const { loadContent } = require("./content");
+  const s1e2 = loadContent().episodes.find((e) => e.id === "s1e2").data;
+  const rename = { "forest-tree": "test-forest", "bear-cave": "test-cave", "char-father": "test-father", "char-bear": "test-bear", "item-berries": "test-berries", "item-rope": "test-rope" };
+  const make = (fixed) => {
+    const ep = JSON.parse(JSON.stringify(s1e2).replace(/"(forest-tree|bear-cave|char-father|char-bear|item-berries|item-rope)"/g, (m, k) => `"${rename[k]}"`));
+    ep.id = "s9e9"; // the writer must replace it with the right id
+    ep.title = "The Dark Forest";
+    ep.scenes[0].objects[0].look = "It is a small bush. A lantern is next to it.";
+    if (fixed) ep.dictionary.push({ en: "Lantern", he: "פנס" });
+    // Fill the fields the schema always has
+    const cond = (c) => ({ flags: [], notFlags: [], has: [], notHas: [], ...(c || {}) });
+    const eff = (d) => ({ set: [], unset: [], add: [], remove: [], goal: null, go: null, finish: false, ...(d || {}) });
+    const rule = (r) => ({ obj: null, item: null, points: 0, pointsId: null, ...r, when: cond(r.when), do: eff(r.do) });
+    ep.scenes.forEach((sc) => { sc.rules = sc.rules.map(rule); sc.objects.forEach((o) => { o.visible = cond(o.visible); }); });
+    ep.globalRules = ep.globalRules.map(rule);
+    return ep;
+  };
+  let episodeCalls = 0, hotspotCalls = 0;
+  const fake = http.createServer((req, res) => {
+    let body = "";
+    req.on("data", (c) => { body += c; });
+    req.on("end", () => {
+      const q = JSON.parse(body);
+      const name = q.response_format.json_schema.name;
+      let answer;
+      if (name === "episode") {
+        episodeCalls++;
+        assert.match(q.messages[1].content, /STORY SO FAR:[\s\S]*Into the Forest/);
+        answer = make(episodeCalls > 1);
+      } else {
+        hotspotCalls++;
+        answer = { objects: [{ id: "tree", found: true, left: 0.25, top: 0.6, right: 0.75, bottom: 0.8 }], groundTop: 0.72, groundBottom: 0.98 };
+      }
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ choices: [{ message: { content: JSON.stringify(answer) } }], usage: { total_tokens: 1000 } }));
+    });
+  });
+  await new Promise((r) => fake.listen(0, r));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "eq-writer-"));
+  const port = 19000 + Math.floor(Math.random() * 1000);
+  const proc = spawn(process.execPath, [path.join(__dirname, "server.js")], {
+    env: {
+      ...process.env, PORT: String(port), DATA_DIR: dir, ADMIN_PASSWORD: "pw", WORKER_TOKEN: "tok", ROUTER_MODE: "mock",
+      OPENAI_API_KEY: "test", OPENAI_BASE_URL: `http://localhost:${fake.address().port}/v1`, AUTO_WRITE: "false",
+    },
+    stdio: "ignore",
+  });
+  const base = `http://localhost:${port}`;
+  const auth = { Authorization: "Basic " + Buffer.from("x:pw").toString("base64"), "Content-Type": "application/json" };
+  const admin = async (p, body) => (await fetch(base + p, body ? { method: "POST", headers: auth, body: JSON.stringify(body) } : { headers: auth })).json();
+  const worker = (p, body) => fetch(base + p, { method: "POST", headers: { Authorization: "Bearer tok", "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  try {
+    for (let i = 0; i < 50; i++) {
+      try { await fetch(base + "/api/status"); break; } catch { await new Promise((r) => setTimeout(r, 100)); }
+    }
+    await admin("/admin/api/episodes/write", { note: "more jokes" });
+    let w;
+    for (let i = 0; i < 50; i++) {
+      w = (await admin("/admin/api/episodes")).writer;
+      if (w.drafts[0] && w.drafts[0].status !== "writing") break;
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    const draft = w.drafts[0];
+    assert.equal(draft.id, "s1e3");
+    assert.equal(draft.status, "ready", JSON.stringify(draft.errors));
+    assert.equal(episodeCalls, 2, "the first answer had a word without Hebrew, so it asks again");
+    assert.ok(draft.newWords.includes("lantern"));
+    assert.ok(draft.steps.length >= 6);
+
+    // The parent can try the draft; the pictures were queued already.
+    const preview = await admin("/admin/api/draft/s1e3");
+    assert.equal(preview.episode.id, "s1e3");
+    assert.equal(preview.dictionary.lantern, "פנס");
+    const shots = (await admin("/admin/api/art")).shots.map((s) => s.key);
+    assert.ok(shots.includes("test-forest") && shots.includes("test-bear"));
+
+    // Approve: now it is published.
+    await admin("/admin/api/episodes/approve", { id: "s1e3" });
+    const play = await (await fetch(base + "/api/play?episode=s1e3")).json();
+    assert.equal(play.episode.title, "The Dark Forest");
+
+    // The worker sends the background, the parent chooses it, and the things are found in the picture.
+    const png = Buffer.from(
+      "89504e470d0a1a0a0000000d4948445200000001000000010806000000" + "1f15c4890000000d49444154789c6360000002000154a24f5d0000000049454e44ae426082", "hex");
+    let job;
+    for (let i = 0; i < 30 && (!job || job.key !== "test-forest"); i++) {
+      const r = await fetch(base + "/api/art/next", { headers: { Authorization: "Bearer tok" } });
+      job = r.status === 200 ? await r.json() : null;
+      if (job && job.key !== "test-forest") for (let n = 0; n < 3; n++) await worker("/api/art/result", { key: job.key, n, raw: png.toString("base64"), pixel: png.toString("base64") });
+    }
+    assert.equal(job.key, "test-forest");
+    for (let n = 0; n < 3; n++) await worker("/api/art/result", { key: "test-forest", n, raw: png.toString("base64"), pixel: png.toString("base64") });
+    await admin("/admin/api/art/choose", { key: "test-forest", n: 1 });
+    await new Promise((r) => setTimeout(r, 300));
+    assert.equal(hotspotCalls, 1);
+    const after = await (await fetch(base + "/api/play?episode=s1e3")).json();
+    const forest = after.episode.scenes.find((sc) => sc.id === "forest");
+    assert.deepEqual(forest.objects.find((o) => o.id === "tree").box, [80, 120, 160, 40]);
+    assert.deepEqual(forest.floor, { y0: 144, y1: 196 });
+  } finally {
+    proc.kill();
+    fake.close();
+  }
+});

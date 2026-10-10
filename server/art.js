@@ -23,7 +23,10 @@ const VARIANTS = 3;
 const LEASE_MS = 30 * 60 * 1000;
 const KEY = /^[a-z0-9-]{1,40}$/;
 
-function createArt(dataDir) {
+// options.episodeShots(): pictures listed in the episodes ({key, kind, height, prompt, episode})
+// options.onChosen(key, n): called after a parent (or auto mode) picks a picture
+// options.autoChoose: pick the first version by itself when a picture is done
+function createArt(dataDir, options = {}) {
   const dir = path.join(dataDir, "art");
   const variantsDir = path.join(dir, "variants");
   const chosenDir = path.join(dir, "chosen");
@@ -31,7 +34,12 @@ function createArt(dataDir) {
   fs.mkdirSync(chosenDir, { recursive: true });
   const file = path.join(dir, "art.json");
 
-  const shots = () => JSON.parse(fs.readFileSync(path.join(ROOT, "art", "shots.json"), "utf8")).shots;
+  const shots = () => {
+    const all = [...JSON.parse(fs.readFileSync(path.join(ROOT, "art", "shots.json"), "utf8")).shots,
+      ...(options.episodeShots ? options.episodeShots() : [])];
+    const seen = new Set();
+    return all.filter((s) => !seen.has(s.key) && seen.add(s.key));
+  };
   let db = { jobs: {}, workerSeen: null };
   try { db = { ...db, ...JSON.parse(fs.readFileSync(file, "utf8")) }; } catch (e) { if (e.code !== "ENOENT") throw e; }
   const save = () => { fs.writeFileSync(`${file}.tmp`, JSON.stringify(db, null, 2)); fs.renameSync(`${file}.tmp`, file); };
@@ -76,6 +84,7 @@ function createArt(dataDir) {
     if (j.variants.length >= VARIANTS) j.status = "done";
     j.updatedAt = new Date().toISOString();
     save();
+    if (j.status === "done" && options.autoChoose && j.chosen == null) choose(key, 0);
   }
 
   function fail(key, error) {
@@ -91,7 +100,17 @@ function createArt(dataDir) {
     fs.copyFileSync(path.join(variantsDir, `${key}-${n}.png`), path.join(chosenDir, `${key}.png`));
     j.chosen = n;
     save();
+    if (options.onChosen) options.onChosen(key, n);
   }
+
+  // Queue the pictures with these keys that were never made (used when a new episode arrives).
+  function queueNew(keys) {
+    const fresh = keys.filter((k) => job(k).status === "none" || job(k).status === "failed");
+    return fresh.length ? queue(fresh) : [];
+  }
+
+  const isChosen = (key) => db.jobs[key] && db.jobs[key].chosen != null;
+  const rawPath = (key) => (db.jobs[key] && db.jobs[key].chosen != null ? path.join(variantsDir, `${key}-${db.jobs[key].chosen}-raw.png`) : null);
 
   function list() {
     return {
@@ -107,7 +126,7 @@ function createArt(dataDir) {
   const variantPath = (name) => (/^[a-z0-9-]{1,40}-\d(-raw)?\.png$/.test(name) ? path.join(variantsDir, name) : null);
   const chosenPath = (name) => (/^[a-z0-9-]{1,40}\.png$/.test(name) ? path.join(chosenDir, name) : null);
 
-  return { queue, next, result, fail, choose, list, variantPath, chosenPath };
+  return { queue, queueNew, next, result, fail, choose, list, variantPath, chosenPath, isChosen, rawPath };
 }
 
 module.exports = { createArt, VARIANTS };

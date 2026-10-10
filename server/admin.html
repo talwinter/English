@@ -26,6 +26,14 @@
     .muted { color: var(--gray); font-size: 14px; }
     pre { white-space: pre-wrap; direction: ltr; text-align: left; font-size: 13px; max-height: 300px; overflow: auto; margin: 0; }
     .ltr { direction: ltr; unicode-bidi: embed; }
+    h3 { margin: 16px 0 6px; font-size: 17px; }
+    #note { flex: 1; min-width: 220px; font: inherit; padding: 8px; }
+    .draft { border: 2px solid #ccc; padding: 10px 12px; margin-top: 10px; }
+    .draft.ready { border-color: var(--green); }
+    .draft.failed { border-color: var(--red); }
+    .draft ul { margin: 6px 0; padding-inline-start: 20px; font-size: 14px; }
+    .draft a.button { display: inline-block; text-decoration: none; color: #000; padding: 10px 16px; font-weight: 700;
+      background: #aaa; border: 3px solid; border-color: #fff #555 #555 #fff; outline: 2px solid #000; }
     .art { display: grid; gap: 14px; }
     .shot { border-top: 1px solid #ccc; padding-top: 10px; }
     .shot-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
@@ -66,17 +74,24 @@
   </section>
 
   <section class="box">
+    <h2>פרקים</h2>
+    <table id="episodes"></table>
+    <h3>פרקים חדשים</h3>
+    <div id="writer" class="muted"></div>
+    <div id="drafts"></div>
+    <div class="row">
+      <input id="note" placeholder="הערה לכותב (לא חובה), למשל: יותר מצחיק, פחות מילים חדשות" dir="rtl">
+      <button id="write">✍️ כתוב את הפרק הבא עכשיו</button>
+    </div>
+    <div class="row"><button id="resetEpisodes">אפס התקדמות בפרקים</button></div>
+  </section>
+
+  <section class="box">
     <h2>תמונות</h2>
     <div id="worker" class="muted"></div>
     <div class="row"><button id="makeArt">🎨 צור את התמונות החסרות</button></div>
     <p class="muted">לחץ על הגרסה שאתה הכי אוהב כדי לבחור אותה.</p>
     <div id="art" class="art"></div>
-  </section>
-
-  <section class="box">
-    <h2>פרקים</h2>
-    <table id="episodes"></table>
-    <div class="row"><button id="resetEpisodes">אפס התקדמות בפרקים</button></div>
   </section>
 
   <section class="box">
@@ -115,8 +130,6 @@
         ? `לשחק את הפרק <b class="ltr">${esc(s.mission.title)}</b> ואז לעבור את אתגר המילים`
         : "לעבור את אתגר המילים (8 שאלות, צריך 6 נכונות)";
     $("#streak").textContent = `רצף: ${s.streak} ימים`;
-    $("#episodes").innerHTML = s.episodes.map((e) =>
-      `<tr><td class="ltr">${esc(e.id)}</td><td class="ltr">${esc(e.title)}</td><td>${e.done ? "✅" : "—"}</td><td class="muted">${e.words} מילים</td></tr>`).join("");
     $("#days").innerHTML = s.completions.length
       ? s.completions.map(([d, c]) =>
         `<tr><td class="ltr">${esc(d)}</td><td>${c.by === "parent" ? "נפתח ע״י הורה" : `אתגר: ${c.score}/8`}</td>
@@ -143,6 +156,48 @@
   }
   const post = (path, body) => fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
     .then((r) => r.json());
+  const DRAFT = { writing: "✍️ נכתב עכשיו…", ready: "✅ מוכן לבדיקה", failed: "❌ נכשל" };
+  function renderEpisodes(e) {
+    $("#episodes").innerHTML = e.episodes.map((x) =>
+      `<tr><td class="ltr">${esc(x.id)}</td><td class="ltr">${esc(x.title)}</td>
+        <td>${x.done ? "✅ שוחק" : "—"}</td><td>${x.ready ? "🖼️ מוכן" : "⏳ מחכה לתמונות"}</td>
+        <td class="muted">${x.words} מילים</td></tr>`).join("");
+    const w = e.writer;
+    $("#writer").innerHTML = !w.enabled
+      ? "כדי לכתוב פרקים צריך להגדיר OPENAI_API_KEY ב-docker-compose.yml"
+      : `הפרק הבא: <span class="ltr">${esc(w.nextId)}</span> · מודל: <span class="ltr">${esc(w.model)}</span>` +
+        (w.autoPublish ? " · פרסום אוטומטי" : " · מחכה לאישור שלך") +
+        (w.lastError ? ` · <b class="locked">שגיאה אחרונה: <span class="ltr">${esc(w.lastError)}</span></b>` : "");
+    $("#write").disabled = !w.enabled || w.writing;
+    $("#drafts").innerHTML = w.drafts.map((d) => `<div class="draft ${esc(d.status)}">
+      <b class="ltr">${esc(d.id)} ${esc(d.title || "")}</b> · ${DRAFT[d.status] || esc(d.status)}
+      ${d.note ? `<div class="muted">הערה: ${esc(d.note)}</div>` : ""}
+      ${d.steps ? `<div class="muted">הרובוט סיים אותו ב-${d.steps.length} צעדים · ${d.newWords.length} מילים חדשות:
+        <span class="ltr">${esc(d.newWords.join(", "))}</span></div>` : ""}
+      ${(d.errors || []).length ? `<ul class="locked ltr">${d.errors.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+      ${(d.warnings || []).length ? `<ul class="muted ltr">${d.warnings.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+      <div class="row">
+        ${d.status === "ready" ? `<a class="button" href="/?draft=${esc(d.id)}" target="_blank">▶ נסה את הפרק</a>
+          <button data-approve="${esc(d.id)}">✅ אשר</button>` : ""}
+        ${d.status !== "writing" ? `<button data-reject="${esc(d.id)}">❌ דחה וכתוב מחדש</button>` : ""}
+      </div>
+      ${d.status === "ready" ? `<div class="muted">התמונות של הפרק מופיעות למטה ב"תמונות". בחר אותן כדי לראות את הפרק עם התמונות.</div>` : ""}
+    </div>`).join("");
+  }
+  const refreshEpisodes = () => call("/admin/api/episodes").then(renderEpisodes).catch(() => {});
+  $("#write").onclick = () => post("/admin/api/episodes/write", { note: $("#note").value }).then(() => { $("#note").value = ""; refreshEpisodes(); });
+  $("#drafts").onclick = (e) => {
+    const a = e.target.closest("[data-approve]");
+    const r = e.target.closest("[data-reject]");
+    if (a) post("/admin/api/episodes/approve", { id: a.dataset.approve }).then(() => { refreshEpisodes(); refresh(); refreshArt(); });
+    if (r) {
+      const note = prompt("מה לשנות? (לא חובה)");
+      if (note !== null) post("/admin/api/episodes/reject", { id: r.dataset.reject, note, rewrite: true }).then(refreshEpisodes);
+    }
+  };
+  refreshEpisodes();
+  setInterval(refreshEpisodes, 10000);
+
   const refreshArt = () => call("/admin/api/art").then(renderArt).catch(() => {});
   $("#makeArt").onclick = () => post("/admin/api/art/queue", {}).then(renderArt);
   $("#art").onclick = (e) => {

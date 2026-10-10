@@ -2,14 +2,21 @@
 
 The pictures are made for free on your graphics card. You install it once, and then it runs by itself:
 
-- It **starts with Windows**, hidden, with no window.
+- It **starts with the PC**, even at the login screen before anyone logs in (if you say yes in the
+  installer and approve the admin prompt once). It also starts when you log in. It's hidden, with no window.
 - Every 2 minutes it asks the English Quest server whether there are pictures to make.
-- It only works when **nobody has used the PC for 5 minutes**, so games and work aren't slowed down.
+- It only works when **nobody has used the PC for 5 minutes** and **the graphics card isn't busy** (for
+  example a game), so games and work aren't slowed down. Before login only the graphics card check works,
+  because Windows hides the mouse and keyboard from background tasks.
+- While it makes pictures, it keeps the PC from going to sleep. When it's done, normal sleep rules apply.
 - When there is work it **starts ComfyUI by itself** (from your Stability Matrix folder), makes 3 versions of
   each picture, turns them into pixel art, sends them to the server, and **closes ComfyUI** to free the
   graphics card.
 
 The PC doesn't need to be on all the time. The server keeps the jobs until the PC is on and free.
+
+> **Sleep:** if Windows sleeps after a few minutes at the login screen, the worker may not get its chance.
+> In *Settings > System > Power*, set sleep to **Never** or **1–2 hours** when plugged in.
 
 ## Before you start
 
@@ -30,22 +37,27 @@ The PC doesn't need to be on all the time. The server keeps the jobs until the P
    - choose the model and, if you have one, the LoRA,
    - type the server address (for example `http://192.168.88.10:8080`) and the `WORKER_TOKEN`.
 4. It makes **one test picture** and opens it. If you see a picture, everything works.
+5. It asks whether to also run **before login**. Say yes and approve the Windows admin prompt.
 
 ## Using it
 
-1. On the parent page (`http://SERVER:8080/admin`), in **תמונות** (pictures), click **🎨 צור את התמונות החסרות**
-   (make the missing pictures).
-2. When the PC is free, the worker makes them. On a 3060 each SDXL picture takes about half a minute, so the
-   first set (11 pictures × 3 versions) takes about 15–20 minutes.
-3. Back on the parent page, **click the version you like best** for each picture. Click **צור מחדש** (make again)
-   for new versions.
+1. The pictures the episodes need are **queued automatically** (for Episode 2 and every new episode).
+   You don't need to press anything.
+2. When the PC is free, the worker makes them. On a 3060 each SDXL picture takes about half a minute, so one
+   episode (about 6 pictures × 3 versions) takes about 10 minutes.
+3. On the parent page (`http://SERVER:8080/admin`), under **תמונות** (pictures), **click the version you like best**
+   for each picture. Click **צור מחדש** (make again) for new versions. When you choose a background, the server
+   finds the door, the cave and so on in it by itself.
+4. When all pictures of an episode are chosen, it becomes his mission.
 
-Later, new episodes add their pictures to the queue automatically.
+The button **🎨 צור את התמונות החסרות** (make the missing pictures) also makes the optional pictures in
+`art/shots.json`, for example new versions of Episode 1's places.
 
 ## If something doesn't work
 
 - The log is in `%LOCALAPPDATA%\EnglishQuestWorker\worker.log`, and ComfyUI's log is next to it in `comfyui.log`.
 - The parent page shows when the worker last connected.
 - Settings are in `%LOCALAPPDATA%\EnglishQuestWorker\config.json`: model, LoRA, steps, colors,
-  `idle_minutes` (set it to 0 to work even while the PC is in use).
-- To remove it: double-click `worker\uninstall.bat`.
+  `idle_minutes` (set it to 0 to work even while the PC is in use), `gpu_busy_percent` (0 = don't check the
+  graphics card).
+- To remove it: double-click `worker\uninstall.bat` and approve the admin prompt.

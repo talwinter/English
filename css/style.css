@@ -93,6 +93,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   background: var(--black); border: 2px solid var(--dgray); padding: 2px 8px; font-size: 18px;
 }
 .item .icon { font-size: 26px; }
+.item .icon-img { height: 28px; width: auto; max-width: 48px; image-rendering: pixelated; }
 .item:hover { border-color: var(--white); }
 .item.on { border-color: var(--yellow); color: var(--yellow); }
 

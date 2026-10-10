@@ -12,6 +12,7 @@ const { createStore } = require("./store");
 const { createChallenges } = require("./challenge");
 const { loadContent, ROOT } = require("./content");
 const { createArt } = require("./art");
+const { createWriter } = require("./writer");
 
 const env = process.env;
 const config = {
@@ -26,10 +27,28 @@ const config = {
 
 const dataDir = env.DATA_DIR || path.join(ROOT, "data");
 const store = createStore(dataDir);
-const art = createArt(dataDir);
+let writer = null;
+const art = createArt(dataDir, {
+  episodeShots: () => (writer ? writer.episodeShots() : []),
+  onChosen: (key) => writer && writer.placeThings(key).catch((e) => store.log(`Could not find things in "${key}": ${e.message}`)),
+  autoChoose: env.AUTO_PUBLISH === "true",
+});
 const router = createRouter(env, (m) => store.log(m));
-const content = loadContent();
-const challenges = createChallenges(content.DICT);
+let content = loadContent(dataDir);
+let challenges = createChallenges(content.DICT);
+// After a new episode is published: load the episodes and words again.
+function reloadContent() {
+  content = loadContent(dataDir);
+  challenges = createChallenges(content.DICT);
+}
+writer = createWriter({ dataDir, env, getContent: () => content, reload: reloadContent, art, log: (m) => store.log(m) });
+
+// An episode with AI pictures is ready to play when all its pictures are chosen.
+function artReady(ep) {
+  const keys = ep.scenes.flatMap((sc) => (String(sc.art).startsWith("ega:") ? [] : [sc.art, ...sc.objects.map((o) => o.sprite)]));
+  if (keys.length) keys.push("hero");
+  return keys.filter(Boolean).every((k) => art.isChosen(k));
+}
 
 // ---------- mission and lock state
 
@@ -37,8 +56,10 @@ const state = () => store.state;
 const isDone = (date) => !!state().completions[date];
 const desired = (now = new Date()) => shouldLock(now, config, isDone, state().forceLock);
 
+// Today's new episode: the first one he has not finished, if its pictures are ready.
 function nextEpisode() {
-  return content.episodes.find((e) => !state().episodesDone.includes(e.id)) || null;
+  const ep = content.episodes.find((e) => !state().episodesDone.includes(e.id));
+  return ep && artReady(ep.data) ? ep : null;
 }
 
 function mission() {
@@ -179,6 +200,16 @@ async function handle(req, res) {
 
   if (p === "/api/status" && req.method === "GET") return send(res, 200, status());
 
+  // The episode to play: the one asked for, else today's new episode, else the last one he finished.
+  if (p === "/api/play" && req.method === "GET") {
+    const wanted = url.searchParams.get("episode");
+    const lastDone = [...state().episodesDone].reverse().find((id) => content.episodes.some((e) => e.id === id));
+    const id = wanted || (nextEpisode() || {}).id || lastDone || content.episodes[0].id;
+    const ep = content.episodes.find((e) => e.id === id);
+    if (!ep) return send(res, 404, { error: "unknown episode" });
+    return send(res, 200, { episode: ep.data, dictionary: content.DICT });
+  }
+
   if (p === "/api/episode-done" && post) {
     const { episode } = await readJson(req);
     const ep = content.episodes.find((e) => e.id === episode);
@@ -260,6 +291,44 @@ async function handle(req, res) {
       if (queued.length) store.log(`Pictures queued: ${queued.join(", ")}`);
       return send(res, 200, art.list());
     }
+    if (p === "/admin/api/episodes") {
+      return send(res, 200, {
+        writer: writer.list(),
+        episodes: content.episodes.map((e) => ({
+          id: e.id, title: e.title, done: state().episodesDone.includes(e.id), ready: artReady(e.data), words: e.words.length,
+        })),
+      });
+    }
+    if (p === "/admin/api/episodes/write" && post) {
+      const { note } = await readJson(req);
+      writer.write(String(note || "").slice(0, 500)).catch(() => { /* logged */ });
+      await new Promise((r) => setTimeout(r, 100));
+      return send(res, 200, { ok: true, writer: writer.list() });
+    }
+    if (p === "/admin/api/episodes/approve" && post) {
+      const { id } = await readJson(req);
+      writer.approve(String(id));
+      return send(res, 200, { ok: true });
+    }
+    if (p === "/admin/api/episodes/reject" && post) {
+      const { id, note, rewrite } = await readJson(req);
+      writer.reject(String(id), String(note || ""));
+      if (rewrite) writer.write(String(note || "").slice(0, 500)).catch(() => { /* logged */ });
+      return send(res, 200, { ok: true });
+    }
+    if (p.startsWith("/admin/api/draft/")) {
+      const id = p.slice("/admin/api/draft/".length);
+      if (!/^s\d+e\d+$/.test(id)) return send(res, 404, { error: "not found" });
+      const ep = writer.readDraft(id);
+      const dictionary = { ...content.DICT };
+      for (const d of ep.dictionary || []) dictionary[d.en] = d.he;
+      return send(res, 200, { episode: ep, dictionary });
+    }
+    if (p === "/admin/api/art/locate" && post) {
+      const { key } = await readJson(req);
+      await writer.placeThings(String(key));
+      return send(res, 200, { ok: true });
+    }
     if (p === "/admin/api/art/choose" && post) {
       const { key, n } = await readJson(req);
       art.choose(String(key), Number(n));
@@ -304,6 +373,14 @@ server.listen(config.port, () => {
   store.log(`Server started on port ${config.port}. Lock at ${config.lockTime} (${config.timeZone}), router: ${router.mode}`);
   reconcile(true);
   setInterval(() => reconcile(), 30 * 1000);
+  // Pictures the episodes need are made without waiting for a parent to ask.
+  const needed = [...new Set(["hero", ...content.episodes.flatMap((e) => (e.data.art || []).map((a) => a.key))])];
+  const queued = art.queueNew(needed);
+  if (queued.length) store.log(`Pictures queued: ${queued.join(", ")}`);
+  // Keep new episodes coming.
+  const unplayed = () => content.episodes.filter((e) => !state().episodesDone.includes(e.id)).length;
+  setTimeout(() => writer.maybeWrite(unplayed()), 60 * 1000);
+  setInterval(() => writer.maybeWrite(unplayed()), 60 * 60 * 1000);
 });
 
 module.exports = { server };

@@ -45,6 +45,7 @@ DEFAULTS = {
     "scheduler": "karras",
     "colors": 32,
     "idle_minutes": 5,          # only use the GPU when the PC was not used for this long
+    "gpu_busy_percent": 25,     # ...and when the graphics card is not busy (a game); 0 = don't check
     "poll_seconds": 120,
 }
 SIZES = {
@@ -86,6 +87,32 @@ def idle_seconds():
     info.cbSize = ctypes.sizeof(info)
     ctypes.windll.user32.GetLastInputInfo(ctypes.byref(info))
     return (ctypes.windll.kernel32.GetTickCount() - info.dwTime) / 1000.0
+
+
+def gpu_busy(cfg):
+    """True if something (a game) is using the graphics card. Needed at the login screen and when the
+    worker runs as a Windows service, where mouse and keyboard can't be seen."""
+    limit = cfg["gpu_busy_percent"]
+    if not limit:
+        return False
+    samples = []
+    for _ in range(3):
+        try:
+            out = subprocess.run(["nvidia-smi", "--query-gpu=utilization.gpu", "--format=csv,noheader,nounits"],
+                                 capture_output=True, text=True, timeout=10,
+                                 creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)).stdout
+            samples.append(max(int(x) for x in out.split() if x.strip().isdigit()))
+        except (OSError, ValueError, subprocess.SubprocessError):
+            return False  # no nvidia-smi: can't tell, so don't block
+        time.sleep(1)
+    return sum(samples) / len(samples) >= limit
+
+
+def keep_awake(on):
+    """While making pictures, don't let Windows go to sleep."""
+    if os.name == "nt":
+        import ctypes
+        ctypes.windll.kernel32.SetThreadExecutionState(0x80000000 | (0x00000001 if on else 0))
 
 
 def http(method, url, body=None, headers=None, timeout=60):
@@ -287,14 +314,16 @@ def run(cfg, once=False):
     while True:
         job = None
         try:
-            if idle_seconds() >= cfg["idle_minutes"] * 60:
+            if idle_seconds() >= cfg["idle_minutes"] * 60 and not gpu_busy(cfg):
                 job = server.next_job()
             if job:
+                keep_awake(True)
                 comfy.ensure_running()
                 do_job(job, comfy, server, cfg)
                 log.info("Done: %s", job["key"])
                 last_work = time.time()
                 continue  # look for the next job right away
+            keep_awake(False)
             if comfy.proc and time.time() - last_work > 300:
                 comfy.stop()
             if once:
