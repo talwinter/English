@@ -78,6 +78,7 @@ Fill in:
 | `WORKER_TOKEN` | Another password, for the art PC (you type it again in Part 4) |
 | `ROUTER_HOST` | The router: `192.168.1.1` |
 | `LOCK_TIME` / `LOCK_DAYS` | When Discord locks (default every day at 08:00) |
+| `LOCK_ENABLED` | `false` = no daily lock at all (default `true`). The parent page's "Lock now" still works |
 | `WAKE_TIME` | When to wake the art PC if pictures are waiting (default `05:00`) |
 | `OPENAI_API_KEY` | Your OpenAI key (Part 3). You can leave it empty for now |
 

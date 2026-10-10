@@ -24,6 +24,8 @@ const config = {
   lockAt: parseTime(env.LOCK_TIME || "08:00"),
   lockTime: env.LOCK_TIME || "08:00",
   days: parseDays(env.LOCK_DAYS || "0,1,2,3,4,5,6"),
+  // LOCK_ENABLED=false: no daily lock (the parent page's "Lock now" still works).
+  enabled: String(env.LOCK_ENABLED || "true").trim().toLowerCase() !== "false",
   adminPassword: env.ADMIN_PASSWORD || "",
   workerToken: env.WORKER_TOKEN || "",
 };
@@ -126,7 +128,7 @@ function streak(now = new Date()) {
   if (!isDone(day)) day = addDays(day, -1);
   let n = 0;
   for (let i = 0; i < 400; i++, day = addDays(day, -1)) {
-    const lockDay = config.days.includes(new Date(`${day}T12:00:00Z`).getUTCDay());
+    const lockDay = config.enabled && config.days.includes(new Date(`${day}T12:00:00Z`).getUTCDay());
     if (isDone(day)) n++;
     else if (lockDay) break;
   }

@@ -43,6 +43,13 @@ test("no lock on days that are not lock days", () => {
   assert.equal(shouldLock(at("2026-10-15T09:00:00Z"), weekdays, done()).locked, true);  // Thursday
 });
 
+test("LOCK_ENABLED=false: no daily lock, but the parent can still lock", () => {
+  const off = { ...cfg, enabled: false };
+  assert.equal(shouldLock(at("2026-10-11T05:00:00Z"), off, done()).locked, false);  // 08:00, not done
+  assert.equal(shouldLock(at("2026-10-11T23:00:00Z"), off, done()).locked, false);  // 02:00 overnight
+  assert.equal(shouldLock(at("2026-10-11T12:00:00Z"), off, done(), true).locked, true);
+});
+
 test("parent lock wins", () => {
   assert.equal(shouldLock(at("2026-10-11T12:00:00Z"), cfg, done("2026-10-11"), true).locked, true);
 });

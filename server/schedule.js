@@ -34,12 +34,12 @@ function parseDays(spec) {
   return days;
 }
 
-// config: { timeZone, lockAt (minutes after midnight), days: [0..6] }
+// config: { timeZone, lockAt (minutes after midnight), days: [0..6], enabled (false = no daily lock at all) }
 // isDone(dateStr): did he complete the mission for that date?
 // forceLock: a parent pressed "Lock now"; it lasts until the next completed mission.
 function shouldLock(now, config, isDone, forceLock = false) {
   const { date: today, minutes } = parts(now, config.timeZone);
-  const lockDay = (d) => config.days.includes(weekday(d));
+  const lockDay = (d) => config.enabled !== false && config.days.includes(weekday(d));
   let locked;
   if (minutes >= config.lockAt) {
     locked = lockDay(today) && !isDone(today);
