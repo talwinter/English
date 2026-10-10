@@ -331,3 +331,14 @@ test("art: by default one version per picture, used automatically", () => {
   assert.deepEqual(chosen, ["hero"]);
   assert.throws(() => art.result("hero", 1, png, png), /bad result/);
 });
+
+test("writer: refuses a new episode while a draft waits for the parent", async () => {
+  const { createWriter } = require("./writer");
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "eq-wait-"));
+  fs.mkdirSync(path.join(dir, "episodes"), { recursive: true });
+  fs.writeFileSync(path.join(dir, "episodes", "index.json"), JSON.stringify({ published: [], drafts: [{ id: "s1e3", status: "ready" }] }));
+  const { loadContent } = require("./content");
+  const writer = createWriter({ dataDir: dir, env: { OPENAI_API_KEY: "x" }, getContent: () => loadContent(), reload: () => {},
+    art: { list: () => ({ shots: [] }), queueNew: () => [] }, log: () => {} });
+  await assert.rejects(writer.write(), /waiting draft/);
+});

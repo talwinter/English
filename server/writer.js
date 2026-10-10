@@ -200,6 +200,8 @@ function createWriter({ dataDir, env, getContent, reload, art, log }) {
 
   async function write(note = "") {
     if (writing) throw new Error("Already writing an episode");
+    // The next episode continues the story of the approved ones, so a waiting draft must be decided first.
+    if (index.drafts.some((d) => d.status === "ready")) throw new Error("Approve or reject the waiting draft first");
     if (!env.OPENAI_API_KEY) throw new Error("Set OPENAI_API_KEY to write episodes");
     writing = true;
     lastAttempt = Date.now();

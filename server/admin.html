@@ -86,6 +86,7 @@
       <input id="note" placeholder="הערה לכותב (לא חובה), למשל: יותר מצחיק, פחות מילים חדשות" dir="rtl">
       <button id="write">✍️ כתוב את הפרק הבא עכשיו</button>
     </div>
+    <div id="write-wait" class="muted" hidden>כדי לכתוב את הפרק הבא, קודם אשר או דחה את הטיוטה שמחכה. הפרק הבא ממשיך את הסיפור של הפרקים שאישרת.</div>
     <div class="row"><button id="resetEpisodes">אפס התקדמות בפרקים</button></div>
   </section>
 
@@ -185,7 +186,10 @@
       : `הפרק הבא: <span class="ltr">${esc(w.nextId)}</span> · מודל: <span class="ltr">${esc(w.model)}</span>` +
         (w.autoPublish ? " · פרסום אוטומטי" : " · מחכה לאישור שלך") +
         (w.lastError ? ` · <b class="locked">שגיאה אחרונה: <span class="ltr">${esc(w.lastError)}</span></b>` : "");
-    $("#write").disabled = !w.enabled || w.writing;
+    const waiting = w.drafts.some((d) => d.status === "ready");
+    $("#write").disabled = !w.enabled || w.writing || waiting;
+    $("#write").title = waiting ? "קודם אשר או דחה את הטיוטה שמחכה" : "";
+    $("#write-wait").hidden = !waiting;
     $("#drafts").innerHTML = w.drafts.map((d) => `<div class="draft ${esc(d.status)}">
       <b class="ltr">${esc(d.id)} ${esc(d.title || "")}</b> · ${DRAFT[d.status] || esc(d.status)}
       ${d.note ? `<div class="muted">הערה: ${esc(d.note)}</div>` : ""}

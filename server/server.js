@@ -317,6 +317,9 @@ async function handle(req, res) {
     }
     if (p === "/admin/api/episodes/write" && post) {
       const { note } = await readJson(req);
+      if (writer.list().drafts.some((d) => d.status === "ready")) {
+        return send(res, 409, { error: "Approve or reject the waiting draft first" });
+      }
       writer.write(String(note || "").slice(0, 500)).catch(() => { /* logged */ });
       await new Promise((r) => setTimeout(r, 100));
       return send(res, 200, { ok: true, writer: writer.list() });
