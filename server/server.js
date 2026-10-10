@@ -478,9 +478,9 @@ server.listen(config.port, () => {
   const queued = art.queueNew(needed);
   if (queued.length) store.log(`Pictures queued: ${queued.join(", ")}`);
   placeMadeBackgrounds();
-  // Voices: now, and every hour (if Kokoro was not there yet, or new lines came).
+  // Voices: soon, and every 5 minutes (Kokoro may still be starting, or new lines came).
   setTimeout(prepareVoices, 20 * 1000);
-  setInterval(prepareVoices, 60 * 60 * 1000);
+  setInterval(prepareVoices, 5 * 60 * 1000);
   // Keep new episodes coming.
   const unplayed = () => content.episodes.filter((e) => !state().episodesDone.includes(e.id)).length;
   setTimeout(() => writer.maybeWrite(unplayed()), 60 * 1000);

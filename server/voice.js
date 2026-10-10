@@ -101,7 +101,7 @@ function createVoice({ dataDir, url, log = () => {}, fetchImpl = fetch, timeoutM
           lastError = null;
           job.done(answer(job.p.id));
         } catch (e) {
-          lastError = e.message;
+          lastError = e.name === "TypeError" ? "Kokoro is not answering (still starting?), trying again in 5 minutes" : e.message;
           job.fail(e);
           if (job.background) { // Kokoro is down or broken: try again later
             background.splice(0).forEach((j) => j.fail(e));
@@ -141,7 +141,8 @@ function createVoice({ dataDir, url, log = () => {}, fetchImpl = fetch, timeoutM
     let n = 0;
     for (const { text, slow } of lines) {
       if (!text || text.length > MAX_TEXT || /[{}]/.test(text)) continue; // {name} and templates: made when needed
-      if (fs.existsSync(files(plan(text, slow).id).audio)) continue;
+      const { id } = plan(text, slow);
+      if (working.has(id) || fs.existsSync(files(id).audio)) continue; // being made, or made already
       get(text, { slow, background: true }).catch(() => { /* logged */ });
       n++;
     }
