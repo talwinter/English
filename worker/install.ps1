@@ -13,9 +13,14 @@ Say "`n=== English Quest: art worker setup ===`n" Cyan
 # 1. Find ComfyUI installed by Stability Matrix
 # ---------------------------------------------------------------------------
 $roots = @("$env:APPDATA\StabilityMatrix", "$env:LOCALAPPDATA\StabilityMatrix", "$env:USERPROFILE\StabilityMatrix")
+# Look on every drive, 2 folders deep (for example H:\Downloads\StabilityMatrix-win-x64)
 foreach ($drive in (Get-PSDrive -PSProvider FileSystem).Root) {
-    $roots += Get-ChildItem -Path $drive -Directory -Filter "StabilityMatrix*" -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName }
-    $roots += Get-ChildItem -Path (Join-Path $drive "*") -Directory -Filter "StabilityMatrix*" -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName }
+    $top = @(Get-ChildItem -Path $drive -Directory -ErrorAction SilentlyContinue)
+    $roots += $top | Where-Object { $_.Name -like "StabilityMatrix*" } | ForEach-Object { $_.FullName }
+    foreach ($dir in $top) {
+        $roots += Get-ChildItem -Path $dir.FullName -Directory -Filter "StabilityMatrix*" -ErrorAction SilentlyContinue |
+            ForEach-Object { $_.FullName }
+    }
 }
 $candidates = foreach ($r in $roots) {
     foreach ($packages in @("$r\Packages", "$r\Data\Packages")) {
@@ -57,7 +62,11 @@ if ($checkpoints.Count -eq 0) { Fail "No models found. Download an SDXL model in
 
 Say "`nModels:"
 for ($i = 0; $i -lt $checkpoints.Count; $i++) { Say ("  {0}. {1}" -f ($i + 1), $checkpoints[$i]) }
-$best = [array]::FindIndex([string[]]$checkpoints, [Predicate[string]] { param($n) $n -match "xl" })
+# Default: an artistic SDXL model if there is one, else any SDXL model (not Lightning/Turbo/Pony, they need other settings)
+$best = [array]::FindIndex([string[]]$checkpoints, [Predicate[string]] { param($n) $n -match "deliberate" -and $n -match "xl" })
+if ($best -lt 0) {
+    $best = [array]::FindIndex([string[]]$checkpoints, [Predicate[string]] { param($n) $n -match "xl" -and $n -notmatch "lightning|turbo|pony|illustrious" })
+}
 if ($best -lt 0) { $best = 0 }
 $answer = Read-Host "Which model? (Enter = $($best + 1))"
 $index = if ($answer) { [int]$answer - 1 } else { $best }
