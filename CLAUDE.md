@@ -76,9 +76,10 @@ The parent updates machines with `git pull` (server: then `docker compose up -d 
 - **The game:**
   - The web game keeps running with the built-in episodes. Episode 1 shows its old drawings.
   - On days with no new episode, the mission is the word challenge, and the Discord lock works as usual.
-- **Building episodes:** this will be a new mechanism, built from the 3D rooms and objects catalog (step 2
-  of the plan below). Design it with the parent. Turn writing back on (`AUTO_WRITE`) only when the Godot
-  game can play its episodes.
+- **Building episodes:** episodes stay fully automatic. OpenAI still writes the story, puzzles and English,
+  and the parent only tries and approves. What changes is how rooms are made: from a catalog of 3D objects
+  instead of AI pictures (step 2 of the plan below). The parent designs the mechanism once, not each episode.
+  Turn writing back on (`AUTO_WRITE`) only when the Godot game can play its episodes.
 
 ## Lessons learned (don't repeat these)
 
@@ -152,13 +153,27 @@ The parent wants to see it work before real development starts. Keep it small:
      and a fallback when a line isn't ready.
    - **Effects and the rest of the UI:** the effects (shake, glitch, the old-computer boot, typing his name,
      being pulled into the screen), music, the word book, and the challenge UI.
-2. **Rooms catalog.** Instead of AI picture prompts, an episode picks rooms and props from a catalog:
-   - Rooms: attic, longhouse, village, forest, cave, bridge, and so on.
-   - Props: each has a model, where to stand to use it, and its clickable shape.
-   - Rooms are built once (Blender + CC0 kits); new episodes reuse and dress them.
-   - Update the episode writer's schema and rules (`server/writer.js`) and the checker (`server/validate.js`)
-     to use the catalog.
-   - The robot solver stays.
+2. **Rooms built automatically from a catalog.** No human builds episodes:
+   - **OpenAI writes the whole episode**, as today: story, puzzles, English, dictionary.
+   - **Rooms come from a catalog.** For each room it picks a room shell from the catalog (attic, longhouse,
+     village, forest, cave, bridge, ...) and the props, with placement hints. For example: "desk against the
+     back wall; old computer on the desk; box on the floor, left".
+   - **The catalog** is many CC0 models (Kenney, Quaternius), plus models Claude makes in Blender via MCP for
+     things the story needs (the 1987 computer). Each prop has its model, its footprint, where it can stand
+     (floor, wall, on another prop), where to stand to use it, and its clickable shape. Rooms are built once
+     and reused.
+   - **A layout builder places the props** from the hints. It runs in the game, or in Godot headless for
+     checks. It keeps them from overlapping, and bakes the navigation mesh at runtime.
+   - **Two checks before the parent sees the episode:**
+     - the robot solver (as today): the episode can be finished
+     - a new reachability check: every prop he must use can be reached on the navigation mesh
+
+     Failures go back to OpenAI in the repair loop, as today.
+   - **Props missing from the catalog:** the writer uses the closest prop and adds the missing one to a wish
+     list on the parent page; Claude models those later. Maybe later: generate 3D models on the PC's RTX 3060
+     with a free local image-to-3D model.
+   - **Server changes:** update the episode writer's schema and rules (`server/writer.js`) and the checker
+     (`server/validate.js`) to the catalog. The parent page stays "try it, then approve".
 3. **Content updates without reinstalling.**
    - The game asks the server for today's episode (`/api/play`).
    - New rooms or models ship as Godot resource packs (`.pck`) that the game downloads and loads at start.
