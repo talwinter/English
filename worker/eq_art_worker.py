@@ -18,6 +18,7 @@ import json
 import logging
 import logging.handlers
 import os
+import re
 import socket
 import subprocess
 import sys
@@ -62,7 +63,14 @@ def load_config():
     path = os.path.join(HERE, "config.json")
     if os.path.exists(path):
         with open(path, encoding="utf-8-sig") as f:  # PowerShell may write a BOM
-            cfg.update(json.load(f))
+            text = f.read()
+        # Forgive a comma before } or ] (easy to leave when editing by hand).
+        text = re.sub(r",\s*([}\]])", r"\1", text)
+        try:
+            cfg.update(json.loads(text))
+        except ValueError as e:
+            log.error("config.json has a mistake (%s). Fix it and run restart.bat.", e)
+            raise SystemExit(1)
     return cfg
 
 
