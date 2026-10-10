@@ -11,7 +11,7 @@ Get-CimInstance Win32_Process |
 Start-Sleep -Seconds 2
 
 $new = Join-Path $PSScriptRoot "eq_art_worker.py"
-if ((Test-Path $new) -and (Test-Path $dest)) {
+if ((Test-Path $new) -and (Test-Path $dest) -and ((Resolve-Path $PSScriptRoot).Path -ne (Resolve-Path $dest).Path)) {
     Copy-Item $new $dest -Force
     Write-Host "Copied the worker from this folder (the version in the ZIP)."
 }
