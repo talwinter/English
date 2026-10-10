@@ -161,6 +161,14 @@ class Server:
         self.url = cfg["server"].rstrip("/")
         self.auth = {"Authorization": f"Bearer {cfg['token']}"}
 
+    def status(self, text):
+        """Tell the server what the worker is doing (shown on the parent page)."""
+        try:
+            q = urllib.parse.urlencode({"status": text[:100]})
+            http("GET", f"{self.url}/api/art/hello?{q}", headers=self.auth, timeout=15)
+        except Exception:
+            pass
+
     def next_job(self):
         """Returns (job or None, may_shut_down)."""
         req = urllib.request.Request(f"{self.url}/api/art/next", headers=self.auth)
@@ -401,8 +409,15 @@ def run(cfg, lock, once=False):
             log.info("This copy is now the active worker")
         try:
             may_shut_down = False
-            if idle_seconds() >= cfg["idle_minutes"] * 60 and not gpu_busy(cfg):
+            idle_min = int(idle_seconds() // 60)
+            if idle_min < cfg["idle_minutes"]:
+                server.status(f"waiting: PC in use (starts after {cfg['idle_minutes']} min without mouse/keyboard)")
+            elif gpu_busy(cfg):
+                server.status("waiting: graphics card busy (a game or another program)")
+            else:
                 job, may_shut_down = server.next_job()
+                if job:
+                    server.status(f"making: {job['key']}")
             if job:
                 keep_awake(True)
                 comfy.ensure_running()

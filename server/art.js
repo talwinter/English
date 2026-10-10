@@ -61,8 +61,16 @@ function createArt(dataDir, options = {}) {
   }
 
   // The worker asks for the next job.
+  // The worker says what it is doing (waiting because the PC is in use, making a picture, ...).
+  function heartbeat(status, now = Date.now()) {
+    db.workerSeen = new Date(now).toISOString();
+    db.workerStatus = String(status || "").slice(0, 100);
+    save();
+  }
+
   function next(now = Date.now()) {
     db.workerSeen = new Date(now).toISOString();
+    db.workerStatus = "asking for work";
     const s = shots().find((x) => {
       const j = db.jobs[x.key];
       return j && (j.status === "pending" || (j.status === "working" && j.leaseUntil < now));
@@ -130,6 +138,7 @@ function createArt(dataDir, options = {}) {
   function list() {
     return {
       workerSeen: db.workerSeen,
+      workerStatus: db.workerStatus || null,
       shots: shots().map((s) => {
         const j = db.jobs[s.key] || { status: "none", variants: [], chosen: null };
         return { key: s.key, episode: s.episode, kind: s.kind, prompt: s.prompt, needed: s.needed, status: j.status, variants: j.variants, chosen: j.chosen, error: j.error || null };
@@ -141,7 +150,7 @@ function createArt(dataDir, options = {}) {
   const variantPath = (name) => (/^[a-z0-9-]{1,40}-\d(-raw)?\.png$/.test(name) ? path.join(variantsDir, name) : null);
   const chosenPath = (name) => (/^[a-z0-9-]{1,40}\.png$/.test(name) ? path.join(chosenDir, name) : null);
 
-  return { queue, queueNew, next, result, fail, choose, list, variantPath, chosenPath, isChosen, rawPath, pendingCount, workerSeenAt, chooseWaiting };
+  return { queue, queueNew, next, result, fail, choose, list, variantPath, chosenPath, isChosen, rawPath, pendingCount, workerSeenAt, chooseWaiting, heartbeat };
 }
 
 module.exports = { createArt, VARIANTS };

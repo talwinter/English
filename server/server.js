@@ -246,7 +246,10 @@ async function handle(req, res) {
   // ---------- art worker (the PC with the GPU)
   if (p.startsWith("/api/art/")) {
     if (!isWorker(req)) return send(res, 401, { error: "bad worker token" });
-    if (p === "/api/art/hello") return send(res, 200, { ok: true });
+    if (p === "/api/art/hello") {
+      if (url.searchParams.has("status")) art.heartbeat(url.searchParams.get("status"));
+      return send(res, 200, { ok: true });
+    }
     if (p === "/api/art/next" && req.method === "GET") {
       const job = art.next();
       if (!job) {

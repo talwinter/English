@@ -144,10 +144,16 @@
     $("#log").textContent = s.log.join("\n");
   }
 
+  // What the art PC is doing, in Hebrew.
+  const STATUS_HE = (t) => t.startsWith("waiting: PC in use") ? "מחכה: משתמשים במחשב (מתחיל אחרי כמה דקות בלי עכבר ומקלדת)"
+    : t.startsWith("waiting: graphics card busy") ? "מחכה: כרטיס המסך עסוק (משחק או תוכנה אחרת)"
+    : t.startsWith("making: ") ? `מכין עכשיו: ${t.slice(8)}`
+    : t === "asking for work" ? "בודק אם יש עבודה" : t;
   const STATUS = { none: "—", pending: "⏳ ממתין למחשב", working: "🎨 בעבודה", done: "✅ מוכן", failed: "❌ נכשל" };
   function renderArt(a) {
     $("#worker").innerHTML = a.workerSeen
-      ? `מחשב התמונות נראה לאחרונה: <span class="ltr">${esc(new Date(a.workerSeen).toLocaleString())}</span>`
+      ? `מחשב התמונות נראה לאחרונה: <span class="ltr">${esc(new Date(a.workerSeen).toLocaleString())}</span>` +
+        (a.workerStatus ? ` · <b>${esc(STATUS_HE(a.workerStatus))}</b>` : "")
       : "מחשב התמונות עוד לא התחבר (ראה docs/ART-WORKER.md)";
     const shot = (s) => `<div class="shot${s.status === "done" && s.chosen == null ? " choose" : ""}">
       <div class="shot-head"><b>${esc(s.key)}</b><span class="muted ltr">${esc(s.episode)}</span>
