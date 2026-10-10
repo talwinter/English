@@ -47,7 +47,11 @@ window.startGame = function (G, DICT, { preview = false, served = false } = {}) 
     goal: (g) => { if (state.goal !== g) { state.goal = g; fx.goal = true; } },
     go: (scene) => { fx.scene = scene; },
     finish: () => { fx.finish = true; },
+    fx: (name) => { (fx.list = fx.list || []).push(name); },
   };
+  let busy = false;          // an effect is playing: wait with clicks
+  const sound = (n) => window.Sound && Sound.sfx(n);
+  const sceneMusic = () => scene().music || "adventure";
 
   const maxScore = (() => {
     const pts = {};
@@ -66,9 +70,10 @@ window.startGame = function (G, DICT, { preview = false, served = false } = {}) 
   // ---------- text with clickable words
   function wordsHTML(text) {
     let out = "", last = 0;
+    const own = FX.name().toLowerCase();
     text.replace(WORD, (m, idx) => {
-      out += esc(text.slice(last, idx)) +
-        `<span class="w" data-i="${idx}" data-w="${m.toLowerCase()}">${esc(m)}</span>`;
+      out += esc(text.slice(last, idx)) + (own && m.toLowerCase() === own ? esc(m) :
+        `<span class="w" data-i="${idx}" data-w="${m.toLowerCase()}">${esc(m)}</span>`);
       last = idx + m.length;
       return m;
     });
@@ -92,12 +97,14 @@ window.startGame = function (G, DICT, { preview = false, served = false } = {}) 
   function act(v, objId, itemId) {
     const target = objId ? thing(objId) : null;
     const msgs = [{ kind: "cmd", text: sentence(v, itemId, target && target.name) }];
+    const before = { bag: state.bag.length, score: score() };
+    let rule = null;
     fx = {};
 
     if (TWO_STEP.has(v) && !itemId) {
       msgs.push({ kind: "say", text: v === "use" ? G.ui.useWhat : G.ui.giveWhat });
     } else {
-      const rule = window.Episode.findRule(G, state.scene, v, objId, itemId, S);
+      rule = window.Episode.findRule(G, state.scene, v, objId, itemId, S);
       if (rule) {
         msgs.push({ kind: "say", text: rule.say });
         if (rule.points) state.points[rule.points[0]] = rule.points[1];
@@ -108,6 +115,11 @@ window.startGame = function (G, DICT, { preview = false, served = false } = {}) 
         msgs.push({ kind: "say", text: G.ui.defaults[v] });
       }
     }
+    // Sounds: points, a new item, "no", or a new goal.
+    if (score() > before.score) sound("points");
+    else if (state.bag.length > before.bag) sound("pickup");
+    else if (!rule && v !== "look") sound("nope");
+    else if (fx.goal && !fx.scene) sound("goal");
     applyEffects(msgs);
   }
 
@@ -122,18 +134,34 @@ window.startGame = function (G, DICT, { preview = false, served = false } = {}) 
       state.visited[fx.scene] = true;
     }
     if (fx.goal && !fx.finish) msgs.push({ kind: "goal", text: G.goals[state.goal].en });
-    if (fx.finish) {
-      state.finished = true;
-      G.ending.forEach((t) => msgs.push({ kind: "intro", text: t }));
-    }
+    if (fx.scene) sound("whoosh");
+    const effects = fx.list || [];
+    const ending = fx.finish ? G.ending.map((t) => ({ kind: "intro", text: t })) : [];
+    if (fx.finish) state.finished = true;
     fx = {};
-    addMessages(msgs);
     verb = null; item = null;
+    if (!effects.length) {
+      addMessages([...msgs, ...ending]);
+      render();
+      if (state.finished) setTimeout(showEnd, 1800);
+      return;
+    }
+    // Special effects play first (he may type his name), then the ending.
+    addMessages(msgs);
     render();
-    if (state.finished) setTimeout(showEnd, 1800);
+    busy = true;
+    (async () => {
+      for (const f of effects) await FX.run(f);
+      busy = false;
+      if (ending.length) addMessages(ending);
+      render();
+      if (state.finished) setTimeout(showEnd, 1800);
+    })();
   }
 
   function addMessages(msgs, { speak = true } = {}) {
+    const who = FX.name() || "friend";
+    msgs = msgs.map((m) => ({ ...m, text: m.text.replace(/\{name\}/g, who) }));
     state.log.push(...msgs);
     state.log = state.log.slice(-60);
     batchStart = Math.max(0, state.log.length - msgs.length);
@@ -307,6 +335,7 @@ window.startGame = function (G, DICT, { preview = false, served = false } = {}) 
     const sc = scene();
     view = String(sc.art).startsWith("ega:") ? egaView(sc.art.slice(4)) : imageView(sc);
     viewScene = state.scene;
+    if (state.started && !state.finished && window.Sound) Sound.music(sceneMusic());
     canvas.width = view.w;
     canvas.height = view.h;
     canvas.style.aspectRatio = `${view.w} / ${view.h}`;
@@ -341,6 +370,7 @@ window.startGame = function (G, DICT, { preview = false, served = false } = {}) 
     if (now - lastStep >= 50) { lastStep = now; step(); }
     ensureView();
     view.draw(now);
+    FX.post(ctx, canvas, now);
     requestAnimationFrame(loop);
   }
 
@@ -562,6 +592,7 @@ window.startGame = function (G, DICT, { preview = false, served = false } = {}) 
 
   // ---------- end of level
   function showEnd() {
+    if (window.Sound) { Sound.music(null); Sound.sfx("fanfare"); }
     $("#end-title").innerHTML = wordsHTML(G.ui.levelDone);
     $("#end-score").textContent = `Score: ${score()} of ${maxScore}`;
     $("#end-words").textContent = `Words you met: ${Object.keys(words.seen).length}`;
@@ -576,6 +607,12 @@ window.startGame = function (G, DICT, { preview = false, served = false } = {}) 
     store.del(SAVE_KEY);
     $("#end").hidden = true;
     begin();
+  }
+
+  // "PROLOGUE" or "EPISODE 2", with the episode name, at the start of an episode.
+  function titleCard() {
+    const m = /^s(\d+)e(\d+)$/.exec(G.id) || [];
+    return FX.title(m[2] === "0" ? "PROLOGUE" : `EPISODE ${m[2] || ""}`, G.title);
   }
 
   function begin() {
@@ -601,7 +638,8 @@ window.startGame = function (G, DICT, { preview = false, served = false } = {}) 
 
     $("#verbs").addEventListener("click", (e) => {
       const b = e.target.closest(".verb");
-      if (!b) return;
+      if (!b || busy) return;
+      sound("blip");
       verb = verb === b.dataset.verb ? null : b.dataset.verb;
       item = null;
       render();
@@ -620,7 +658,7 @@ window.startGame = function (G, DICT, { preview = false, served = false } = {}) 
     });
     canvas.addEventListener("mouseleave", () => { hoverName = null; renderSentence(); });
     canvas.addEventListener("click", (e) => {
-      if (state.finished) return;
+      if (state.finished || busy) return;
       const { p, o } = objAt(e);
       if (!p) return;
       if (o) {
@@ -651,6 +689,7 @@ window.startGame = function (G, DICT, { preview = false, served = false } = {}) 
     $("#type").addEventListener("submit", (e) => {
       e.preventDefault();
       const input = $("#type-input");
+      if (busy) return; // an effect is playing: keep the text, he can press Enter again
       if (!state.finished) typed(input.value);
       input.value = "";
     });
@@ -664,9 +703,26 @@ window.startGame = function (G, DICT, { preview = false, served = false } = {}) 
     $("#book-btn").addEventListener("click", showBook);
     $("#practice-btn").addEventListener("click", () => { $("#book").hidden = true; startQuiz(); });
     $("#help-btn").addEventListener("click", () => { $("#help").hidden = false; });
-    $("#start").addEventListener("click", () => {
+    $("#music").addEventListener("click", () => {
+      Sound.musicOn = !Sound.musicOn;
+      $("#music").textContent = Sound.musicOn ? "Music:on" : "Music:off";
+  // Browsers only allow sound after a click: start the music on the first click anywhere.
+  document.addEventListener("click", () => {
+    Sound.unlock();
+    if (state.started && !state.finished) Sound.music(sceneMusic());
+  }, { once: true, capture: true });
+      if (Sound.musicOn) Sound.music(sceneMusic());
+    });
+    $("#start").addEventListener("click", async () => {
       $("#help").hidden = true;
-      if (!state.started) { state.started = true; save(); speakBatch(); }
+      Sound.unlock();
+      Sound.music(state.finished ? null : sceneMusic());
+      if (!state.started) {
+        state.started = true;
+        save();
+        await titleCard();
+        speakBatch();
+      }
     });
     $("#restart").addEventListener("click", () => {
       if (confirm("Start the level again? / להתחיל את השלב מההתחלה?")) restart();
@@ -699,6 +755,7 @@ window.startGame = function (G, DICT, { preview = false, served = false } = {}) 
   if (!state.hero) placeHero(view.entry("start"));
   requestAnimationFrame(loop);
   if (!Speech.available) $("#sound").hidden = true;
+  $("#music").textContent = Sound.musicOn ? "Music:on" : "Music:off";
   if (state.started) $("#help").hidden = true;
   if (state.finished) { render(); renderLog(); showEnd(); } else begin();
 };

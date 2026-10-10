@@ -9,7 +9,7 @@ const Episode = require("../js/episode");
 const { validate } = require("./validate");
 const { chatJson } = require("./openai");
 const { locate } = require("./hotspots");
-const { ROOT } = require("./content");
+const { ROOT, BUILTIN, readOverride, overrideFile } = require("./content");
 
 const SEASON_LENGTH = 7;
 const ATTEMPTS = 3;
@@ -22,7 +22,10 @@ const object = (props) => ({ type: "object", additionalProperties: false, requir
 const SCHEMA = {
   $defs: {
     cond: object({ flags: strs, notFlags: strs, has: strs, notHas: strs }),
-    effects: object({ set: strs, unset: strs, add: strs, remove: strs, goal: strOrNull, go: strOrNull, finish: { type: "boolean" } }),
+    effects: object({
+      set: strs, unset: strs, add: strs, remove: strs, goal: strOrNull, go: strOrNull, finish: { type: "boolean" },
+      fx: { type: "array", items: { type: "string", enum: Episode.FX.filter((f) => f !== "askname") } },
+    }),
     rule: object({
       verb: { type: "array", items: { type: "string", enum: Episode.VERBS } },
       obj: { type: ["array", "null"], items: str },
@@ -45,6 +48,7 @@ const SCHEMA = {
       type: "array",
       items: object({
         id: str, name: str, intro: str, introAgain: str, art: str,
+        music: { type: "string", enum: Episode.MUSIC },
         floor: object({ y0: { type: "integer" }, y1: { type: "integer" } }),
         entry: object({ x: { type: "integer" }, y: { type: "integer" } }),
         objects: {
@@ -92,6 +96,10 @@ STORY AND GAME
 - The last action must be a rule with do.finish = true. The "ending" lines are a cliffhanger.
 - Goals guide him: set do.goal when the next task changes. Every goal has "he" and "hintHe" in Hebrew, and
   "hint" in very simple English.
+- Make it exciting: give every scene "music" (mystery, adventure, cozy, danger, glitch) that fits its mood,
+  and use do.fx for 2 or 3 big moments: "shake" (a crash, a monster roars), "flash" (magic, lightning),
+  "glitch" (the Glitch appears, the game breaks), "crt" (an old screen turns on). Sounds for items, points and
+  goals play by themselves. Don't overdo the effects.
 - Points: give 5 or 10 points for real progress. Total about 50 to 60. Use pointsId when two rules give the same
   points (for example two ways to open the same door), so they count once.
 
@@ -283,39 +291,64 @@ function createWriter({ dataDir, env, getContent, reload, art, log }) {
   }
 
   // A background was chosen: find where its things are, and update every scene that uses it.
+  // Published episodes and drafts are changed in their files; built-in episodes get an override file.
   async function placeThings(key) {
     const png = art.rawPath(key) && fs.existsSync(art.rawPath(key)) ? fs.readFileSync(art.rawPath(key)) : null;
     if (!png || !env.OPENAI_API_KEY) return;
-    const targets = [
+    let reloadNeeded = false;
+    const save = (t, ep) => {
+      fs.writeFileSync(t.file, JSON.stringify(ep, null, 2));
+      if (t.published) reloadNeeded = true;
+    };
+    for (const t of [
       ...index.published.map((id) => ({ id, file: fileOf(id, "published"), published: true })),
       ...index.drafts.filter((d) => d.status === "ready").map((d) => ({ id: d.id, file: fileOf(d.id, "drafts") })),
-    ];
-    let reloadNeeded = false;
-    for (const t of targets) {
+    ]) {
       const ep = JSON.parse(fs.readFileSync(t.file, "utf8"));
       let changed = false;
       for (const sc of ep.scenes.filter((s) => s.art === key)) {
-        const fixed = sc.objects.filter((o) => !o.sprite);
-        const found = await locate(env, png, fixed.map((o) => ({ id: o.id, name: o.name, look: o.look })));
-        sc.floor = found.floor;
-        for (const o of sc.objects) {
-          if (!o.sprite && found.boxes[o.id]) o.box = found.boxes[o.id];
-          if (o.sprite) { // keep characters standing on the ground
-            const bottom = o.box[1] + o.box[3];
-            const target = Math.max(sc.floor.y0 + 2, Math.min(sc.floor.y1, bottom));
-            o.box[1] += target - bottom;
-          }
-        }
-        sc.entry.y = Math.max(sc.floor.y0, Math.min(sc.floor.y1, sc.entry.y));
+        Object.assign(sc, await placeScene(sc, png, key, t.id));
         changed = true;
-        log(`Found things in "${key}" for ${t.id}/${sc.id}: ${Object.keys(found.boxes).join(", ") || "none"}`);
       }
-      if (changed) {
-        fs.writeFileSync(t.file, JSON.stringify(ep, null, 2));
-        if (t.published) reloadNeeded = true;
+      if (changed) save(t, ep);
+    }
+    for (const id of BUILTIN) {
+      const ep = (getContent().episodes.find((e) => e.id === id) || {}).data;
+      if (!ep || !ep.scenes.some((s) => s.art === key)) continue;
+      const override = readOverride(dataDir, id);
+      override.scenes = override.scenes || {};
+      for (const sc of ep.scenes.filter((s) => s.art === key)) {
+        const placed = await placeScene(JSON.parse(JSON.stringify(sc)), png, key, id);
+        override.scenes[sc.id] = {
+          floor: placed.floor, entry: placed.entry,
+          boxes: Object.fromEntries(placed.objects.map((o) => [o.id, o.box])),
+        };
       }
+      fs.mkdirSync(path.dirname(overrideFile(dataDir, id)), { recursive: true });
+      save({ file: overrideFile(dataDir, id), published: true }, override);
     }
     if (reloadNeeded) reload();
+  }
+
+  // Ask OpenAI where the scene's fixed things are in the picture, and move the sprites that stand on the
+  // ground (characters, things lying on the floor) onto the new floor. Returns the changed scene.
+  async function placeScene(sc, png, key, id) {
+    const fixed = sc.objects.filter((o) => !o.sprite);
+    const found = await locate(env, png, fixed.map((o) => ({ id: o.id, name: o.name, look: o.look })));
+    const oldFloor = sc.floor || { y0: 0, y1: 199 };
+    sc.floor = found.floor;
+    for (const o of sc.objects) {
+      if (!o.sprite && found.boxes[o.id]) o.box = found.boxes[o.id];
+      if (o.sprite && o.box) {
+        const bottom = o.box[1] + o.box[3];
+        if (bottom < oldFloor.y0 - 4) continue; // on a table or a wall: leave it
+        const target = Math.max(sc.floor.y0 + 2, Math.min(sc.floor.y1, bottom));
+        o.box = [o.box[0], o.box[1] + target - bottom, o.box[2], o.box[3]];
+      }
+    }
+    sc.entry = { ...sc.entry, y: Math.max(sc.floor.y0, Math.min(sc.floor.y1, sc.entry.y)) };
+    log(`Found things in "${key}" for ${id}/${sc.id}: ${Object.keys(found.boxes).join(", ") || "none"}`);
+    return sc;
   }
 
   // Keep a few episodes ready: write when nothing waits for a parent and fewer than `ahead` are unplayed.

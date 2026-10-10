@@ -1,11 +1,13 @@
-// Chiptune music and sound effects, made live with the Web Audio API (no sound files).
+// Music and sound effects. Music: if the server has a file for the track (data/music/<track>.ogg or .mp3),
+// it plays that; otherwise it makes chiptune music live with the Web Audio API. Effects are always made live.
 //   Sound.music("mystery")   loop a track: mystery, adventure, cozy, danger, glitch (null = stop)
 //   Sound.sfx("pickup")      blip, pickup, points, goal, nope, whoosh, power, glitch, type, fanfare
 // Browsers only allow sound after a click, so Sound.unlock() is called from the Start button.
 
 window.Sound = (function () {
   let ctx = null, master = null, musicGain = null, sfxGain = null, noise = null;
-  let musicOn = true, sfxOn = true, current = null, timer = null;
+  let musicOn = true, sfxOn = true, current = null, timer = null, fileAudio = null;
+  const missing = new Set();   // tracks the server has no file for
   try {
     musicOn = localStorage.getItem("eq.music") !== "off";
   } catch { /* storage blocked */ }
@@ -115,11 +117,28 @@ window.Sound = (function () {
     }, 40);
   }
 
-  function music(name) {
-    if (name === current && timer) return;
-    current = name;
+  function stopMusic() {
     if (timer) { clearInterval(timer); timer = null; }
+    if (fileAudio) { fileAudio.pause(); fileAudio = null; }
+  }
+
+  function music(name) {
+    if (name === current && (timer || fileAudio)) return;
+    current = name;
+    stopMusic();
     if (!name || !musicOn || !ctx) return;
+    if (location.protocol !== "file:" && !missing.has(name)) {
+      const a = new Audio(`/music/${encodeURIComponent(name)}`);
+      a.loop = true;
+      a.volume = 0.3;
+      a.onerror = () => {
+        missing.add(name);
+        if (fileAudio === a) { fileAudio = null; if (current === name) startTrack(name); }
+      };
+      a.play().catch(() => { /* a missing file is handled by onerror */ });
+      fileAudio = a;
+      return;
+    }
     startTrack(name);
   }
 
@@ -149,11 +168,17 @@ window.Sound = (function () {
   }
 
   return {
-    unlock() { if (init() && ctx.state === "suspended") ctx.resume(); if (current && !timer) { const c = current; current = null; music(c); } },
+    unlock() {
+      if (init() && ctx.state === "suspended") ctx.resume();
+      if (current && !timer && !fileAudio) { const c = current; current = null; music(c); }
+    },
     music,
     sfx,
     // Quieter music while the game reads a sentence aloud.
-    duck(on) { if (musicGain) musicGain.gain.setTargetAtTime(on ? 0.025 : 0.07, ctx.currentTime, 0.15); },
+    duck(on) {
+      if (musicGain) musicGain.gain.setTargetAtTime(on ? 0.025 : 0.07, ctx.currentTime, 0.15);
+      if (fileAudio) fileAudio.volume = on ? 0.1 : 0.3;
+    },
     get musicOn() { return musicOn; },
     set musicOn(v) {
       musicOn = v;

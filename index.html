@@ -21,10 +21,14 @@
           <button id="help-btn">Help·עזרה</button>
           <button id="restart">Restart</button>
           <button id="sound">Sound:on</button>
+          <button id="music">Music:on</button>
         </span>
       </div>
       <div class="scene-wrap">
         <canvas id="scene" aria-label="Game picture"></canvas>
+        <div id="fx"></div>
+        <div id="terminal" hidden><pre id="term-text"></pre><input id="term-input" maxlength="16" autocomplete="off" spellcheck="false" hidden aria-label="Your name"></div>
+        <div id="title-card" hidden></div>
       </div>
       <form id="type" class="parser" autocomplete="off">
         <span class="prompt">&gt;</span>
@@ -124,6 +128,8 @@
   <script src="js/episodes/s1e1.js"></script>
   <script src="js/art.js"></script>
   <script src="js/speech.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/fx.js"></script>
   <script src="js/loader.js"></script>
   <script src="js/game.js"></script>
   <script src="js/mission.js"></script>

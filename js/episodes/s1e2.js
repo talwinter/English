@@ -41,6 +41,7 @@
       intro: "You are in the forest. A big tree is on the ground. Your father is under the tree!",
       introAgain: "You are in the forest.",
       art: "forest-tree",
+      music: "mystery",
       floor: { y0: 150, y1: 196 },
       entry: { x: 40, y: 182 },
       objects: [
@@ -57,7 +58,8 @@
       ],
       rules: [
         { verb: ["talk"], obj: ["father"], when: { flags: ["treeMoved"] },
-          say: 'Father: "Thank you, my son! Now we can go home."', points: 10, pointsId: "finish", do: { finish: true } },
+          say: 'Father: "Thank you, my son! Now we can go home."', points: 10, pointsId: "finish",
+          do: { finish: true, fx: ["shake", "glitch"] } },
         { verb: ["talk"], obj: ["father"], when: { notFlags: ["talkedFather"] },
           say: 'Father: "My son! My leg is under the tree. Find a rope. Look in the cave."',
           points: 5, pointsId: "father", do: { set: ["talkedFather"], goal: "rope" } },
@@ -74,7 +76,7 @@
         { verb: ["look"], obj: ["tree"], when: { flags: ["ropeTied"] }, say: "The rope is on the tree." },
         { verb: ["talk"], obj: ["bear"], when: { flags: ["ropeTied"], notFlags: ["treeMoved"] },
           say: "The bear pulls the rope. The tree moves! Your father is free!",
-          points: 10, pointsId: "pull", do: { set: ["treeMoved"], goal: "free" } },
+          points: 10, pointsId: "pull", do: { set: ["treeMoved"], goal: "free", fx: ["shake"] } },
         { verb: ["talk"], obj: ["bear"], say: "The bear looks at you. It is happy." },
         { verb: ["go", "enter"], obj: ["cave"], say: "You go into the cave.", do: { go: "cave" } },
       ],
@@ -85,6 +87,7 @@
       intro: "You are in a cave. It is dark and cold. A bear is sleeping here!",
       introAgain: "You are in the cave.",
       art: "bear-cave",
+      music: "danger",
       floor: { y0: 148, y1: 196 },
       entry: { x: 40, y: 182 },
       objects: [

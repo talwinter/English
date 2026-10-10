@@ -96,6 +96,7 @@
       return;
     }
     ch.results[ch.i] = data.correct;
+    if (window.Sound) Sound.sfx(data.correct ? "points" : "nope");
     document.querySelectorAll(".c-opt").forEach((b) => {
       if (Number(b.dataset.i) === data.answer) b.classList.add("right");
     });
@@ -104,6 +105,7 @@
     setTimeout(() => {
       if (!data.done) { ch.i++; question(); return; }
       if (data.status) setStatus(data.status);
+      if (window.Sound && data.passed) Sound.sfx("fanfare");
       $("#challenge-body").innerHTML = data.passed ? `${dots()}
         <p class="c-win">🔓 DISCORD UNLOCKED!</p>
         <p class="quiz-done">${data.score} / ${ch.questions.length} ⭐</p>

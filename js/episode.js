@@ -6,15 +6,22 @@
 //     globalRules: [...], ending: [...], dictionary: [{en, he}], art: [{key, kind, height, prompt}] }
 // A scene: { id, name, intro, introAgain, art, floor: {y0, y1}, entry: {x, y}, objects: [...], rules: [...] }
 //   art "ega:<name>" uses the built-in drawings in art.js; any other art is a picture key (/art/<key>.png),
-//   with objects placed by box [x, y, w, h] on a 320x200 picture.
+//   with objects placed by box [x, y, w, h] on a 320x200 picture. A built-in scene may also have
+//   fallbackArt "ega:<name>": the drawing shown until its AI pictures are ready.
 // An object: { id, name, words, look, box, sprite, visible: <condition> }
 // A rule: { verb: [...], obj: [...] or null, item, when: <condition>, say, do: <effects>, points, pointsId }
 //   The first rule that matches the action wins, so put special cases before general ones.
 // A condition: { flags: [], notFlags: [], has: [], notHas: [] }  (all must be true)
-// Effects: { set: [], unset: [], add: [], remove: [], goal, go, finish }
+// Effects: { set: [], unset: [], add: [], remove: [], goal, go, finish, fx: [] }
+//   fx: special effects played in order: shake, flash, glitch, crt (an old screen turns on),
+//       boot (an old computer starts), askname (he types his name; texts can then use {name}), pullin
+//       (the screen pulls him in). Sounds for items, points and goals play by themselves.
+// A scene may have "music": mystery, adventure, cozy, danger or glitch.
 
 (function (root) {
   const VERBS = ["look", "take", "open", "use", "give", "talk", "enter", "go"];
+  const FX = ["shake", "flash", "glitch", "crt", "boot", "askname", "pullin"];
+  const MUSIC = ["mystery", "adventure", "cozy", "danger", "glitch"];
   const WORD = /[A-Za-z]+(?:'[A-Za-z]+)?/g;
   const list = (v) => (v == null ? [] : [].concat(v));
 
@@ -36,6 +43,7 @@
       if (d.goal) S.goal(d.goal);
       if (d.go) S.go(d.go);
       if (d.finish) S.finish();
+      if (S.fx) list(d.fx).forEach((f) => S.fx(f));
     };
   }
 
@@ -106,7 +114,7 @@
 
   const wordsIn = (textList) => new Set(textList.flatMap((t) => (t.match(WORD) || []).map((w) => w.toLowerCase())));
 
-  const API = { compile, findRule, texts, wordsIn, condition, VERBS, WORD };
+  const API = { compile, findRule, texts, wordsIn, condition, VERBS, FX, MUSIC, WORD };
   if (typeof module !== "undefined" && module.exports) module.exports = API;
   else root.Episode = API;
 })(this);

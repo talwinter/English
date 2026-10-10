@@ -101,6 +101,11 @@ test("server: locks through ssh, opens after the challenge", async () => {
     let s = (await get("/api/status")).body;
     assert.equal(s.locked, true);
     assert.equal(s.mission.type, "episode");
+    // The prologue waits for its pictures; Episode 1 can be played with its old drawings meanwhile.
+    assert.equal(s.mission.episode, "s1e1");
+    const play = (await get("/api/play")).body;
+    assert.equal(play.episode.id, "s1e1");
+    assert.deepEqual(play.chosen, []);
     await new Promise((r) => setTimeout(r, 300));
     assert.match(fs.readFileSync(calls, "utf8"), /eq-block/);
 
@@ -133,6 +138,18 @@ test("server: locks through ssh, opens after the challenge", async () => {
   }
 });
 
+test("built-in episodes use the places found in their AI pictures", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "eq-ov-"));
+  fs.mkdirSync(path.join(dir, "episodes", "overrides"), { recursive: true });
+  fs.writeFileSync(path.join(dir, "episodes", "overrides", "s1e1.json"), JSON.stringify({
+    scenes: { outside: { floor: { y0: 140, y1: 196 }, entry: { x: 150, y: 180 }, boxes: { door: [1, 2, 3, 4] } } },
+  }));
+  const sc = loadContent(dir).episodes.find((e) => e.id === "s1e1").data.scenes.find((x) => x.id === "outside");
+  assert.equal(sc.floor.y0, 140);
+  assert.deepEqual(sc.objects.find((o) => o.id === "door").box, [1, 2, 3, 4]);
+  assert.equal(sc.fallbackArt, "ega:outside");
+});
+
 // ---------- picture queue
 test("art queue: worker takes jobs, sends 3 versions, parent picks one", () => {
   const { createArt } = require("./art");
@@ -141,9 +158,9 @@ test("art queue: worker takes jobs, sends 3 versions, parent picks one", () => {
   assert.equal(art.next(), null);
   // Without keys only needed pictures are made (here only the hero); optional ones by name.
   assert.deepEqual(art.queue(), ["hero"]);
-  const queued = art.queue(["hero", "village"]);
-  assert.deepEqual([...queued].sort(), ["hero", "village"]);
-  assert.equal(art.list().shots.find((x) => x.key === "village").needed, false);
+  const queued = art.queue(["hero", "byte"]);
+  assert.deepEqual([...queued].sort(), ["byte", "hero"]);
+  assert.equal(art.list().shots.find((x) => x.key === "byte").needed, false);
   const job = art.next(0);
   assert.equal(job.key, queued[0]);
   assert.match(job.prompt, /King's Quest V/);

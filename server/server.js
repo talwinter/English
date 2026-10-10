@@ -51,10 +51,18 @@ writer = createWriter({ dataDir, env, getContent: () => content, reload: reloadC
 if (env.AUTO_CHOOSE_ART !== "false" || env.AUTO_PUBLISH === "true") art.chooseWaiting();
 
 // An episode with AI pictures is ready to play when all its pictures are chosen.
+// A scene with fallbackArt (an old drawing) can always be played: it shows the drawing until its pictures are ready.
 function artReady(ep) {
-  const keys = ep.scenes.flatMap((sc) => (String(sc.art).startsWith("ega:") ? [] : [sc.art, ...sc.objects.map((o) => o.sprite)]));
+  const keys = ep.scenes.flatMap((sc) =>
+    (String(sc.art).startsWith("ega:") || sc.fallbackArt ? [] : [sc.art, ...sc.objects.map((o) => o.sprite)]));
   if (keys.length) keys.push("hero");
   return keys.filter(Boolean).every((k) => art.isChosen(k));
+}
+
+// The AI pictures of this episode that are ready (the game uses them instead of the old drawings).
+function chosenArt(ep) {
+  const keys = ["hero", ...ep.scenes.flatMap((sc) => [sc.art, ...sc.objects.map((o) => o.sprite)])];
+  return [...new Set(keys.filter((k) => k && !String(k).startsWith("ega:") && art.isChosen(k)))];
 }
 
 // ---------- mission and lock state
@@ -63,10 +71,10 @@ const state = () => store.state;
 const isDone = (date) => !!state().completions[date];
 const desired = (now = new Date()) => shouldLock(now, config, isDone, state().forceLock);
 
-// Today's new episode: the first one he has not finished, if its pictures are ready.
+// Today's new episode: the first one he has not finished whose pictures are ready.
+// (An episode still waiting for pictures is skipped, and comes later when they are ready.)
 function nextEpisode() {
-  const ep = content.episodes.find((e) => !state().episodesDone.includes(e.id));
-  return ep && artReady(ep.data) ? ep : null;
+  return content.episodes.find((e) => !state().episodesDone.includes(e.id) && artReady(e.data)) || null;
 }
 
 function mission() {
@@ -211,10 +219,11 @@ async function handle(req, res) {
   if (p === "/api/play" && req.method === "GET") {
     const wanted = url.searchParams.get("episode");
     const lastDone = [...state().episodesDone].reverse().find((id) => content.episodes.some((e) => e.id === id));
-    const id = wanted || (nextEpisode() || {}).id || lastDone || content.episodes[0].id;
+    const firstReady = content.episodes.find((e) => artReady(e.data)) || content.episodes[0];
+    const id = wanted || (nextEpisode() || {}).id || lastDone || firstReady.id;
     const ep = content.episodes.find((e) => e.id === id);
     if (!ep) return send(res, 404, { error: "unknown episode" });
-    return send(res, 200, { episode: ep.data, dictionary: content.DICT });
+    return send(res, 200, { episode: ep.data, dictionary: content.DICT, chosen: chosenArt(ep.data) });
   }
 
   if (p === "/api/episode-done" && post) {
@@ -274,6 +283,20 @@ async function handle(req, res) {
       return send(res, 200, { ok: true });
     }
     return send(res, 404, { error: "not found" });
+  }
+
+  // Music files a parent put in data/music (for example mystery.ogg); the game falls back to its own music.
+  if (p.startsWith("/music/") && req.method === "GET") {
+    const name = p.slice(7);
+    if (!/^[a-z]{2,20}$/.test(name)) return send(res, 404, "Not found");
+    for (const [ext, type] of [["ogg", "audio/ogg"], ["mp3", "audio/mpeg"]]) {
+      const file = path.join(dataDir, "music", `${name}.${ext}`);
+      if (fs.existsSync(file)) {
+        res.writeHead(200, { "Content-Type": type, "Cache-Control": "max-age=3600" });
+        return fs.createReadStream(file).pipe(res);
+      }
+    }
+    return send(res, 404, "Not found");
   }
 
   if (p.startsWith("/art/") && req.method === "GET") {
@@ -341,7 +364,7 @@ async function handle(req, res) {
       const ep = writer.readDraft(id);
       const dictionary = { ...content.DICT };
       for (const d of ep.dictionary || []) dictionary[d.en] = d.he;
-      return send(res, 200, { episode: ep, dictionary });
+      return send(res, 200, { episode: ep, dictionary, chosen: chosenArt(ep) });
     }
     if (p === "/admin/api/art/locate" && post) {
       const { key } = await readJson(req);

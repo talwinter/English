@@ -87,6 +87,7 @@ function validate(ep, ctx) {
     for (const i of [...list(d.add), ...list(d.remove)]) if (!items.has(i)) err(`${where}: unknown item "${i}"`);
     if (d.goal && !goals.has(d.goal)) err(`${where}: unknown goal "${d.goal}"`);
     if (d.go && !scenes.has(d.go)) err(`${where}: unknown scene "${d.go}"`);
+    for (const f of list(d.fx)) if (!Episode.FX.includes(f)) err(`${where}: unknown effect "${f}"`);
   };
 
   const allObjIds = new Set();
@@ -95,6 +96,7 @@ function validate(ep, ctx) {
     const ids = new Set(sc.objects.map((o) => o.id));
     if (ids.size !== sc.objects.length) err(`${where}: object ids must be different`);
     ids.forEach((i) => allObjIds.add(i));
+    if (sc.music && !Episode.MUSIC.includes(sc.music)) err(`${where}: unknown music "${sc.music}"`);
     const ega = String(sc.art || "").startsWith("ega:");
     if (!ega) {
       if (!artKeys.has(sc.art)) err(`${where}: picture "${sc.art}" is not in the art list`);

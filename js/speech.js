@@ -33,6 +33,8 @@ window.Speech = (function () {
     u.lang = voice ? voice.lang : "en-US";
     u.rate = rate;
     u.pitch = pitch;
+    u.onstart = () => window.Sound && Sound.duck(true);
+    u.onend = u.onerror = () => window.Sound && Sound.duck(false);
     if (el) {
       const spans = [...el.querySelectorAll(".w")];
       const clear = () => spans.forEach((s) => s.classList.remove("speaking"));
@@ -43,8 +45,7 @@ window.Speech = (function () {
         for (const s of spans) if (+s.dataset.i <= e.charIndex) current = s;
         current?.classList.add("speaking");
       };
-      u.onend = clear;
-      u.onerror = clear;
+      u.onend = u.onerror = () => { clear(); if (window.Sound) Sound.duck(false); };
     }
     synth.speak(u);
   }
