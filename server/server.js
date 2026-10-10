@@ -14,6 +14,8 @@ const { loadContent, ROOT } = require("./content");
 const { createArt } = require("./art");
 const { createWriter } = require("./writer");
 const { createWake } = require("./wake");
+const { createVoice } = require("./voice");
+const Episode = require("../js/episode");
 
 const env = process.env;
 const config = {
@@ -39,10 +41,28 @@ const art = createArt(dataDir, {
 const router = createRouter(env, (m) => store.log(m));
 let content = loadContent(dataDir);
 let challenges = createChallenges(content.DICT);
+// Human-sounding voices from the Kokoro container (TTS_URL); without it the game uses the browser's voices.
+const voice = createVoice({ dataDir, url: env.TTS_URL || null, log: (m) => store.log(m) });
+
 // After a new episode is published: load the episodes and words again.
 function reloadContent() {
   content = loadContent(dataDir);
   challenges = createChallenges(content.DICT);
+  prepareVoices();
+}
+
+// Make the voices ahead of time: the episodes he has not played first, then the shared lines, then the words.
+function prepareVoices() {
+  if (!voice.enabled) return;
+  const done = (e) => store.state.episodesDone.includes(e.id);
+  const eps = [...content.episodes.filter((e) => !done(e)), ...content.episodes.filter(done)];
+  const lines = [
+    ...eps.flatMap((e) => Episode.texts(e.data).slice(1).map((text) => ({ text }))),
+    ...content.baseTexts.map((text) => ({ text })),
+    ...Object.keys(content.DICT).map((text) => ({ text, slow: true })),
+  ];
+  const n = voice.prepare(lines);
+  if (n) store.log(`Voices: making ${n} lines`);
 }
 const wake = createWake({
   wakeAt: env.WAKE_TIME ? parseTime(env.WAKE_TIME) : null, timeZone: config.timeZone, router, art, log: (m) => store.log(m),
@@ -203,6 +223,7 @@ function adminState() {
     forceLock: state().forceLock,
     config: { timeZone: config.timeZone, lockTime: config.lockTime, days: config.days },
     episodes: content.episodes.map((e) => ({ id: e.id, title: e.title, done: state().episodesDone.includes(e.id), words: e.words.length })),
+    voice: voice.status(),
     completions: recent,
     log: state().log.slice(-60).reverse(),
   };
@@ -283,6 +304,22 @@ async function handle(req, res) {
       return send(res, 200, { ok: true });
     }
     return send(res, 404, { error: "not found" });
+  }
+
+  // A line said by a human-sounding voice: { audio, words } (404 when voices are off: the game uses the browser).
+  if (p === "/api/voice" && req.method === "GET") {
+    if (!voice.enabled) return send(res, 404, { error: "off" });
+    try {
+      return send(res, 200, await voice.get(url.searchParams.get("text"), { slow: url.searchParams.get("slow") === "1" }));
+    } catch (e) {
+      return send(res, 503, { error: e.message });
+    }
+  }
+  if (p.startsWith("/voice/") && req.method === "GET") {
+    const file = voice.audioPath(p.slice(7));
+    if (!file || !fs.existsSync(file)) return send(res, 404, "Not found");
+    res.writeHead(200, { "Content-Type": "audio/mpeg", "Cache-Control": "max-age=31536000, immutable" });
+    return fs.createReadStream(file).pipe(res);
   }
 
   // Music files a parent put in data/music (for example mystery.ogg); the game falls back to its own music.
@@ -424,6 +461,9 @@ server.listen(config.port, () => {
   const needed = [...new Set(["hero", ...content.episodes.flatMap((e) => (e.data.art || []).map((a) => a.key))])];
   const queued = art.queueNew(needed);
   if (queued.length) store.log(`Pictures queued: ${queued.join(", ")}`);
+  // Voices: now, and every hour (if Kokoro was not there yet, or new lines came).
+  setTimeout(prepareVoices, 20 * 1000);
+  setInterval(prepareVoices, 60 * 60 * 1000);
   // Keep new episodes coming.
   const unplayed = () => content.episodes.filter((e) => !state().episodesDone.includes(e.id)).length;
   setTimeout(() => writer.maybeWrite(unplayed()), 60 * 1000);

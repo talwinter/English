@@ -22,10 +22,16 @@ The server writes new episodes by itself with OpenAI, checks them, and keeps the
    - **✅ אשר** (approve) publishes it.
    - **❌ דחה וכתוב מחדש** (reject and write again) asks you what to change ("funnier", "fewer new words",
      "more about BYTE") and writes it again.
-5. **When you choose a background picture**, the server asks OpenAI where the things are in it (the door,
-   the cave, the tree), so clicks land in the right place.
-6. **It becomes his mission** the morning after all its pictures are chosen. Until then, his mission is the
-   word challenge, so he never sees an episode with missing pictures.
+5. **When a background picture is chosen**, the server asks OpenAI where the things are in it (the door,
+   the cave, the tree), so clicks land in the right place. This also works for the built-in episodes (the
+   prologue and Episode 1); their places are kept in `data/episodes/overrides/`.
+6. **It becomes his mission** once all its pictures are ready. An episode still waiting for pictures is
+   skipped, and comes later when they are ready; with nothing ready, his mission is the word challenge, so he
+   never sees an episode with missing pictures. (Episode 1 shows its old drawings until its new pictures
+   are ready.)
+7. **Music, effects and voices:** each scene has music (mystery, adventure, cozy, danger or glitch), big
+   moments get effects (shake, flash, glitch), and the server makes the voices for all its lines
+   ([SOUND.md](SOUND.md)).
 
 You can also press **✍️ כתוב את הפרק הבא עכשיו** (write the next episode now), with an optional note.
 

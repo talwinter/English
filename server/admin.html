@@ -62,6 +62,7 @@
     <h2>Discord</h2>
     <div id="lock" class="big">…</div>
     <div id="router" class="muted"></div>
+    <div id="voice" class="muted"></div>
     <div class="row">
       <button id="unlock">🔓 פתח להיום</button>
       <button id="lockNow">🔒 נעל עכשיו</button>
@@ -137,6 +138,10 @@
         ? `לשחק את הפרק <b class="ltr">${esc(s.mission.title)}</b> ואז לעבור את אתגר המילים`
         : "לעבור את אתגר המילים (8 שאלות, צריך 6 נכונות)";
     $("#streak").textContent = `רצף: ${s.streak} ימים`;
+    const v = s.voice || {};
+    $("#voice").innerHTML = !v.enabled ? "קולות: של הדפדפן (Kokoro לא מוגדר)"
+      : `קולות אנושיים (Kokoro): ${v.ready} משפטים מוכנים` + (v.waiting ? ` · מכין עוד ${v.waiting}` : "") +
+        (v.lastError ? ` · <b class="locked">שגיאה: <span class="ltr">${esc(v.lastError)}</span></b>` : "");
     $("#days").innerHTML = s.completions.length
       ? s.completions.map(([d, c]) =>
         `<tr><td class="ltr">${esc(d)}</td><td>${c.by === "parent" ? "נפתח ע״י הורה" : `אתגר: ${c.score}/8`}</td>

@@ -11,5 +11,13 @@ services:
       ROUTER_MODE: ssh               # "mock" = test without the router
       ROUTER_PORT: "22"
       ROUTER_USER: eq-lock
+      TTS_URL: http://kokoro:8880    # human-sounding voices (the kokoro container below); remove = browser voices
     volumes:
       - ./data:/data                 # progress, episodes, pictures, and ssh/id_ed25519 (the router key)
+
+  # Kokoro: free text-to-speech on the CPU (about 1-2 GB of memory). It makes the game's voices; the server keeps
+  # every line it made in data/voice, so this only works hard when new episodes arrive.
+  kokoro:
+    image: ghcr.io/remsky/kokoro-fastapi-cpu:v0.8.2
+    container_name: kokoro
+    restart: unless-stopped

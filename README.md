@@ -13,14 +13,19 @@ and Discord opens until the next morning.
 - **Making the art automatically on your PC's graphics card**: [docs/ART-WORKER.md](docs/ART-WORKER.md)
 - **Making the art by hand**: [docs/ART.md](docs/ART.md)
 - **Setting up the server and the MikroTik Discord lock**: [docs/DISCORD-LOCK.md](docs/DISCORD-LOCK.md)
+- **Voices (Kokoro) and music**: [docs/SOUND.md](docs/SOUND.md)
 
 ## Playing
 
-With the server (Docker): open `http://SERVER:8080` on his computer. Microsoft Edge has the most natural
-English voices. Use headphones, because the game reads every sentence aloud and lights up each word as
-it's spoken.
+With the server (Docker): open `http://SERVER:8080` on his computer. Use headphones, because the game reads
+every sentence aloud, with a human-sounding voice for each character (Kokoro, on the server), and lights up
+each word as it's spoken.
 
-Without the server: double-click `index.html`. The game works the same, just without the Discord lock.
+Without the server: double-click `index.html`. The game works the same (Episode 1 with its built-in drawings),
+just without the Discord lock, and with the browser's voices (Microsoft Edge has the best ones).
+
+The series starts with a prologue, **Insert Disk**: in Grandpa's attic he turns on an old 1987 computer,
+types his name, and is pulled into the game.
 
 ## What it teaches
 
@@ -38,14 +43,17 @@ Without the server: double-click `index.html`. The game works the same, just wit
 
 | File | What it is |
 | --- | --- |
-| `js/episodes/` | Episodes 1 and 2. Episodes are data; the format is described in `js/episode.js`. |
+| `js/episodes/` | The prologue (s1e0) and Episodes 1 and 2. Episodes are data; the format is described in `js/episode.js`. |
 | `js/base.js` | The verb buttons and the game's own messages, shared by all episodes. |
 | `js/loader.js` | Picks today's episode from the server (or Episode 1 without a server). |
 | `js/dictionary.js` | English → Hebrew for every word in the game. |
 | `js/art.js` | The pictures: King's Quest style EGA pixel art, the hero and other sprites. |
 | `js/game.js` | The game engine and screen. |
 | `js/mission.js` | The daily mission, the Discord indicator and the Word Challenge. |
-| `js/speech.js` | Reading aloud with the browser's voices. |
+| `js/speech.js` | Reading aloud: the server's voices (Kokoro), or the browser's. |
+| `js/voices.js` | Which character says a line, and with which voice. |
+| `js/audio.js` | Music and sound effects. |
+| `js/fx.js` | Special effects (shake, flash, glitch, an old computer starting, being pulled into the game). |
 | `server/` | The server: daily lock, router control (SSH), challenge, picture queue, episode writer and checks, parent page. |
 | `router/discord-lock.rsc` | The MikroTik setup to paste into the router. |
 | `art/shots.json` | The pictures the episodes need (descriptions for Stable Diffusion). |

@@ -115,6 +115,12 @@ You should see `Server started on port 8080`. Press Ctrl+C to stop watching the 
 3. Click **🔒 נעל עכשיו** (lock now). On your son's computer, `discord.com` and the Discord app should stop working.
 4. Click **🔓 פתח להיום** (unlock for today). Discord works again.
 
+### 2.6 Voices and music
+
+`docker compose up -d --build` also starts **Kokoro**, which gives the game human-sounding voices (a different
+voice for each character). The first start downloads it (2–3 GB) and then makes the voices of the existing
+episodes for about half an hour. Nothing to set up. To use your own music, see [SOUND.md](SOUND.md).
+
 ---
 
 ## Part 3: The OpenAI key (for new episodes)
@@ -178,8 +184,7 @@ An optional pixel-art LoRA for SDXL makes the pictures look even more like the o
 
 ## Part 5: Your son's computer
 
-Make a desktop shortcut to `http://SERVER:8080` (Microsoft Edge has the best English voices),
-and give him headphones. That's all.
+Make a desktop shortcut to `http://SERVER:8080` and give him headphones. That's all.
 
 ---
 
@@ -201,4 +206,5 @@ and give him headphones. That's all.
 - **Art PC log:** `%LOCALAPPDATA%\EnglishQuestWorker\worker.log` (and `comfyui.log` next to it)
 - **Router log:** Winbox > Log; English Quest lines start with `english-quest`.
 
-More detail: [DISCORD-LOCK.md](DISCORD-LOCK.md), [EPISODES.md](EPISODES.md), [ART-WORKER.md](ART-WORKER.md).
+More detail: [DISCORD-LOCK.md](DISCORD-LOCK.md), [EPISODES.md](EPISODES.md), [ART-WORKER.md](ART-WORKER.md),
+[SOUND.md](SOUND.md).

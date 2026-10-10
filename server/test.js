@@ -359,3 +359,63 @@ test("writer: refuses a new episode while a draft waits for the parent", async (
     art: { list: () => ({ shots: [] }), queueNew: () => [] }, log: () => {} });
   await assert.rejects(writer.write(), /waiting draft/);
 });
+
+// ---------- voices with a fake Kokoro
+test("voices: each character has a voice, lines are made once, word times when Kokoro has them", async () => {
+  const http = require("http");
+  const { createVoice } = require("./voice");
+  const calls = [];
+  let captions = true;
+  const fake = http.createServer((req, res) => {
+    let body = "";
+    req.on("data", (c) => (body += c));
+    req.on("end", () => {
+      const b = body ? JSON.parse(body) : null;
+      calls.push({ path: req.url, body: b });
+      const sound = Buffer.alloc(300, 7);
+      if (req.url === "/v1/audio/voices") return res.end(JSON.stringify({ voices: ["af_heart", "am_puck", "bf_emma"] }));
+      if (req.url === "/dev/captioned_speech" && captions) {
+        const words = b.input.split(/\s+/).flatMap((w, i) => [{ word: w.replace(/\W/g, ""), start_time: i * 0.4, end_time: i * 0.4 + 0.3 }, { word: ",", start_time: 0, end_time: 0 }]);
+        return res.end(JSON.stringify({ audio: sound.toString("base64"), audio_format: "mp3", timestamps: words }));
+      }
+      if (req.url === "/v1/audio/speech") return res.end(sound);
+      res.statusCode = 404;
+      res.end("not found");
+    });
+  });
+  await new Promise((r) => fake.listen(0, r));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "eq-voice-"));
+  const voice = createVoice({ dataDir: dir, url: `http://localhost:${fake.address().port}/v1` });
+  try {
+    const a = await voice.get('Byte: "Hello, Noam!"');
+    const made = calls.filter((c) => c.body);
+    assert.equal(made[0].body.voice, "am_puck");
+    assert.equal(made[0].body.input, "Hello, Noam!");
+    assert.deepEqual(a.words, [[0, 0.3], [0.4, 0.7]]);
+    assert.ok(fs.existsSync(voice.audioPath(a.audio.slice(7))));
+    // The same line again comes from the file.
+    assert.deepEqual(await voice.get('Byte: "Hello, Noam!"'), a);
+    assert.equal(calls.filter((c) => c.body).length, 1);
+    // The narrator says everything else; ALL CAPS words are read as words; a voice Kokoro lacks -> narrator.
+    await voice.get('The screen says: "TYPE YOUR NAME".');
+    assert.equal(calls.at(-1).body.voice, "af_heart");
+    assert.equal(calls.at(-1).body.input, 'The screen says: "Type Your Name".');
+    await voice.get('Queen: "Welcome."');
+    assert.equal(calls.at(-1).body.voice, "af_heart");
+    // Older Kokoro without word times: plain speech.
+    captions = false;
+    const b = await voice.get("Grandmother: \"Take the bread.\"", { slow: true });
+    assert.equal(calls.at(-1).path, "/v1/audio/speech");
+    assert.equal(calls.at(-1).body.voice, "bf_emma");
+    assert.equal(calls.at(-1).body.speed, 0.8);
+    assert.equal(b.words, null);
+    // Lines made ahead of time.
+    assert.equal(voice.prepare([{ text: "It is cold." }, { text: "Hello, {name}!" }, { text: "Byte: \"Hello, Noam!\"" }]), 1);
+    for (let i = 0; i < 50 && voice.status().waiting; i++) await new Promise((r) => setTimeout(r, 20));
+    assert.equal(voice.status().ready, 5);
+    await assert.rejects(voice.get("x".repeat(500)), /bad text/);
+    assert.equal(voice.audioPath("../state.json"), null);
+  } finally {
+    fake.close();
+  }
+});
