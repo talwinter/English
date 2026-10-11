@@ -20,6 +20,16 @@
       useWhat: "Use what? First click a thing in your bag.",
       giveWhat: "Give what? First click a thing in your bag.",
       levelDone: "Level complete!",
+      previously: "Previously...",
+      tips: {
+        goal: "This is your goal. It tells you what to do.",
+        words: "Click a gold word. You will see what it means.",
+        verbs: "Choose an action. Then click a thing.",
+        bag: "The things you take are in your bag.",
+        wordbook: "All your words are in the Word Book.",
+        hint: "Are you stuck? Press the Hint button.",
+      },
+      discordOpen: "Byte: \"Discord is open! Well done!\"",
       practiceIntro: "Byte: \"Let's practice the new words!\"",
       defaults: {
         look: "You see nothing special.",

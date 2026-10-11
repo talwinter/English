@@ -1,0 +1,86 @@
+{
+ "_comment": "Hand tuning of measured values, merged by tools/build-catalog.js (no Blender needed). footprint = what blocks walking, not what the model covers (roofs and treetops hang over).",
+ "house_viking": {
+  "footprint": [
+   4.3,
+   2.8
+  ]
+ },
+ "pine_tree": {
+  "footprint": [
+   1.1,
+   1.1
+  ]
+ },
+ "forest_edge": {
+  "footprint": [
+   4.8,
+   2.2
+  ]
+ },
+ "rock_big": {
+  "footprint": [
+   1.5,
+   1.1
+  ]
+ },
+ "village_yard": {
+  "ambient_energy": 0.62,
+  "ambient": [
+   0.78,
+   0.84,
+   0.95
+  ]
+ },
+ "river_bridge": {
+  "ambient_energy": 0.62,
+  "ambient": [
+   0.78,
+   0.84,
+   0.95
+  ]
+ },
+ "longhouse_interior": {
+  "ambient_energy": 0.55
+ },
+ "cave_mouth": {
+  "footprint": [
+   3.2,
+   1.3
+  ]
+ },
+ "fallen_tree": {
+  "footprint": [
+   3.5,
+   0.9
+  ]
+ },
+ "father_trapped": {
+  "footprint": [
+   0.8,
+   2.0
+  ]
+ },
+ "bear": {
+  "footprint": [
+   0.9,
+   1.9
+  ]
+ },
+ "forest_glade": {
+  "ambient_energy": 0.6,
+  "ambient": [
+   0.7,
+   0.78,
+   0.92
+  ]
+ },
+ "cave_interior": {
+  "ambient_energy": 0.7,
+  "ambient": [
+   0.5,
+   0.52,
+   0.66
+  ]
+ }
+}

@@ -4,6 +4,7 @@ extends Node3D
 ## The model faces +Z (what Blender's -Y becomes), so yaw = atan2(dx, dz).
 
 signal arrived
+signal stepped          # a foot hits the ground while walking
 
 var model: Node3D
 var anim: AnimationPlayer
@@ -13,6 +14,7 @@ var path_i := 0
 var walking := false
 var face_yaw := 0.0
 var shadow: MeshInstance3D
+var _step_time := 0.0
 
 
 func setup(glb_path: String, with_shadow: bool = true) -> void:
@@ -85,4 +87,8 @@ func _process(delta: float) -> void:
 			var d := to.normalized()
 			global_position += d * step
 			face_yaw = atan2(d.x, d.z)
+			_step_time += delta
+			if _step_time >= 0.4:
+				_step_time = 0.0
+				stepped.emit()
 	rotation.y = lerp_angle(rotation.y, face_yaw, clampf(delta * 10.0, 0.0, 1.0))

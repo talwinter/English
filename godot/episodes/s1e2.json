@@ -2,6 +2,10 @@
  "id": "s1e2",
  "title": "Into the Forest",
  "summary": "In the forest the hero finds his father under a fallen tree. He takes berries from a bush, gives them to a hungry bear in a cave, and takes the rope the bear was sleeping on. He ties the rope to the tree and the bear pulls it. His father is free. Then the sky turns black: the Glitch appears and says the game is his.",
+ "previously": [
+  "You gave bread to the wolf. Then you went into the forest.",
+  "You heard a voice. It was your father!"
+ ],
  "start": {
   "scene": "forest",
   "goal": "father"
@@ -94,8 +98,8 @@
     "y1": 196
    },
    "entry": {
-    "x": 40,
-    "y": 182
+    "x": -3.6,
+    "y": -1
    },
    "objects": [
     {
@@ -113,7 +117,19 @@
       52,
       34
      ],
-     "sprite": null
+     "sprite": null,
+     "prop": "berry_bush",
+     "where": "front_right",
+     "at": {
+      "x": 3.37,
+      "y": -0.9,
+      "rot": 0,
+      "z": 0
+     },
+     "stand": [
+      1.96,
+      -0.9
+     ]
     },
     {
      "id": "tree",
@@ -128,7 +144,19 @@
       150,
       30
      ],
-     "sprite": null
+     "sprite": null,
+     "prop": "fallen_tree",
+     "where": "center",
+     "at": {
+      "x": 0.03,
+      "y": 0.77,
+      "rot": 0,
+      "z": 0
+     },
+     "stand": [
+      0.03,
+      -0.78
+     ]
     },
     {
      "id": "father",
@@ -146,7 +174,19 @@
       30
      ],
      "sprite": "father",
-     "pose": "lying"
+     "pose": "lying",
+     "prop": "father_trapped",
+     "near": "tree",
+     "at": {
+      "x": -4.1,
+      "y": 0.9,
+      "rot": 0,
+      "z": 0
+     },
+     "stand": [
+      -4.1,
+      -1.1
+     ]
     },
     {
      "id": "cave",
@@ -161,7 +201,19 @@
       54,
       66
      ],
-     "sprite": null
+     "sprite": null,
+     "prop": "cave_mouth",
+     "where": "right_edge",
+     "at": {
+      "x": 4.52,
+      "y": 0.7,
+      "rot": 0,
+      "z": 0
+     },
+     "stand": [
+      4.52,
+      -0.95
+     ]
     },
     {
      "id": "bear",
@@ -181,7 +233,19 @@
       "flags": [
        "bearHelps"
       ]
-     }
+     },
+     "prop": "bear",
+     "where": "middle_right",
+     "at": {
+      "x": -2.7,
+      "y": 0.7,
+      "rot": 0,
+      "z": 0
+     },
+     "stand": [
+      -2.7,
+      -1.65
+     ]
     }
    ],
    "rules": [
@@ -408,7 +472,8 @@
       "go": "cave"
      }
     }
-   ]
+   ],
+   "shell": "forest_glade"
   },
   {
    "id": "cave",
@@ -422,8 +487,8 @@
     "y1": 196
    },
    "entry": {
-    "x": 40,
-    "y": 182
+    "x": -2.6,
+    "y": -1
    },
    "objects": [
     {
@@ -442,7 +507,19 @@
       44,
       90
      ],
-     "sprite": null
+     "sprite": null,
+     "prop": "cave_mouth",
+     "where": "left_edge",
+     "at": {
+      "x": -3.22,
+      "y": 1.5,
+      "rot": 0,
+      "z": 0
+     },
+     "stand": [
+      -3.22,
+      -0.15
+     ]
     },
     {
      "id": "bear",
@@ -462,7 +539,19 @@
       "notFlags": [
        "bearHelps"
       ]
-     }
+     },
+     "prop": "bear",
+     "where": "center",
+     "at": {
+      "x": 0.07,
+      "y": 0.42,
+      "rot": 0,
+      "z": 0
+     },
+     "stand": [
+      -1.78,
+      0.42
+     ]
     },
     {
      "id": "rope",
@@ -482,7 +571,19 @@
       "notFlags": [
        "ropeTaken"
       ]
-     }
+     },
+     "prop": "item_rope",
+     "near": "bear",
+     "at": {
+      "x": 0.8,
+      "y": 0.3,
+      "rot": 0,
+      "z": 0
+     },
+     "stand": [
+      1.43,
+      0.3
+     ]
     }
    ],
    "rules": [
@@ -606,7 +707,8 @@
       "go": "forest"
      }
     }
-   ]
+   ],
+   "shell": "cave_interior"
   }
  ],
  "ending": [
@@ -616,6 +718,22 @@
   "To be continued..."
  ],
  "dictionary": [
+  {
+   "en": "gave",
+   "he": "נתת (עבר של give)"
+  },
+  {
+   "en": "went",
+   "he": "הלכת (עבר של go)"
+  },
+  {
+   "en": "heard",
+   "he": "שמעת (עבר של hear)"
+  },
+  {
+   "en": "was",
+   "he": "היה / הייתה (עבר של is)"
+  },
   {
    "en": "berries",
    "he": "פירות יער"
@@ -819,6 +937,49 @@
    "kind": "item",
    "height": 14,
    "prompt": "a coiled brown rope"
+  }
+ ],
+ "format": "3d",
+ "solution": [
+  {
+   "verb": "take",
+   "obj": "bush",
+   "item": ""
+  },
+  {
+   "verb": "enter",
+   "obj": "cave",
+   "item": ""
+  },
+  {
+   "verb": "give",
+   "obj": "bear",
+   "item": "berries"
+  },
+  {
+   "verb": "take",
+   "obj": "rope",
+   "item": ""
+  },
+  {
+   "verb": "enter",
+   "obj": "exit",
+   "item": ""
+  },
+  {
+   "verb": "use",
+   "obj": "tree",
+   "item": "rope"
+  },
+  {
+   "verb": "talk",
+   "obj": "bear",
+   "item": ""
+  },
+  {
+   "verb": "talk",
+   "obj": "father",
+   "item": ""
   }
  ]
 }

@@ -1,0 +1,27 @@
+{
+ "id": "cave_mouth",
+ "name": "cave",
+ "kind": "exit",
+ "glb": "props/cave_mouth.glb",
+ "desc": "a dark cave opening in a rock wall: the way into the cave",
+ "words": [
+  "cave",
+  "hole"
+ ],
+ "footprint": [
+  4.8,
+  1.8
+ ],
+ "height": 2.5,
+ "center_offset": [
+  0.0,
+  0.1
+ ],
+ "place": [
+  "edge",
+  "floor"
+ ],
+ "stand": 1.0,
+ "surface": false,
+ "container": false
+}

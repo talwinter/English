@@ -103,6 +103,24 @@
   </section>
 
   <section class="box">
+    <h2>העלילה: מה נכון עד עכשיו (canon)</h2>
+    <div class="muted">הכותב קורא את זה לפני כל פרק ולא סותר את זה. כל פרק שאישרת מוסיף לכאן עובדות חדשות. אפשר לערוך: להוסיף עובדה, לסגור שאלה פתוחה, או לכתוב "הערה קבועה" לכל הפרקים (בשדה note).</div>
+    <textarea id="canon" rows="14" dir="ltr" style="width:100%;font-family:monospace"></textarea>
+    <div class="row"><button id="canonSave">שמור</button> <span id="canonMsg" class="muted"></span></div>
+  </section>
+
+  <section class="box">
+    <h2>משאלות של הכותב (דברים שחסרים בקטלוג)</h2>
+    <div class="muted">כשהסיפור צריך משהו שאין בקטלוג (חפץ, חדר, דמות, אפקט), הכותב משתמש בדבר הקרוב ביותר וכותב כאן מה חסר. אני בונה אותם בקבוצות ומראה תצוגה מקדימה.</div>
+    <div id="wishes" class="muted">אין משאלות.</div>
+  </section>
+
+  <section class="box">
+    <h2>דיווחים מהמשחק ("משהו לא בסדר?")</h2>
+    <div id="reports" class="muted">אין דיווחים.</div>
+  </section>
+
+  <section class="box">
     <h2>ימים אחרונים</h2>
     <table id="days"></table>
   </section>
@@ -148,6 +166,20 @@
          <td class="muted ltr">${esc(new Date(c.at).toLocaleTimeString())}</td></tr>`).join("")
       : `<tr><td class="muted">עוד אין</td></tr>`;
     $("#log").textContent = s.log.join("\n");
+    const wl = s.wishes || [];
+    $("#wishes").innerHTML = wl.length ? wl.map((w) => `<div class="draft">
+      <b class="ltr">${esc(w.kind)}</b> <span class="muted ltr">${esc(w.episode)}</span>
+      <div class="ltr">${esc(w.text)}</div>
+      <div class="row"><button data-wish-done="${esc(w.episode)}" data-text="${esc(w.text)}">✔ נבנה</button></div></div>`).join("") : "אין משאלות.";
+    const reps = s.reports || [];
+    $("#reports").innerHTML = reps.length ? reps.map((r) => `<div class="draft">
+      <b class="ltr">${esc(r.episode)} · ${esc(r.scene)} · ${esc(r.goal)}</b> <span class="muted ltr">${esc(r.at.slice(0, 16).replace("T", " "))}</span>
+      ${r.note ? `<div>${esc(r.note)}</div>` : ""}
+      <div class="muted ltr">${esc((r.messages || []).slice(-3).map((m) => m.text).join(" / "))}</div>
+      <div class="row">
+        ${r.hasShot ? `<a class="button" href="/admin/report/${esc(r.id)}.png" target="_blank">🖼 תמונה</a>` : ""}
+        <button data-report-done="${esc(r.id)}">✔ טופל</button>
+      </div></div>`).join("") : "אין דיווחים.";
   }
 
   // What the art PC is doing, in Hebrew.
@@ -214,6 +246,22 @@
   }
   const refreshEpisodes = () => call("/admin/api/episodes").then(renderEpisodes).catch(() => {});
   $("#write").onclick = () => post("/admin/api/episodes/write", { note: $("#note").value }).then(() => { $("#note").value = ""; refreshEpisodes(); });
+  const loadCanon = () => call("/admin/api/canon").then((c) => { $("#canon").value = JSON.stringify(c, null, 2); }).catch(() => {});
+  $("#canonSave").onclick = () => {
+    let data;
+    try { data = JSON.parse($("#canon").value); } catch { $("#canonMsg").textContent = "ה-JSON לא תקין"; return; }
+    post("/admin/api/canon", data).then(() => { $("#canonMsg").textContent = "נשמר"; loadCanon(); })
+      .catch(() => { $("#canonMsg").textContent = "שגיאה"; });
+  };
+  loadCanon();
+  $("#wishes").onclick = (e) => {
+    const b = e.target.closest("[data-wish-done]");
+    if (b) post("/admin/api/wish/done", { episode: b.dataset.wishDone, text: b.dataset.text }).then(render).catch(() => {});
+  };
+  $("#reports").onclick = (e) => {
+    const id = e.target.dataset && e.target.dataset.reportDone;
+    if (id) post("/admin/api/report/delete", { id }).then(render).catch(() => {});
+  };
   $("#drafts").onclick = (e) => {
     const a = e.target.closest("[data-approve]");
     const r = e.target.closest("[data-reject]");

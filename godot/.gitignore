@@ -3,3 +3,4 @@ shots/
 export/
 __pycache__/
 server.txt
+config.json

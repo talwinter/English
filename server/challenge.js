@@ -23,12 +23,14 @@ function createChallenges(dict) {
   let retryAt = 0;
 
   // words: English words to ask about (already in the dictionary)
-  function start(words, now = Date.now()) {
+  // prefer: words he finds hard; some of them are asked first.
+  function start(words, now = Date.now(), prefer = []) {
     if (now < retryAt) return { error: "wait", seconds: Math.ceil((retryAt - now) / 1000) };
     const pool = [...new Set(words)].filter((w) => dict[w]);
     if (pool.length < CHOICES) return { error: "no-words" };
 
-    const picked = shuffle(pool).slice(0, QUESTIONS);
+    const weak = shuffle(prefer.filter((w) => pool.includes(w))).slice(0, Math.floor(QUESTIONS / 2));
+    const picked = [...weak, ...shuffle(pool.filter((w) => !weak.includes(w)))].slice(0, QUESTIONS);
     const questions = picked.map((word, i) => {
       // Wrong choices must not share the same meaning (like "need" and "needs").
       const others = shuffle(pool.filter((w) => w !== word && dict[w] !== dict[word])).slice(0, CHOICES - 1);

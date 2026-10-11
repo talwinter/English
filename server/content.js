@@ -58,10 +58,25 @@ function applyOverride(ep, override) {
   return ep;
 }
 
+// A built-in episode that has 3D hints (tools/hints/<id>.json) is served laid out on the catalog's rooms, like
+// an episode from the writer, so the Godot game finds the rooms and positions in what /api/play sends.
+function withRooms3d(ep) {
+  const hintFile = path.join(ROOT, "tools", "hints", `${ep.id}.json`);
+  try {
+    if (!fs.existsSync(hintFile)) return ep;
+    const { loadCatalog, applyHints, applyLayout } = require("./episode3d");
+    const laid = applyLayout(applyHints(ep, JSON.parse(fs.readFileSync(hintFile, "utf8"))), loadCatalog());
+    return laid.errors.length ? ep : laid.episode;
+  } catch {
+    return ep;
+  }
+}
+
 function loadContent(dataDir = null) {
   const win = loadScripts(["js/dictionary.js", ...BUILTIN.map((id) => `js/episodes/${id}.js`)]);
   const functionWords = new Set(win.FUNCTION_WORDS);
-  const builtin = BUILTIN.map((id) => (dataDir ? applyOverride(win.EPISODES[id], readOverride(dataDir, id)) : win.EPISODES[id]));
+  const builtin = BUILTIN.map((id) => (dataDir ? applyOverride(win.EPISODES[id], readOverride(dataDir, id)) : win.EPISODES[id]))
+    .map(withRooms3d);
   const all = [...builtin, ...(dataDir ? readPublished(dataDir) : [])];
   const dict = { ...win.DICT };
   for (const ep of all) for (const d of ep.dictionary || []) dict[d.en.toLowerCase()] = d.he;

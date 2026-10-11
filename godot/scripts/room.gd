@@ -22,6 +22,10 @@ var cam_fov := 50.0
 var lights: Array[Light3D] = []
 var nav_region: NavigationRegion3D
 var scene_root: Node
+var entries: Dictionary = {}      # entry_<name> -> Vector3: where he appears when he comes from <name>
+var characters: Dictionary = {}   # object id -> Actor (people and animals from the catalog)
+var opens: Dictionary = {}        # object id -> { node, axis, angle }
+var flickers: Array = []          # flame nodes, scaled a little every frame
 
 
 func build(glb_path: String, dust: bool = true) -> void:
@@ -63,6 +67,8 @@ func build(glb_path: String, dust: bool = true) -> void:
 				stands[nm.trim_prefix("stand_")] = n3.global_position
 			elif nm.begins_with("prop_"):
 				props[nm.trim_prefix("prop_")] = n3
+			elif nm.begins_with("entry_"):
+				entries[nm.trim_prefix("entry_")] = n3.global_position
 			elif nm == "spawn_Hero":
 				spawn_hero = n3.global_position
 			elif nm == "spawn_Byte":
@@ -100,6 +106,32 @@ func _make_light(kind: String, at: Vector3, dust: bool) -> void:
 			o.light_color = Color(0.55, 0.7, 1.0)
 			o.light_energy = 1.3
 			o.omni_range = 5.0
+			l = o
+		"sun":
+			var d := DirectionalLight3D.new()
+			d.light_color = Color(1.0, 0.95, 0.85)
+			d.light_energy = 0.8
+			d.shadow_enabled = true
+			d.rotation_degrees = Vector3(-52.0, 28.0, 0.0)
+			l = d
+		"lamp":
+			var o := OmniLight3D.new()
+			o.light_color = Color(1.0, 0.8, 0.55)
+			o.light_energy = 2.4
+			o.omni_range = 10.0
+			l = o
+		"fire":
+			var o := OmniLight3D.new()
+			o.light_color = Color(1.0, 0.55, 0.2)
+			o.light_energy = 2.2
+			o.omni_range = 5.5
+			o.shadow_enabled = true
+			l = o
+		"lantern":
+			var o := OmniLight3D.new()
+			o.light_color = Color(1.0, 0.8, 0.45)
+			o.light_energy = 1.4
+			o.omni_range = 4.0
 			l = o
 		"moon":
 			var d := DirectionalLight3D.new()
@@ -196,3 +228,153 @@ func set_object_visible(id: String, shown: bool) -> void:
 		(props[id] as Node3D).visible = shown
 	if picks.has(id):
 		(picks[id] as StaticBody3D).collision_layer = PICK_LAYER if shown else 0
+
+
+# ================================================================ rooms built from the catalog
+
+## Puts the props of a scene on this room (a shell from the catalog). `objects` are the scene's objects with
+## the positions the layout builder gave them: at {x, y, rot, z}, stand [x, y], parent, part, of, fixed.
+## Positions are in room space (x right, y away from the camera); Godot's z is -y.
+func add_props(objects: Array, catalog: Dictionary) -> void:
+	var props_cat: Dictionary = catalog.get("props", {})
+	var by_id := {}
+	for o in objects:
+		by_id[String(o["id"])] = o
+	for o in objects:
+		var id := String(o["id"])
+		if o.has("stand"):
+			var s: Array = o["stand"]
+			stands[id] = Vector3(float(s[0]), 0.0, -float(s[1]))
+		if o.has("fixed") or not o.has("at"):
+			continue
+		var at: Dictionary = o["at"]
+		var pos := Vector3(float(at["x"]), float(at.get("z", 0.0)), -float(at["y"]))
+		var yaw := deg_to_rad(float(at.get("rot", 0.0)))
+		if o.has("of"):
+			_add_part_pick(id, o, by_id, props_cat, pos, yaw)
+			continue
+		var pid := String(o.get("prop", ""))
+		if not props_cat.has(pid):
+			continue
+		var p: Dictionary = props_cat[pid]
+		var node: Node3D
+		if String(p.get("kind", "")) == "character":
+			var a := Actor.new()
+			add_child(a)
+			a.setup("res://assets/%s" % String(p["glb"]), false)
+			a.global_position = pos
+			a.rotation.y = yaw
+			a.face_yaw = yaw
+			a.play("Idle")
+			characters[id] = a
+			node = a
+		else:
+			node = (load("res://assets/%s" % String(p["glb"])) as PackedScene).instantiate() as Node3D
+			add_child(node)
+			node.global_position = pos
+			node.rotation.y = yaw
+		props[id] = node
+		_add_prop_pick(id, p, pos, yaw, at, String(p.get("kind", "")) == "item")
+		if String(p.get("kind", "")) != "item" and not o.has("parent"):
+			var fp: Array = p.get("footprint", [1.0, 1.0])
+			var w := float(fp[0])
+			var d := float(fp[1])
+			if absf(sin(yaw)) > 0.5:
+				var t := w
+				w = d
+				d = t
+			blocks[id] = AABB(Vector3(pos.x - w / 2.0, 0.0, pos.z - d / 2.0), Vector3(w, 1.2, d))
+		if p.has("lights"):
+			for ld in p["lights"]:
+				var at_l: Array = ld["at"]
+				var lp := pos + Vector3(float(at_l[0]), float(at_l[2]), -float(at_l[1])).rotated(Vector3.UP, yaw)
+				_make_light(String(ld["kind"]), lp, false)
+		var anims: Dictionary = p.get("anims", {})
+		for fname in anims.get("flicker", []):
+			var fn := node.find_child(String(fname), true, false)
+			if fn is Node3D:
+				flickers.append(fn)
+		if p.has("opens"):
+			var oc: Dictionary = p["opens"]
+			var target := node.find_child(String(oc.get("node", "")), true, false)
+			if target is Node3D:
+				opens[id] = {"node": target, "axis": String(oc.get("axis", "z")), "angle": float(oc.get("angle", 90.0))}
+
+
+func _add_prop_pick(id: String, p: Dictionary, pos: Vector3, yaw: float, at: Dictionary, is_item: bool) -> void:
+	var fp: Array = p.get("footprint", [1.0, 1.0])
+	var size := Vector3(float(fp[0]), float(p.get("height", 1.0)), float(fp[1]))
+	if is_item:
+		size = Vector3(maxf(size.x, 0.5), maxf(size.y, 0.3), maxf(size.z, 0.35))
+	var body := StaticBody3D.new()
+	body.collision_layer = PICK_LAYER
+	body.collision_mask = 0
+	body.set_meta("pick_id", id)
+	var shape := CollisionShape3D.new()
+	var bs := BoxShape3D.new()
+	bs.size = size
+	shape.shape = bs
+	body.add_child(shape)
+	add_child(body)
+	body.global_position = pos + Vector3(0.0, size.y / 2.0, 0.0)
+	body.rotation.y = yaw
+	picks[id] = body
+
+
+## The door or window of a placed prop: a click volume over that part of the model.
+func _add_part_pick(id: String, o: Dictionary, by_id: Dictionary, props_cat: Dictionary, pos: Vector3, yaw: float) -> void:
+	var parent: Dictionary = by_id.get(String(o["of"]), {})
+	var p: Dictionary = props_cat.get(String(parent.get("prop", "")), {})
+	var part: Dictionary = (p.get("parts", {}) as Dictionary).get(String(o.get("part", "")), {})
+	if part.is_empty():
+		return
+	var c: Array = part["center"]
+	var sz: Array = part["size"]
+	var local := Vector3(float(c[0]), float(part.get("min_z", 0.0)) + float(sz[2]) / 2.0, -float(c[1]))
+	var body := StaticBody3D.new()
+	body.collision_layer = PICK_LAYER
+	body.collision_mask = 0
+	body.set_meta("pick_id", id)
+	var shape := CollisionShape3D.new()
+	var bs := BoxShape3D.new()
+	bs.size = Vector3(float(sz[0]), float(sz[2]), float(sz[1]))
+	shape.shape = bs
+	body.add_child(shape)
+	add_child(body)
+	body.global_position = Vector3(pos.x, 0.0, pos.z) + local.rotated(Vector3.UP, yaw)
+	body.rotation.y = yaw
+	picks[id] = body
+	# the part that opens is the prop's "opens" node when this part is the one named there
+	var op: Dictionary = p.get("opens", {})
+	if op.has("part") and String(op["part"]) == String(o.get("part", "")):
+		var holder: Node3D = props.get(String(o["of"]))
+		if holder != null:
+			var target := holder.find_child(String(op.get("node", "")), true, false)
+			if target is Node3D:
+				opens[id] = {"node": target, "axis": String(op.get("axis", "z")), "angle": float(op.get("angle", 90.0))}
+
+
+## Plays the opening of a door or lid (rotation of the node named in the prop's catalog entry).
+func open_object(id: String, animate: bool = true) -> bool:
+	if not opens.has(id):
+		return false
+	var d: Dictionary = opens[id]
+	var node: Node3D = d["node"]
+	var prop_name := "rotation:%s" % String(d["axis"])
+	if animate:
+		var tw := create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tw.tween_property(node, prop_name, deg_to_rad(float(d["angle"])), 0.6)
+	else:
+		node.set_indexed(NodePath(String(d["axis"]).insert(0, "rotation:")), deg_to_rad(float(d["angle"])))
+	return true
+
+
+func _process(_delta: float) -> void:
+	if flickers.is_empty():
+		return
+	var t := Time.get_ticks_msec() / 1000.0
+	for i in flickers.size():
+		var n := flickers[i] as Node3D
+		if is_instance_valid(n):
+			var k := 1.0 + 0.12 * sin(t * 11.0 + i * 1.7) + 0.06 * sin(t * 23.0 + i)
+			n.scale = Vector3(1.0 / sqrt(k), k, 1.0 / sqrt(k))

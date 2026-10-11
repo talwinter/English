@@ -8,11 +8,16 @@ var _players: Array[AudioStreamPlayer] = []
 var _music_a: AudioStreamPlayer
 var _music_b: AudioStreamPlayer
 var _music_name := ""
+var _amb: AudioStreamPlayer
+var _amb_name := ""
 var music_on := true
-var volume_db := 0.0
+var volume_db := 0.0       # sound effects
+var music_gain_db := 0.0   # music, set from the settings
+var _duck_db := 0.0
 
 
 func _ready() -> void:
+	volume_db = -9.0   # sound effects sit under the voice
 	for i in 8:
 		var p := AudioStreamPlayer.new()
 		add_child(p)
@@ -29,17 +34,28 @@ func _ready() -> void:
 	_music_b.bus = "Music"
 	add_child(_music_a)
 	add_child(_music_b)
-	volume_db = -9.0   # sound effects sit under the voice
+	_amb = AudioStreamPlayer.new()
+	_amb.bus = "Music"
+	add_child(_amb)
 
 
 ## Lowers the music while a voice is speaking, so the narrator is always clear.
 func duck(on: bool) -> void:
-	var i := AudioServer.get_bus_index("Music")
-	if i == -1:
-		return
 	var tw := create_tween()
-	tw.tween_method(func(v: float) -> void: AudioServer.set_bus_volume_db(i, v),
-		AudioServer.get_bus_volume_db(i), -14.0 if on else 0.0, 0.25)
+	tw.tween_method(func(v: float) -> void:
+		_duck_db = v
+		_apply_music_bus(), _duck_db, -14.0 if on else 0.0, 0.25)
+
+
+func set_music_gain(db: float) -> void:
+	music_gain_db = db
+	_apply_music_bus()
+
+
+func _apply_music_bus() -> void:
+	var i := AudioServer.get_bus_index("Music")
+	if i != -1:
+		AudioServer.set_bus_volume_db(i, music_gain_db + _duck_db)
 
 
 func _stream(name: String) -> AudioStream:
@@ -62,7 +78,39 @@ func play(name: String, vol: float = 0.0, pitch: float = 1.0) -> void:
 			return
 
 
+func _loop(s: AudioStream) -> AudioStream:
+	if s is AudioStreamWAV:
+		var w := (s as AudioStreamWAV).duplicate() as AudioStreamWAV
+		w.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		w.loop_begin = 0
+		var bytes_per_sample := 2 if w.format == AudioStreamWAV.FORMAT_16_BITS else 1
+		w.loop_end = w.data.size() / (bytes_per_sample * (2 if w.stereo else 1))
+		return w
+	return s
+
+
+## A quiet loop under the music: wind outside, a crackling fire inside.
+func ambience(name: String, vol: float = -14.0) -> void:
+	if name == _amb_name:
+		return
+	_amb_name = name
+	if name == "":
+		var tw := create_tween()
+		tw.tween_property(_amb, "volume_db", -60.0, 1.0)
+		tw.tween_callback(_amb.stop)
+		return
+	var s := _stream(name)
+	if s == null:
+		return
+	_amb.stream = _loop(s)
+	_amb.volume_db = -60.0
+	_amb.play()
+	create_tween().tween_property(_amb, "volume_db", vol, 1.5)
+
+
 func music(name: String, vol: float = -2.0) -> void:
+	if name == "glitch":
+		name = "glitch_music"      # "glitch" is also the name of the sound effect
 	if name == _music_name:
 		return
 	_music_name = name
@@ -77,13 +125,7 @@ func music(name: String, vol: float = -2.0) -> void:
 	var s := _stream(name)
 	if s == null:
 		return
-	if s is AudioStreamWAV:
-		var w := (s as AudioStreamWAV).duplicate() as AudioStreamWAV
-		w.loop_mode = AudioStreamWAV.LOOP_FORWARD
-		w.loop_begin = 0
-		var bytes_per_sample := 2 if w.format == AudioStreamWAV.FORMAT_16_BITS else 1
-		w.loop_end = w.data.size() / (bytes_per_sample * (2 if w.stereo else 1))
-		s = w
+	s = _loop(s)
 	fresh.stream = s
 	fresh.volume_db = -60.0
 	fresh.play()

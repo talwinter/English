@@ -63,27 +63,19 @@ func setup(dict: Dictionary, word_store: WordStore, voice_node: Voice, sfx_node:
 
 
 static func _style(color: Color, border: Color = Color(0, 0, 0, 0), radius: int = 10, margin: int = 12) -> StyleBoxFlat:
-	var s := StyleBoxFlat.new()
-	s.bg_color = color
-	s.border_color = border
-	s.set_border_width_all(2 if border.a > 0.0 else 0)
-	s.set_corner_radius_all(radius)
-	s.content_margin_left = margin
-	s.content_margin_right = margin
-	s.content_margin_top = margin * 0.6
-	s.content_margin_bottom = margin * 0.6
-	return s
+	return UiKit.style(color, border, radius, margin)
 
 
-func _btn(text: String, font: int = 24, accent: Color = Color(0.5, 0.5, 0.75)) -> Button:
+func _btn(text: String, font: int = 18, accent: Color = Color(0.5, 0.5, 0.75)) -> Button:
 	var b := Button.new()
 	b.text = text
 	b.focus_mode = Control.FOCUS_NONE
 	b.add_theme_font_size_override("font_size", font)
-	b.add_theme_stylebox_override("normal", _style(Color(0.14, 0.14, 0.23, 0.98), accent))
-	b.add_theme_stylebox_override("hover", _style(Color(0.22, 0.22, 0.36, 0.98), GOLD))
-	b.add_theme_stylebox_override("pressed", _style(Color(0.4, 0.32, 0.06, 0.98), GOLD))
-	b.add_theme_stylebox_override("disabled", _style(Color(0.1, 0.1, 0.16, 0.9), Color(0.25, 0.25, 0.35)))
+	b.add_theme_color_override("font_color", Color(0.92, 0.94, 1.0))
+	b.add_theme_stylebox_override("normal", _style(Color(1, 1, 1, 0.09), Color(accent.r, accent.g, accent.b, 0.7), 14, 14))
+	b.add_theme_stylebox_override("hover", _style(Color(1, 1, 1, 0.2), GOLD, 14, 14))
+	b.add_theme_stylebox_override("pressed", _style(Color(0.62, 0.47, 0.08, 0.95), GOLD, 14, 14))
+	b.add_theme_stylebox_override("disabled", _style(Color(1, 1, 1, 0.04), Color(1, 1, 1, 0.1), 14, 14))
 	return b
 
 
@@ -101,31 +93,31 @@ func _build_card() -> void:
 	_card = PanelContainer.new()
 	_card.visible = false
 	_card.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_card.custom_minimum_size = Vector2(660, 0)
-	_card.offset_left = -330
-	_card.offset_right = 330
-	_card.offset_top = 96
+	_card.custom_minimum_size = Vector2(500, 0)
+	_card.offset_left = -250
+	_card.offset_right = 250
+	_card.offset_top = 80
 	_card.grow_vertical = Control.GROW_DIRECTION_END
-	_card.add_theme_stylebox_override("panel", _style(Color(0.06, 0.06, 0.12, 0.97), GOLD, 14, 18))
+	_card.add_theme_stylebox_override("panel", _style(UiKit.PANEL_SOLID, Color(1, 0.82, 0.25, 0.8), 22, 22))
 	add_child(_card)
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 8)
+	col.add_theme_constant_override("separation", 6)
 	_card.add_child(col)
 
 	var top := HBoxContainer.new()
 	top.add_theme_constant_override("separation", 14)
 	col.add_child(top)
 	_card_word = Label.new()
-	_card_word.add_theme_font_size_override("font_size", 54)
+	_card_word.add_theme_font_size_override("font_size", 38)
 	_card_word.add_theme_color_override("font_color", GOLD)
 	_card_word.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(_card_word)
 	_card_badge = Label.new()
-	_card_badge.add_theme_font_size_override("font_size", 22)
+	_card_badge.add_theme_font_size_override("font_size", 15)
 	top.add_child(_card_badge)
 
 	_card_he = Label.new()
-	_card_he.add_theme_font_size_override("font_size", 44)
+	_card_he.add_theme_font_size_override("font_size", 30)
 	_card_he.add_theme_color_override("font_color", CYAN)
 	_card_he.text_direction = Control.TEXT_DIRECTION_RTL
 	_card_he.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -136,20 +128,20 @@ func _build_card() -> void:
 	_card_sentence.bbcode_enabled = true
 	_card_sentence.fit_content = true
 	_card_sentence.scroll_active = false
-	_card_sentence.add_theme_font_size_override("normal_font_size", 23)
-	_card_sentence.add_theme_font_size_override("bold_font_size", 23)
+	_card_sentence.add_theme_font_size_override("normal_font_size", 17)
+	_card_sentence.add_theme_font_size_override("bold_font_size", 17)
 	col.add_child(_card_sentence)
 
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
 	col.add_child(row)
-	var hear := _btn("Hear", 24)
+	var hear := _btn("Hear", 17)
 	hear.pressed.connect(func() -> void: voice.say(_card_current, false))
 	row.add_child(hear)
-	var slow := _btn("Slow", 24)
+	var slow := _btn("Slow", 17)
 	slow.pressed.connect(func() -> void: voice.say(_card_current, true))
 	row.add_child(slow)
-	var know := _btn("I know it", 24, GREEN)
+	var know := _btn("I know it", 17, GREEN)
 	know.pressed.connect(func() -> void:
 		store.mark_known(_card_current)
 		sfx.play("points")
@@ -157,11 +149,11 @@ func _build_card() -> void:
 		close_card())
 	row.add_child(know)
 	_card_state = Label.new()
-	_card_state.add_theme_font_size_override("font_size", 20)
+	_card_state.add_theme_font_size_override("font_size", 14)
 	_card_state.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_card_state.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	row.add_child(_card_state)
-	var close := _btn("Close", 24)
+	var close := _btn("Close", 17)
 	close.pressed.connect(close_card)
 	row.add_child(close)
 
@@ -226,16 +218,16 @@ func _build_book() -> void:
 	col.add_child(head)
 	var title := Label.new()
 	title.text = "Word Book"
-	title.add_theme_font_size_override("font_size", 40)
+	title.add_theme_font_size_override("font_size", 30)
 	title.add_theme_color_override("font_color", GOLD)
 	head.add_child(title)
 	var sub := Label.new()
 	sub.text = "   ספר המילים"
-	sub.add_theme_font_size_override("font_size", 30)
+	sub.add_theme_font_size_override("font_size", 22)
 	sub.add_theme_color_override("font_color", CYAN)
 	head.add_child(sub)
 	_book_stats = Label.new()
-	_book_stats.add_theme_font_size_override("font_size", 24)
+	_book_stats.add_theme_font_size_override("font_size", 18)
 	_book_stats.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_book_stats.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	head.add_child(_book_stats)
@@ -245,7 +237,7 @@ func _build_book() -> void:
 	col.add_child(filters)
 	var names := ["All", "New", "Learning", "Mastered"]
 	for i in names.size():
-		var b := _btn(String(names[i]), 22)
+		var b := _btn(String(names[i]), 17)
 		b.toggle_mode = true
 		var f := i - 1
 		b.pressed.connect(func() -> void:
@@ -259,7 +251,7 @@ func _build_book() -> void:
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	col.add_child(scroll)
 	_book_grid = GridContainer.new()
-	_book_grid.columns = 4
+	_book_grid.columns = 5
 	_book_grid.add_theme_constant_override("h_separation", 10)
 	_book_grid.add_theme_constant_override("v_separation", 10)
 	_book_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -268,13 +260,13 @@ func _build_book() -> void:
 	var foot := HBoxContainer.new()
 	foot.add_theme_constant_override("separation", 12)
 	col.add_child(foot)
-	var practice := _btn("Practice  ·  תרגול", 28, GREEN)
+	var practice := _btn("Practice  ·  תרגול", 21, GREEN)
 	practice.pressed.connect(func() -> void: start_quiz())
 	foot.add_child(practice)
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	foot.add_child(spacer)
-	var close := _btn("Close", 26)
+	var close := _btn("Close", 20)
 	close.pressed.connect(close_book)
 	foot.add_child(close)
 
@@ -306,11 +298,13 @@ func _refresh_book() -> void:
 			continue
 		shown += 1
 		var b := Button.new()
-		b.custom_minimum_size = Vector2(0, 92)
+		b.custom_minimum_size = Vector2(0, 74)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.clip_text = true
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		b.focus_mode = Control.FOCUS_NONE
 		b.text = "%s\n%s" % [w, _he(w)]
-		b.add_theme_font_size_override("font_size", 24)
+		b.add_theme_font_size_override("font_size", 18)
 		b.add_theme_stylebox_override("normal", _style(Color(0.1, 0.1, 0.18), STATE_COLORS[s], 10))
 		b.add_theme_stylebox_override("hover", _style(Color(0.18, 0.18, 0.3), GOLD, 10))
 		b.add_theme_stylebox_override("pressed", _style(Color(0.18, 0.18, 0.3), GOLD, 10))
@@ -319,11 +313,11 @@ func _refresh_book() -> void:
 	if shown == 0:
 		var l := Label.new()
 		l.text = "No words here yet. Click words in the game to collect them.\nעוד אין מילים. לחץ על מילים במשחק כדי לאסוף אותן."
-		l.add_theme_font_size_override("font_size", 26)
+		l.add_theme_font_size_override("font_size", 20)
 		_book_grid.columns = 1
 		_book_grid.add_child(l)
 	else:
-		_book_grid.columns = 4
+		_book_grid.columns = 5
 
 
 # ================================================================ practice
@@ -354,11 +348,11 @@ func _build_quiz() -> void:
 	_quiz_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(_quiz_body)
 	_quiz_count = Label.new()
-	_quiz_count.add_theme_font_size_override("font_size", 24)
+	_quiz_count.add_theme_font_size_override("font_size", 18)
 	_quiz_count.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_quiz_body.add_child(_quiz_count)
 	_quiz_word = Label.new()
-	_quiz_word.add_theme_font_size_override("font_size", 84)
+	_quiz_word.add_theme_font_size_override("font_size", 60)
 	_quiz_word.add_theme_color_override("font_color", GOLD)
 	_quiz_word.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_quiz_body.add_child(_quiz_word)
@@ -366,21 +360,21 @@ func _build_quiz() -> void:
 	hear_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	hear_row.add_theme_constant_override("separation", 12)
 	_quiz_body.add_child(hear_row)
-	var hear := _btn("Hear", 26)
+	var hear := _btn("Hear", 20)
 	hear.pressed.connect(func() -> void: voice.say(String(_questions[_qi]["word"]), false))
 	hear_row.add_child(hear)
-	var slow := _btn("Slow", 26)
+	var slow := _btn("Slow", 20)
 	slow.pressed.connect(func() -> void: voice.say(String(_questions[_qi]["word"]), true))
 	hear_row.add_child(slow)
 	for i in 3:
-		var o := _btn("", 38)
+		var o := _btn("", 28)
 		o.custom_minimum_size = Vector2(0, 74)
 		var idx := i
 		o.pressed.connect(func() -> void: _answer(idx))
 		_quiz_body.add_child(o)
 		_quiz_options.append(o)
 	_quiz_msg = Label.new()
-	_quiz_msg.add_theme_font_size_override("font_size", 26)
+	_quiz_msg.add_theme_font_size_override("font_size", 20)
 	_quiz_msg.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_quiz_body.add_child(_quiz_msg)
 
@@ -392,19 +386,19 @@ func _build_quiz() -> void:
 	_quiz_end_label = RichTextLabel.new()
 	_quiz_end_label.bbcode_enabled = true
 	_quiz_end_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_quiz_end_label.add_theme_font_size_override("normal_font_size", 30)
+	_quiz_end_label.add_theme_font_size_override("normal_font_size", 22)
 	_quiz_end.add_child(_quiz_end_label)
 	var end_row := HBoxContainer.new()
 	end_row.add_theme_constant_override("separation", 12)
 	_quiz_end.add_child(end_row)
-	var again := _btn("Again  ·  שוב", 28, GREEN)
+	var again := _btn("Again  ·  שוב", 21, GREEN)
 	again.pressed.connect(func() -> void: start_quiz())
 	end_row.add_child(again)
-	var close := _btn("Close", 28)
+	var close := _btn("Close", 21)
 	close.pressed.connect(close_quiz)
 	end_row.add_child(close)
 
-	var x := _btn("X", 22)
+	var x := _btn("X", 17)
 	x.set_anchors_preset(Control.PRESET_CENTER)
 	x.offset_left = 356
 	x.offset_right = 412
@@ -499,11 +493,11 @@ func _finish_quiz() -> void:
 	_quiz_end.visible = true
 	var n := _questions.size()
 	var stars := 3 if _right == n else (2 if _right * 3 >= n * 2 else (1 if _right * 2 >= n else 0))
-	var t := "[center][font_size=64][color=#ffd23f]%s[/color][/font_size]\n%d / %d\n" % ["*".repeat(stars) + "-".repeat(3 - stars), _right, n]
+	var t := "[center][font_size=46][color=#ffd23f]%s[/color][/font_size]\n%d / %d\n" % ["*".repeat(stars) + "-".repeat(3 - stars), _right, n]
 	if _missed.size() > 0:
-		t += "\n[font_size=26]Try again later:[/font_size]\n"
+		t += "\n[font_size=20]Try again later:[/font_size]\n"
 		for q in _missed.slice(0, 5):
-			t += "[font_size=28][color=#ffe27a]%s[/color] = [color=#9fe6ff]%s[/color][/font_size]\n" % [q["word"], q["he"]]
+			t += "[font_size=21][color=#ffe27a]%s[/color] = [color=#9fe6ff]%s[/color][/font_size]\n" % [q["word"], q["he"]]
 	t += "[/center]"
 	_quiz_end_label.text = t
 	sfx.play("fanfare" if stars >= 2 else "goal", -6.0)

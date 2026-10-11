@@ -1,0 +1,32 @@
+{
+ "id": "father_trapped",
+ "name": "your father (on the ground)",
+ "kind": "character",
+ "glb": "props/father_trapped.glb",
+ "desc": "the hero's game-father lying on the ground; his legs are stuck, he waves one hand",
+ "words": [
+  "father",
+  "dad",
+  "man"
+ ],
+ "footprint": [
+  0.96,
+  2.38
+ ],
+ "height": 0.4,
+ "center_offset": [
+  0.0,
+  0.16
+ ],
+ "place": [
+  "floor"
+ ],
+ "stand": 1.0,
+ "surface": false,
+ "container": false,
+ "anims": {
+  "clips": [
+   "Idle"
+  ]
+ }
+}

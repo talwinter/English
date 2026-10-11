@@ -14,6 +14,7 @@ const MASTER_BOX := 3
 
 var words: Dictionary = {}     # word -> { seen, looked, right, wrong, box, known, first }
 var function_words: Dictionary = {}
+var path := FILE      # tests use their own file, so they never touch his real progress
 var _word_re: RegEx
 
 
@@ -22,8 +23,8 @@ func _init() -> void:
 	_word_re.compile("[A-Za-z]+(?:'[A-Za-z]+)?")
 
 
-func load_file(path: String = FILE) -> void:
-	var f := FileAccess.open(path, FileAccess.READ)
+func load_file(from: String = "") -> void:
+	var f := FileAccess.open(from if from != "" else path, FileAccess.READ)
 	if f == null:
 		return
 	var data: Variant = JSON.parse_string(f.get_as_text())
@@ -31,8 +32,8 @@ func load_file(path: String = FILE) -> void:
 		words = data
 
 
-func save_file(path: String = FILE) -> void:
-	var f := FileAccess.open(path, FileAccess.WRITE)
+func save_file(to: String = "") -> void:
+	var f := FileAccess.open(to if to != "" else path, FileAccess.WRITE)
 	if f:
 		f.store_string(JSON.stringify(words))
 
@@ -154,3 +155,18 @@ func make_quiz(dictionary: Dictionary, count: int = 8, rng: RandomNumberGenerato
 			options[j] = t
 		out.append({"word": w, "he": right, "options": options, "answer": options.find(right)})
 	return out
+
+
+## Takes in what another PC (the server) knows: the larger counts win, "known" sticks.
+func merge_from(other: Dictionary) -> void:
+	for w in other:
+		var o: Variant = other[w]
+		if not (o is Dictionary):
+			continue
+		var e := entry(String(w))
+		for k in ["seen", "looked", "right", "wrong"]:
+			e[k] = maxi(int(e[k]), int((o as Dictionary).get(k, 0)))
+		if int((o as Dictionary).get("right", 0)) + int((o as Dictionary).get("wrong", 0)) > int(e["right"]) + int(e["wrong"]):
+			e["box"] = int((o as Dictionary).get("box", e["box"]))
+		e["known"] = bool(e["known"]) or bool((o as Dictionary).get("known", false))
+	save_file()

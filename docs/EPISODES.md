@@ -11,7 +11,7 @@ The server writes new episodes by itself with OpenAI, checks them, and keeps the
    - **A robot plays it from start to end.** If it can't be finished, it's rejected.
    - Every English word must have a Hebrew translation.
    - Sentences are short (at most 30 words).
-   - Not too many new words (at most 35).
+   - Not too many new words (at most 45 by default; `MAX_NEW_WORDS` in `.env` changes it).
    - Everything is connected: no missing scenes, items or pictures.
 
    If something fails, the server sends the list of problems back to OpenAI and asks again (up to 3 times).

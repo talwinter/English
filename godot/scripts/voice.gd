@@ -6,11 +6,13 @@ extends Node
 ## voice from the whole line; offline each character gets its own voice and pitch.
 
 signal speaking(on: bool)
+signal line_started(text: String, words: Array)   # words: [[start, end], ...] seconds, may be empty
 
 const CHAR_PITCH := {"byte": 1.5, "grandmother": 0.82, "grandma": 0.82, "wolf": 0.6, "father": 0.75, "troll": 0.55}
 
 var server := ""             # e.g. http://192.168.1.50:8080 ; empty = no server (offline)
 var enabled := true
+var volume := 1.0            # 0..1, from the settings
 var _http: HTTPRequest
 var _player: AudioStreamPlayer
 var _tts_voices: PackedStringArray = PackedStringArray()
@@ -19,6 +21,8 @@ var _req_kind := ""
 var _req_text := ""
 var _req_slow := false
 var _req_serial := 0
+var _req_words: Array = []
+var _started_msec := 0
 var stats := {"server": 0, "fallback": 0}
 var _line_re: RegEx
 
@@ -95,7 +99,12 @@ func _on_completed(result: int, code: int, _h: PackedStringArray, body: PackedBy
 		if ok:
 			var info: Variant = JSON.parse_string(body.get_string_from_utf8())
 			if info is Dictionary and info.get("audio") != null:
-				if _request(server + String(info["audio"]), "audio", _req_text, _req_slow):
+				var w: Variant = info.get("words")
+				var keep: Array = w if w is Array else []
+				var t := _req_text
+				var sl := _req_slow
+				if _request(server + String(info["audio"]), "audio", t, sl):
+					_req_words = keep
 					return
 		_speak_tts(_req_text, _req_slow)     # the line is not made yet: the computer's voice, at once
 	elif kind == "audio":
@@ -103,9 +112,11 @@ func _on_completed(result: int, code: int, _h: PackedStringArray, body: PackedBy
 			var mp3 := AudioStreamMP3.new()
 			mp3.data = body
 			_player.stream = mp3
-			_player.volume_db = 4.0
+			_player.volume_db = 4.0 + linear_to_db(clampf(volume, 0.0001, 1.0))
 			_player.play()
 			stats["server"] += 1
+			_started_msec = Time.get_ticks_msec()
+			line_started.emit(_req_text, _req_words)
 			speaking.emit(true)
 			return
 		_speak_tts(_req_text, _req_slow)
@@ -136,8 +147,15 @@ func prefetch(text: String) -> void:
 		h.queue_free()
 
 
+## Seconds since the current line started.
+func elapsed() -> float:
+	return (Time.get_ticks_msec() - _started_msec) / 1000.0
+
+
 func _speak_tts(text: String, slow: bool) -> void:
 	stats["fallback"] += 1
+	_started_msec = Time.get_ticks_msec()
+	line_started.emit(text, [])
 	var p := parse(text)
 	var voice_id := _voice_for(String(p["who"]))
 	if voice_id == "":
@@ -150,4 +168,4 @@ func _speak_tts(text: String, slow: bool) -> void:
 		var w := m.get_string()
 		spoken = spoken.replace(w, w.substr(0, 1) + w.substr(1).to_lower())
 	var pitch: float = float(CHAR_PITCH.get(String(p["who"]), 1.0))
-	DisplayServer.tts_speak(spoken, voice_id, 100, pitch, 0.8 if slow else 1.0, 0, true)
+	DisplayServer.tts_speak(spoken, voice_id, int(clampf(volume, 0.0, 1.0) * 100.0), pitch, 0.8 if slow else 1.0, 0, true)

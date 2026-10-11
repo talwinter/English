@@ -1,0 +1,90 @@
+{
+ "id": "river_bridge",
+ "name": "river with an old bridge",
+ "kind": "outdoor",
+ "glb": "shells/river_bridge.glb",
+ "desc": "a frozen river with an old wooden bridge going into a snowy forest on the far side; you stand on this bank",
+ "floor": [
+  -5.0,
+  -1.8,
+  5.0,
+  0.8
+ ],
+ "spawn": [
+  -3.5,
+  -0.8
+ ],
+ "walls": {},
+ "blocked": [],
+ "slots": {
+  "bridge_middle": [
+   0.0,
+   2.2
+  ],
+  "bridge_start": [
+   0.0,
+   1.2
+  ],
+  "bank_left": [
+   -3.5,
+   -0.5
+  ],
+  "bank_right": [
+   3.5,
+   -0.5
+  ]
+ },
+ "fixed": [
+  {
+   "id": "bridge",
+   "name": "the old bridge",
+   "words": [
+    "bridge"
+   ],
+   "desc": "an old wooden bridge across the river"
+  },
+  {
+   "id": "river",
+   "name": "the river",
+   "words": [
+    "river",
+    "water"
+   ],
+   "desc": "a frozen river"
+  },
+  {
+   "id": "forest",
+   "name": "the forest",
+   "words": [
+    "forest",
+    "woods"
+   ],
+   "desc": "the dark pine forest across the river"
+  }
+ ],
+ "camera": {
+  "pos": [
+   0.0,
+   -7.2,
+   3.3
+  ],
+  "target": [
+   0.0,
+   1.6,
+   0.8
+  ],
+  "fov": 52.0
+ },
+ "sky": [
+  0.6,
+  0.74,
+  0.9
+ ],
+ "ambient": [
+  0.86,
+  0.9,
+  0.98
+ ],
+ "ambient_energy": 1.2,
+ "light": "sun"
+}

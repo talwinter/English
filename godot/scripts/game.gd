@@ -13,6 +13,8 @@ const SHOTS_DIR := "res://shots"
 var args: PackedStringArray
 var server := ""
 var episode_id := "s1e0"
+var draft_mode := false          # --draft: play a waiting draft from the parent page (needs --admin=PASSWORD)
+var admin_password := ""
 var pixel_look := false
 var autoplay := false
 var take_shots := false
@@ -61,6 +63,19 @@ var story_waiting := false
 signal story_continue_pressed
 
 var loading_label: Label
+var pullin_caption := ""
+var byte_follow := false
+var catalog: Dictionary = {}
+var _spoken_text := ""
+var _spoken_words: Array = []
+var api: ServerApi
+var mission: MissionUi
+var settings: Settings
+var settings_ui: SettingsUi
+var coach: Coach
+var byte_met := false          # he has met Byte (end of the prologue); after that Byte says the tips
+var idle_time := 0.0           # seconds without doing anything: Byte offers a hint
+var resumed := false
 var report_done := false     # tell the server when the episode is finished (second line of server.txt: report)
 
 
@@ -74,11 +89,17 @@ func _ready() -> void:
 	autoplay = "--autoplay" in args
 	take_shots = "--shots" in args
 	server = _server_from_file()
+	if "--no-server" in args:
+		server = ""
 	for a in args:
 		if a.begins_with("--server="):
 			server = a.trim_prefix("--server=")
 		elif a.begins_with("--episode="):
 			episode_id = a.trim_prefix("--episode=")
+		elif a == "--draft":
+			draft_mode = true
+		elif a.begins_with("--admin="):
+			admin_password = a.trim_prefix("--admin=")
 	_build_screen()
 	_build_world_root()
 	_build_ui()
@@ -102,14 +123,27 @@ func _ready() -> void:
 ## The server's address, from godot/server.txt (one line, for example http://192.168.1.50:8080). The voices
 ## (Kokoro) and the episodes come from there. Without it the game still works, with the computer's own voice.
 func _server_from_file() -> String:
+	# godot/config.json: { "server": "http://192.168.2.47:8080", "report": true }
+	var cfg := ProjectSettings.globalize_path("res://config.json")
+	var f := FileAccess.open(cfg, FileAccess.READ)
+	if f != null:
+		var d: Variant = JSON.parse_string(f.get_as_text())
+		if d is Dictionary:
+			report_done = bool((d as Dictionary).get("report", false))
+			return String((d as Dictionary).get("server", "")).strip_edges().rstrip("/")
+	# older: godot/server.txt, first line the address, optional second line "report"
 	var path := ProjectSettings.globalize_path("res://server.txt")
-	var f := FileAccess.open(path, FileAccess.READ)
+	f = FileAccess.open(path, FileAccess.READ)
 	if f == null:
 		return ""
-	var lines := f.get_as_text().split("
-", false)
-	report_done = lines.size() > 1 and lines[1].strip_edges().to_lower() == "report"
-	return String(lines[0]).strip_edges().rstrip("/") if lines.size() > 0 else ""
+	var text := f.get_as_text().replace(char(13), char(10))
+	var lines: Array = []
+	for l in text.split(char(10), false):
+		var t := String(l).strip_edges()
+		if t != "":
+			lines.append(t)
+	report_done = lines.size() > 1 and String(lines[1]).to_lower() == "report"
+	return String(lines[0]).rstrip("/") if lines.size() > 0 else ""
 
 
 # ---------- screen and world root ----------
@@ -121,8 +155,7 @@ func _build_screen() -> void:
 	sub.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	sub.msaa_3d = Viewport.MSAA_DISABLED if pixel_look else Viewport.MSAA_4X
 	add_child(sub)
-	if not pixel_look:
-		get_window().size_changed.connect(func() -> void: sub.size = Vector2i(get_window().size))
+	get_window().size_changed.connect(_layout_screen)
 
 	screen = TextureRect.new()
 	screen.texture = sub.get_texture()
@@ -132,6 +165,19 @@ func _build_screen() -> void:
 	screen.set_anchors_preset(Control.PRESET_FULL_RECT)
 	screen.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(screen)
+
+
+## The game picture sits between the bars of the HUD, so nothing of the room is hidden under them and every spot
+## of the floor can be clicked. When the bars are hidden (cutscenes) the picture fills the window.
+func _layout_screen() -> void:
+	var inset := Vector2.ZERO
+	if hud != null:
+		inset = hud.dock_insets()
+	screen.offset_top = inset.x
+	screen.offset_bottom = -inset.y
+	if not pixel_look:
+		var w := Vector2(get_window().size)
+		sub.size = Vector2i(maxi(int(w.x), 64), maxi(int(w.y - inset.x - inset.y), 64))
 
 
 func _build_world_root() -> void:
@@ -192,9 +238,17 @@ func _build_ui() -> void:
 	voice = Voice.new()
 	voice.server = server
 	add_child(voice)
+	# robots and demos use their own files, never his real settings and progress
+	var test_mode := autoplay or "--words-demo" in args or "--click-test" in args or "--tips-auto" in args
+	settings = Settings.new()
+	if test_mode:
+		settings.path = "user://test_settings.json"
+	settings.load_file()
 	icons = ItemIcons.new()
 	add_child(icons)
 	store = WordStore.new()
+	if test_mode:
+		store.path = "user://test_words.json"
 	store.load_file()
 	wordui = WordUi.new()
 	add_child(wordui)
@@ -202,9 +256,29 @@ func _build_ui() -> void:
 	add_child(hud)
 	fxl = FxLayer.new()
 	add_child(fxl)
+	api = ServerApi.new()
+	api.base = "" if draft_mode else server   # a draft preview never reports or syncs anything
+	add_child(api)
+	mission = MissionUi.new()
+	add_child(mission)
+	settings_ui = SettingsUi.new()
+	add_child(settings_ui)
+	settings_ui.setup(settings)
+	settings_ui.changed.connect(_apply_settings)
+	settings_ui.restart_requested.connect(_restart_episode)
+	coach = Coach.new()
+	add_child(coach)
+	coach.setup(settings, voice)
+	settings_ui.report_requested.connect(_send_report)
+	hud.menu_pressed.connect(func() -> void:
+		if _can_act():
+			await _grab_menu_shot()
+			settings_ui.open_menu())
 	hud.verb_pressed.connect(_on_verb)
 	hud.item_pressed.connect(_on_item)
 	hud.item_hovered.connect(_on_item_hover)
+	hud.layout_changed.connect(_layout_screen)
+	_layout_screen()
 	hud.hint_pressed.connect(_on_hint)
 	hud.listen_pressed.connect(func() -> void:
 		if eng != null:
@@ -219,6 +293,13 @@ func _build_ui() -> void:
 	hud.command_submitted.connect(_on_typed)
 	hud.continue_pressed.connect(func() -> void: story_continue_pressed.emit())
 	voice.speaking.connect(sfx.duck)
+	voice.line_started.connect(func(text: String, words: Array) -> void:
+		_spoken_text = text
+		_spoken_words = words)
+	voice.speaking.connect(func(on: bool) -> void:
+		if not on:
+			_spoken_text = ""
+			hud.set_spoken("", -1))
 
 
 # ---------- data: episode, verbs, dictionary ----------
@@ -235,6 +316,9 @@ func _load_data() -> bool:
 	if base_file == null:
 		push_error("episodes/_base.json is missing: run `node tools/export-episodes.js`")
 		return false
+	var cat: Variant = _read_json("res://catalog/catalog.json")
+	if cat is Dictionary:
+		catalog = cat
 	base_data = base_file["base"]
 	dictionary = base_file["dictionary"]
 	for fw in base_file.get("functionWords", []):
@@ -247,6 +331,11 @@ func _load_data() -> bool:
 	if ep == null:
 		push_error("episode %s not found" % episode_id)
 		return false
+	# the robot plays from the server too: it takes its way through the episode from the local copy
+	if autoplay and not (ep as Dictionary).has("solution"):
+		var local: Variant = _read_json("res://episodes/%s.json" % episode_id)
+		if local is Dictionary and (local as Dictionary).has("solution"):
+			ep["solution"] = local["solution"]
 	for d in (ep as Dictionary).get("dictionary", []):
 		dictionary[String(d["en"]).to_lower()] = d["he"]
 	eng = EpisodeEngine.new()
@@ -272,7 +361,12 @@ func _fetch_episode() -> Variant:
 	http.timeout = 6.0
 	add_child(http)
 	var url := "%s/api/play?episode=%s" % [server, episode_id]
-	if http.request(url) != OK:
+	var headers := PackedStringArray()
+	if draft_mode:
+		# a draft that waits for the parent's approval: the parent page's route, with the parent password
+		url = "%s/admin/api/draft/%s" % [server, episode_id]
+		headers.append("Authorization: Basic " + Marshalls.utf8_to_base64("parent:" + admin_password))
+	if http.request(url, headers) != OK:
 		return null
 	var res: Array = await http.request_completed
 	http.queue_free()
@@ -294,17 +388,112 @@ func _fetch_episode() -> Variant:
 
 # ---------- starting ----------
 
+## Applies what he chose in the menu.
+func _apply_settings() -> void:
+	sfx.volume_db = -9.0 + Settings.to_db(settings.effects)
+	sfx.set_music_gain(Settings.to_db(settings.music))
+	voice.volume = settings.voice
+	voice.enabled = settings.voice_on
+	get_window().content_scale_factor = settings.text_scale
+	var want := Window.MODE_FULLSCREEN if settings.fullscreen else Window.MODE_WINDOWED
+	if get_window().mode != want:
+		get_window().mode = want
+	var low := settings.quality == "low"
+	env.ssao_enabled = (not low) and RenderingServer.get_rendering_device() != null
+	env.glow_enabled = not low
+	sub.msaa_3d = Viewport.MSAA_DISABLED if (low or pixel_look) else Viewport.MSAA_4X
+
+
+var _menu_shot := PackedByteArray()
+
+
+## The picture of the game as it was when he pressed Menu (the menu itself is not in it).
+func _grab_menu_shot() -> void:
+	await RenderingServer.frame_post_draw
+	var img := get_viewport().get_texture().get_image()
+	if img != null:
+		img.resize(960, int(960.0 * img.get_height() / maxf(1.0, img.get_width())))
+		_menu_shot = img.save_png_to_buffer()
+
+
+## "Something is wrong?": where he was, what was said and a picture go to the parent page.
+func _send_report(note: String) -> void:
+	var payload := {
+		"episode": episode_id, "scene": String(eng.state["scene"]), "goal": String(eng.state["goal"]),
+		"flags": eng.state["flags"], "bag": eng.state["bag"], "note": note,
+		"messages": hud.get_messages().slice(-10), "version": "godot-1",
+		"shot": Marshalls.raw_to_base64(_menu_shot) if _menu_shot.size() > 0 else "",
+	}
+	var sent := false
+	if api.enabled():
+		var r := await api.post_json("/api/report", payload)
+		sent = bool(r["ok"])
+	if not sent:
+		# the server is away: keep it on this PC, so it can be looked at later
+		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://reports"))
+		var f := FileAccess.open("user://reports/%s.json" % Time.get_datetime_string_from_system().replace(":", "-"), FileAccess.WRITE)
+		if f:
+			payload["shot"] = ""
+			f.store_string(JSON.stringify(payload))
+
+
+func _restart_episode() -> void:
+	SaveGame.delete(episode_id)
+	settings_ui.close_menu()
+	get_tree().reload_current_scene()
+
+
+# ---------- first-time tips ----------
+
+const TIP_HE := {
+	"goal": "זו המטרה שלך. היא אומרת לך מה לעשות.",
+	"words": "לחץ על מילה בצבע זהב כדי לראות מה היא אומרת.",
+	"verbs": "בחר פעולה, ואז לחץ על חפץ.",
+	"bag": "חפצים שלקחת נכנסים לתיק.",
+	"wordbook": "כל המילים שלך נמצאות בספר המילים.",
+	"hint": "תקוע? לחץ על כפתור Hint.",
+}
+
+
+## Shows a first-time tip and waits until he has read it (nothing happens if he has seen it already).
+func _tip(id: String, part: String) -> void:
+	var texts: Dictionary = base_data.get("ui", {}).get("tips", {})
+	if not texts.has(id):
+		return
+	if await coach.show_tip(id, String(texts[id]), String(TIP_HE.get(id, "")), hud.rect_of(part), byte_met):
+		if take_shots:
+			await _shot("tip_" + id)
+		if "--tips-auto" in args:
+			get_tree().create_timer(0.4).timeout.connect(coach.close_tip)
+		await coach.closed
+
+
 func _start() -> void:
+	_apply_settings()
 	wordui.setup(dictionary, store, voice, sfx)
+	mission.setup(api, voice, sfx, store, dictionary)
+	if api.enabled():
+		_sync_words()
 	term.is_clickable_word = func(w: String) -> bool:
 		return dictionary.has(w) and store.is_content_word(w)
 	wordui.state_changed.connect(func() -> void:
 		hud.refresh_text()
-		_update_word_stats())
+		_update_word_stats()
+		_queue_sync())
 	_update_word_stats()
 	hud.set_verbs(base_data["verbs"])
+	byte_met = bool(settings.seen.get("byte_met", false)) or String(eng.episode.get("id", "")) != "s1e0"
+	var saved := {}
+	if not autoplay and not ("--fresh" in args):
+		saved = SaveGame.read(episode_id)
+	if not saved.is_empty() and not bool((saved.get("state", {}) as Dictionary).get("finished", false)):
+		eng.state = saved["state"]
+		player_name = String(saved.get("player_name", ""))
+		hud.player_name = player_name
+		byte_met = bool(saved.get("byte_met", byte_met))
+		resumed = true
 	_load_scene_room(eng.state["scene"])
-	hud.set_score(0, eng.max_score())
+	hud.set_score(eng.score(), eng.max_score())
 	for item_id in eng.items:
 		_make_icon(String(item_id))
 	_refresh_bag()
@@ -312,14 +501,22 @@ func _start() -> void:
 	var sc := eng.scene()
 	eng.state["visited"][eng.state["scene"]] = true
 	sfx.music(String(sc.get("music", "mystery")), -4.0)
-	hud.set_visible_all(false)
-	print("TITLE")
-	await _title_card()
-	print("TITLE DONE")
-	hud.set_visible_all(true)
-	_say_message("intro", _fmt(String(sc.get("intro", ""))))
-	_message("goal", String(eng.goals[eng.state["goal"]]["en"]))
-	voice.say(_fmt(String(sc.get("intro", ""))))
+	if resumed:
+		_restore_world(saved)
+		hud.set_visible_all(true)
+		_message("intro", "Welcome back!")
+		voice.say("Welcome back!")
+	else:
+		hud.set_visible_all(false)
+		await _title_card()
+		await _recap()
+		hud.set_visible_all(true)
+		_say_message("intro", _fmt(String(sc.get("intro", ""))))
+		_message("goal", String(eng.goals[eng.state["goal"]]["en"]))
+		voice.say(_fmt(String(sc.get("intro", ""))))
+		if not autoplay:
+			await _tip("goal", "goal")
+			await _tip("words", "log")
 	if "--click-test" in args:
 		_click_test()
 	elif "--words-demo" in args:
@@ -337,15 +534,34 @@ func _title_card() -> void:
 	await fxl.title_card(sub_text, String(eng.episode.get("title", "")), 3.0)
 
 
-func _load_scene_room(scene_id: String) -> void:
+func _load_scene_room(scene_id: String, from_scene: String = "") -> void:
 	var sc: Dictionary = eng.scenes[scene_id]
-	var shell := String(sc.get("shell", sc.get("art", scene_id)))
-	_switch_room("res://assets/%s.glb" % shell)
+	var shell_id := String(sc.get("shell", ""))
+	var shells: Dictionary = catalog.get("shells", {})
+	if shell_id != "" and shells.has(shell_id):
+		var shell: Dictionary = shells[shell_id]
+		_switch_room("res://assets/%s" % String(shell["glb"]), sc, shell, from_scene)
+	else:
+		var art := String(sc.get("shell", sc.get("art", scene_id)))
+		_switch_room("res://assets/%s.glb" % art)
 	_sync_objects()
+	for o in sc.get("objects", []):
+		var flag := String(o.get("opensWith", ""))
+		if flag != "" and eng.flag(flag):
+			room.open_object(String(o["id"]), false)
+
+
+## Sky, ambient light and music of a catalog room.
+func _apply_shell_look(shell: Dictionary) -> void:
+	var sky: Array = shell.get("sky", [0.05, 0.06, 0.11])
+	env.background_color = Color(float(sky[0]), float(sky[1]), float(sky[2]))
+	var amb: Array = shell.get("ambient", [0.78, 0.68, 0.6])
+	env.ambient_light_color = Color(float(amb[0]), float(amb[1]), float(amb[2]))
+	env.ambient_light_energy = float(shell.get("ambient_energy", 0.8))
 
 
 ## Replaces the room (and puts the hero in it).
-func _switch_room(glb: String) -> void:
+func _switch_room(glb: String, scene: Dictionary = {}, shell: Dictionary = {}, from_scene: String = "") -> void:
 	if room:
 		room.queue_free()
 		room = null
@@ -354,15 +570,110 @@ func _switch_room(glb: String) -> void:
 	room = Room.new()
 	world.add_child(room)
 	room.build(glb)
+	if not scene.is_empty():
+		room.add_props(scene.get("objects", []), catalog)
+		_apply_shell_look(shell)
 	room.bake_navigation()
 	hero = Actor.new()
 	world.add_child(hero)
 	hero.setup("res://assets/boy.glb")
-	hero.global_position = room.spawn_hero
+	var entry_name := from_scene if room.entries.has(from_scene) else "default"
+	hero.global_position = room.entries.get(entry_name, room.spawn_hero)
 	hero.play("Idle")
 	hero.arrived.connect(func() -> void: marker.visible = false)
+	hero.stepped.connect(func() -> void:
+		if hero.visible and not zoomed:
+			sfx.play("step", -12.0, randf_range(0.85, 1.15)))
+	# wind outside, a fire inside
+	if glb.contains("cold_world") or glb.contains("village") or glb.contains("bridge") or glb.contains("forest"):
+		sfx.ambience("wind", -15.0)
+	elif glb.contains("longhouse"):
+		sfx.ambience("fire", -13.0)
+	else:
+		sfx.ambience("")
 	_apply_room_camera()
 	_make_screen_quads()
+	_spawn_byte_near_hero()
+
+
+## Goes to another room: a fade, the room, where he enters (the way he came), its music and intro line.
+func _change_scene(to: String, from: String, intro: String) -> void:
+	sfx.play("whoosh", -12.0, 1.3)
+	await fxl.black_to(1.0, 0.35)
+	_load_scene_room(to, from)
+	var sc := eng.scene()
+	sfx.music(String(sc.get("music", "adventure")), -4.0)
+	_refresh_bag()
+	await fxl.black_to(0.0, 0.5)
+	if intro != "":
+		var line := _fmt(intro)
+		hud.add_message("intro", line)
+		voice.say(line)
+
+
+## Byte is with him in every room once he has met him.
+func _spawn_byte_near_hero() -> void:
+	if byte != null and is_instance_valid(byte):
+		byte.queue_free()
+	byte = null
+	byte_follow = false
+	if not byte_met or hero == null:
+		return
+	byte = Node3D.new()
+	var bm := (load("res://assets/byte.glb") as PackedScene).instantiate() as Node3D
+	byte.add_child(bm)
+	byte.scale = Vector3(1.2, 1.2, 1.2)
+	world.add_child(byte)
+	byte.global_position = hero.global_position + Vector3(0.8, 1.7, 0.2)
+	byte_follow = true
+
+
+## Byte hops when he helps (a hint, a word).
+func _byte_hop() -> void:
+	if byte == null or not is_instance_valid(byte):
+		return
+	var s := byte.scale
+	var tw := create_tween()
+	tw.tween_property(byte, "scale", s * 1.35, 0.15)
+	tw.tween_property(byte, "scale", s, 0.3).set_trans(Tween.TRANS_BACK)
+
+
+## Writes the save file (not while a cutscene runs or after the episode is finished).
+func _save_progress() -> void:
+	if autoplay or not _can_act() or bool(eng.state["finished"]):
+		return
+	SaveGame.write(episode_id, {
+		"state": eng.state, "player_name": player_name, "byte_met": byte_met,
+		"hero": {"x": hero.global_position.x, "z": hero.global_position.z, "yaw": hero.rotation.y},
+		"messages": hud.get_messages().slice(-14),
+	})
+
+
+## Puts the room back as he left it: things taken or opened, the computer's screen, where he stands.
+func _restore_world(saved: Dictionary) -> void:
+	var h: Dictionary = saved.get("hero", {})
+	if not h.is_empty():
+		hero.global_position = Vector3(float(h.get("x", 0.0)), 0.0, float(h.get("z", 0.0)))
+		hero.rotation.y = float(h.get("yaw", 0.0))
+		hero.face_yaw = hero.rotation.y
+	_sync_objects()
+	if eng.flag("computerOn") and screen_quad != null:
+		screen_quad.visible = true
+		screen_mat.set_shader_parameter("power", 1.0)
+		if eng.flag("diskIn"):
+			term.set_text("THE LAST QUEST" + char(10) + char(10) + "TYPE YOUR NAME:" + char(10))
+		else:
+			term.set_text("THE LAST QUEST  v1.0" + char(10) + "(C) 1987  GRANDPA SOFT" + char(10) + char(10)
+				+ "MEMORY 640K ... OK" + char(10) + char(10) + "INSERT DISK_" + char(10))
+	var msgs: Variant = saved.get("messages")
+	if msgs is Array:
+		hud.set_messages(msgs)
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		_save_progress()
+		store.save_file()
 
 
 func _apply_room_camera() -> void:
@@ -522,6 +833,9 @@ func _unhandled_input(ev: InputEvent) -> void:
 	if not _can_act():
 		return
 	if ev is InputEventKey and ev.pressed:
+		if settings_ui.handle_key(ev) or coach.handle_key(ev):
+			get_viewport().set_input_as_handled()
+			return
 		if wordui.handle_key(ev):
 			get_viewport().set_input_as_handled()
 			return
@@ -539,7 +853,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 		if _click_terminal(_to_sub((ev as InputEventMouseButton).position)):
 			get_viewport().set_input_as_handled()
 			return
-	if busy or eng.state["finished"] or hud.is_story_mode() or wordui.is_open():
+	if busy or eng.state["finished"] or hud.is_story_mode() or wordui.is_open() or settings_ui.is_open() or coach.is_open():
 		return
 	if ev is InputEventMouseMotion:
 		_hover(_to_sub((ev as InputEventMouseMotion).position))
@@ -662,11 +976,15 @@ func _on_hint() -> void:
 	var h := eng.hint()
 	hud.add_message(String(h["kind"]), String(h["text"]))
 	voice.say(String(h["text"]))
+	_byte_hop()
 
 
 func _on_word(w: String, sentence: String) -> void:
 	if wordui != null and wordui.store != null:
+		idle_time = 0.0
 		wordui.show_card(w, sentence)
+		if not autoplay and not settings.tip_seen("wordbook"):
+			wordui.closed.connect(func() -> void: _tip("wordbook", "words"), CONNECT_ONE_SHOT)
 
 
 func _update_word_stats() -> void:
@@ -720,15 +1038,21 @@ func _do(verb: String, obj_id: String, item_id: String) -> void:
 		marker.visible = false
 		if room.picks.has(obj_id):
 			hero.face_point((room.picks[obj_id] as Node3D).global_position)
+		if room.characters.has(obj_id):
+			(room.characters[obj_id] as Actor).face_point(hero.global_position)
 		await get_tree().create_timer(0.25).timeout
 	var flags_before: Dictionary = eng.state["flags"].duplicate()
 	var res := eng.act(verb, obj_id, item_id)
 	sel_verb = ""
 	sel_item = ""
 	hud.select_verb("")
+	idle_time = 0.0
 	await _present(res, flags_before)
 	_update_sentence()
 	busy = false
+	_save_progress()
+	if bool(res["picked_up"]) and not autoplay:
+		await _tip("bag", "bag")
 
 
 func _present(res: Dictionary, flags_before: Dictionary) -> void:
@@ -750,15 +1074,29 @@ func _present(res: Dictionary, flags_before: Dictionary) -> void:
 	_sync_objects()
 	if eng.flag("boxOpen") and not flags_before.has("boxOpen"):
 		_open_box(true)
+	for o in eng.scene().get("objects", []):
+		var flag := String(o.get("opensWith", ""))
+		if flag != "" and eng.flag(flag) and not flags_before.has(flag):
+			if room.open_object(String(o["id"])):
+				sfx.play("open")
 	if String(res["goal"]) != "":
 		_set_goal()
 		if (res["fx"] as Array).is_empty() and not bool(res["finished"]):
 			hud.add_message("goal", String(eng.goals[res["goal"]]["en"]))
 			sfx.play("goal")
+	var ending_lines: Array = (res["ending"] as Array).duplicate()
+	pullin_caption = ""
+	var consumed := false
+	if (res["fx"] as Array).has("pullin") and ending_lines.size() > 0:
+		# "The screen is very bright! The light pulls you into the computer!" is said while it happens
+		pullin_caption = _fmt(String(ending_lines.pop_front()))
+		consumed = true
 	for f in res["fx"]:
 		await _run_fx(String(f))
+	if String(res["scene"]) != "" and not bool(res["finished"]):
+		await _change_scene(String(res["scene"]), String(res.get("from", "")), String(res["intro"]))
 	if bool(res["finished"]):
-		await _ending(res["ending"])
+		await _ending(ending_lines, consumed)
 
 
 # ---------- special effects (the library of cinematic moments an episode can ask for) ----------
@@ -830,6 +1168,8 @@ func _zoom_out() -> void:
 
 
 func _fx_crt() -> void:
+	if screen_quad == null or screen_mat == null:   # this room has no computer screen
+		return
 	screen_quad.visible = true
 	screen_mat.set_shader_parameter("power", 0.0)
 	term.clear()
@@ -839,6 +1179,8 @@ func _fx_crt() -> void:
 
 
 func _fx_boot() -> void:
+	if screen_quad == null or screen_mat == null:   # no computer screen in this room
+		return
 	await _zoom_to_screen()
 	term.clear()
 	await term.type_lines(["THE LAST QUEST  v1.0", "(C) 1987  GRANDPA SOFT", "", "MEMORY 640K ... OK", "", "INSERT DISK_"], 0.04)
@@ -851,7 +1193,9 @@ func _fx_glitch() -> void:
 	sfx.play("glitch")
 	shake = 0.05
 	var tw := create_tween()
-	var setg := func(v: float) -> void: screen_mat.set_shader_parameter("glitch", v)
+	var setg := func(v: float) -> void:
+		if screen_mat != null:   # only rooms with a computer screen (the attic) have one
+			screen_mat.set_shader_parameter("glitch", v)
 	tw.tween_method(setg, 0.0, 1.0, 0.12)
 	tw.tween_interval(0.8)
 	tw.tween_method(setg, 1.0, 0.0, 0.2)
@@ -900,6 +1244,9 @@ func _fx_pullin() -> void:
 	vortex_mat.set_shader_parameter("amount", 0.0)
 	sfx.play("whoosh", -6.0)
 	sfx.play("glitch", -10.0)
+	if pullin_caption != "":
+		fxl.show_caption(pullin_caption)
+		voice.say(pullin_caption)
 	_param_to(vortex_mat, "amount", 0.0, 1.0, 0.8)
 	create_tween().tween_property(vortex_quad, "scale", Vector3(1.0, 1.0, 1.0), 0.8)
 	_param_to(vortex_mat, "spin", 0.0, 14.0, 4.5)
@@ -946,6 +1293,7 @@ func _fx_pullin() -> void:
 	await pull.finished
 	hero.visible = false
 	bits.emitting = false
+	fxl.hide_caption()
 	# everything goes white
 	sfx.play("whoosh", -6.0, 0.7)
 	await fxl.white_to(1.0, 0.35)
@@ -956,9 +1304,14 @@ func _fx_pullin() -> void:
 
 # ---------- the end of the episode ----------
 
-func _ending(lines: Array) -> void:
+func _ending(lines: Array, first_line_shown: bool = false) -> void:
 	sfx.music("")
 	await get_tree().create_timer(0.4).timeout
+	# the prologue falls into the game world (older server data may not say so yet)
+	var default_style := "fall" if String(eng.episode.get("id", "")) == "s1e0" else "lines"
+	if String(eng.episode.get("endingStyle", default_style)) != "fall":
+		await _ending_lines(lines)
+		return
 	await fxl.black_to(1.0, 0.4)
 	await fxl.white_to(0.0, 0.01)
 	var shell := String(eng.episode.get("endingShell", "cold_world"))
@@ -970,29 +1323,45 @@ func _ending(lines: Array) -> void:
 	hud.set_visible_all(true)
 	hud.clear_messages()
 	sfx.music("cold", -2.0)
+	var idx := 0
 
-	# he falls from the sky into the snow
+	# 1. the first line on a black screen
 	var land := room.spawn_hero
-	var from := land + Vector3(0.0, 15.0, 0.0)
+	var from := land + Vector3(0.0, 26.0, 0.0)
 	hero.global_position = from
 	hero.visible = true
-	hero.play("Walk", 0.1, 0.6)
+	hero.play("Walk", 0.1, 0.5)
 	if hero.shadow:
 		hero.shadow.visible = false
 	hero.set_process(false)
-	var first := true
-	if lines.size() > 0:
-		_story_line(_fmt(String(lines[0])))
-	await fxl.black_to(0.0, 1.0)
-	_shot("e01_fall_start")
+	if not first_line_shown and lines.size() > idx:
+		_story_line(_fmt(String(lines[idx])))
+		idx += 1
+		await _story_wait()
+
+	# 2. "You fall and fall and fall..." is shown while he really falls, and the camera follows him down
+	if lines.size() > idx:
+		_story_line(_fmt(String(lines[idx])))
+		idx += 1
+	var streaks := _wind_streaks()
 	sfx.play("fall", -14.0)
+	_shot("e01_fall_start")
+	fxl.black_to(0.0, 0.7)
+	var home := room.cam_target
 	var fall := create_tween()
 	fall.tween_method(func(s: float) -> void:
-		var e := s * s
+		var e := s * (0.7 + 0.3 * s)               # a steady fall, a little faster at the end
 		hero.global_position = from.lerp(land, e)
-		hero.rotation = Vector3(s * 7.0, s * 5.0, s * 3.0) * (1.0 - e), 0.0, 1.0, 2.6)
-	get_tree().create_timer(1.6).timeout.connect(func() -> void: _shot("e02_falling"))
+		hero.rotation = Vector3(s * 6.0, s * 4.0, s * 2.5) * (1.0 - e * e)
+		var ty := maxf(hero.global_position.y + 0.7, home.y)
+		var pos := room.cam_pos + Vector3(0.0, (ty - home.y) * 0.9, 0.0)
+		var look := Vector3(home.x, ty, home.z)
+		cam.global_transform = Transform3D(Basis.looking_at(look - pos, Vector3.UP), pos), 0.0, 1.0, 4.4)
+	get_tree().create_timer(2.2).timeout.connect(func() -> void: _shot("e02_falling"))
 	await fall.finished
+	streaks.queue_free()
+	_apply_room_camera()
+	cam_base_v = -0.3
 	hero.rotation = Vector3.ZERO
 	hero.set_process(true)
 	hero.face_yaw = 0.0
@@ -1004,8 +1373,9 @@ func _ending(lines: Array) -> void:
 	_snow_puff(land)
 	await get_tree().create_timer(0.35).timeout
 	shake = 0.0
+	await _story_wait()
 
-	# Byte flies in
+	# 3. Byte flies in as the next line says "a small arrow with wings looks at you"
 	byte = Node3D.new()
 	var bm := (load("res://assets/byte.glb") as PackedScene).instantiate() as Node3D
 	byte.add_child(bm)
@@ -1014,21 +1384,90 @@ func _ending(lines: Array) -> void:
 	byte.global_position = room.spawn_byte + Vector3(8.0, 3.0, -2.0)
 	var arrive := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	arrive.tween_property(byte, "global_position", room.spawn_byte, 2.2)
+	arrive.tween_callback(func() -> void:
+		byte_met = true
+		byte_follow = true)
 	sfx.play("whoosh", -16.0, 1.6)
+	if lines.size() > idx:
+		_story_line(_fmt(String(lines[idx])))
+		idx += 1
+		hero.face_point(room.spawn_byte)
 
-	for i in range(1, lines.size()):
+	var shot_done := false
+	for i in range(idx, lines.size()):
 		var line := _fmt(String(lines[i]))
 		await _story_wait()
-		if i == 3:
+		if not shot_done:
+			shot_done = true
 			await _shot("e03_byte")
 		_story_line(line)
-		if i == 1:
-			hero.face_point(room.spawn_byte)
 	await _story_wait()
 	await _shot("e04_last_line")
 	await _practice_break()
 	await fxl.title_card("", "To be continued...", 3.5)
 	_finish_episode()
+
+
+## The ending of an ordinary episode: the lines one by one (Continue), then the practice round and the card.
+func _ending_lines(lines: Array) -> void:
+	hud.set_story_mode(true)
+	hud.set_visible_all(true)
+	hud.clear_messages()
+	for i in lines.size():
+		var line := _fmt(String(lines[i]))
+		if line.begins_with("To be continued"):
+			break
+		_story_line(line)
+		await _story_wait()
+	await _practice_break()
+	await fxl.title_card("", "To be continued...", 3.5)
+	_finish_episode()
+
+
+## Thin white streaks rushing upward, in front of the camera, while he falls.
+func _wind_streaks() -> CPUParticles3D:
+	var p := CPUParticles3D.new()
+	p.amount = 70
+	p.lifetime = 0.7
+	p.preprocess = 0.7
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+	p.emission_box_extents = Vector3(5.0, 0.5, 2.5)
+	p.direction = Vector3.UP
+	p.spread = 3.0
+	p.initial_velocity_min = 22.0
+	p.initial_velocity_max = 34.0
+	p.gravity = Vector3.ZERO
+	var q := QuadMesh.new()
+	q.size = Vector2(0.03, 1.1)
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.albedo_color = Color(0.85, 0.92, 1.0, 0.55)
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	q.material = m
+	p.mesh = q
+	cam.add_child(p)
+	p.position = Vector3(0.0, -5.0, -6.0)
+	p.emitting = true
+	return p
+
+
+## "Previously": what happened before, a few simple lines, each read aloud (Continue to go on).
+func _recap() -> void:
+	var lines: Array = eng.episode.get("previously", [])
+	if lines.is_empty():
+		return
+	hud.set_story_mode(true)
+	hud.set_visible_all(true)
+	hud.clear_messages()
+	hud.add_message("goal", String(base_data.get("ui", {}).get("previously", "Previously...")))
+	for l in lines:
+		var line := _fmt(String(l))
+		_story_line(line)
+		await _story_wait()
+	hud.set_story_mode(false)
+	hud.clear_messages()
+	hud.set_visible_all(false)
 
 
 ## Before the episode ends Byte asks for a quick practice round of the words he met (if he met enough).
@@ -1097,24 +1536,118 @@ func _finish_episode() -> void:
 	hud.add_message("say", "Level complete!  Score: %d of %d" % [eng.score(), eng.max_score()])
 	sfx.play("fanfare", -8.0)
 	hud.show_continue(false)
-	if server != "" and (report_done or "--report" in args) and not autoplay:
-		var http := HTTPRequest.new()
-		add_child(http)
-		http.request(server + "/api/episode-done", ["Content-Type: application/json"], HTTPClient.METHOD_POST,
-			JSON.stringify({"episode": episode_id}))
-		print("REPORTED to the server: episode done")
+	settings.seen["byte_met"] = true
+	settings.save_file()
+	SaveGame.delete(episode_id)
 	print("EPISODE DONE ", episode_id, " score ", eng.score(), "/", eng.max_score(), "  voices from the server: ",
 		voice.stats["server"], ", from the computer: ", voice.stats["fallback"])
+	var flow_test := "--flow-test" in args
+	var reports := api.enabled() and (report_done or "--report" in args or flow_test) and (not autoplay or flow_test)
+	if reports:
+		await _end_of_day(flow_test)
+	elif api.enabled() and not autoplay:
+		hud.add_message("say", "(This PC does not report to the server, so Discord is not changed.)")
 	if autoplay:
-		await get_tree().create_timer(2.0).timeout
+		await get_tree().create_timer(1.5).timeout
 		get_tree().quit()
+
+
+## Tells the server the episode is done, sends what he learned, then runs the word challenge: passing it
+## opens Discord. This is the point of the whole game.
+func _end_of_day(robot: bool) -> void:
+	if draft_mode:
+		# a draft waiting for approval: nothing is reported, there is no challenge
+		hud.set_visible_all(true)
+		print("DRAFT finished (not reported)")
+		return
+	await api.post_json("/api/episode-done", {"episode": episode_id})
+	print("REPORTED to the server: episode done")
+	await _sync_words()
+	hud.set_visible_all(false)
+	mission.robot = robot
+	var passed := await mission.run()
+	print("CHALLENGE ", "PASSED" if passed else "not passed")
+	await _sync_words()
+	hud.set_visible_all(true)
+
+
+var _sync_queued := false
+
+
+## Sends progress a few seconds after the last change (not after every click).
+func _queue_sync() -> void:
+	if _sync_queued or not api.enabled() or autoplay:
+		return
+	_sync_queued = true
+	await get_tree().create_timer(6.0).timeout
+	_sync_queued = false
+	await _sync_words()
+
+
+## Sends the words he knows to the server (so the challenge and new episodes use them) and takes back what it
+## knows (another PC). Only a PC that reports changes the server.
+func _sync_words() -> void:
+	if not api.enabled():
+		return
+	var reports := report_done or "--report" in args or "--flow-test" in args
+	if reports:
+		await api.post_json("/api/progress", {"words": store.words})
+	var r := await api.get_json("/api/progress")
+	if bool(r["ok"]):
+		var theirs: Dictionary = (r["data"] as Dictionary).get("words", {})
+		store.merge_from(theirs)
+		_update_word_stats()
+		hud.refresh_text()
 
 
 # ---------- frame update ----------
 
-func _process(_delta: float) -> void:
+## After a while with no action, Byte offers a hint (a tip the first time, then a real hint).
+func _idle_check(delta: float) -> void:
+	if autoplay or not _can_act() or busy or hud.is_story_mode() or eng.state["finished"]:
+		return
+	if wordui.is_open() or settings_ui.is_open() or coach.is_open() or zoomed:
+		return
+	idle_time += delta
+	if idle_time < 90.0:
+		return
+	idle_time = 0.0
+	if not settings.tip_seen("hint"):
+		_tip("hint", "hint")
+	else:
+		var h := eng.hint()
+		hud.add_message(String(h["kind"]), String(h["text"]))
+		voice.say('Byte: "%s"' % String(h["text"]) if byte_met and String(h["kind"]) == "hint" else String(h["text"]))
+
+
+## Lights the word that is being spoken (from the voice's word times; estimated for the computer's voice).
+func _update_spoken_word() -> void:
+	if _spoken_text == "" or hud == null:
+		return
+	var t := voice.elapsed()
+	var spoken := voice.parse(_spoken_text)
+	var say := String(spoken["say"])
+	var re := RegEx.new()
+	re.compile("[A-Za-z]+(?:'[A-Za-z]+)?")
+	var count := re.search_all(say).size()
+	if count == 0:
+		return
+	var idx := -1
+	if _spoken_words.size() == count:
+		for i in count:
+			if t >= float(_spoken_words[i][0]) - 0.02:
+				idx = i
+	else:
+		var total := float(_spoken_words[_spoken_words.size() - 1][1]) if _spoken_words.size() > 0 else count * 0.36
+		idx = clampi(int(t / maxf(total, 0.1) * count), 0, count - 1)
+	hud.set_spoken(_spoken_text, idx)
+
+
+func _process(delta: float) -> void:
 	if cam == null:
 		return
+	_idle_check(delta)
+	_update_spoken_word()
 	var s := shake
 	cam.h_offset = randf_range(-s, s) if s > 0.0 else 0.0
 	cam.v_offset = cam_base_v + (randf_range(-s, s) if s > 0.0 else 0.0)
@@ -1130,6 +1663,10 @@ func _process(_delta: float) -> void:
 			(r as Node3D).rotation.z = -flap
 		bm.position.y = sin(t * 2.4) * 0.07
 		byte.rotation.y = sin(t * 1.3) * 0.25      # faces the camera, sways a little
+		if byte_follow and hero != null and is_instance_valid(hero) and not zoomed:
+			var side := 0.85 if hero.global_position.x < 1.2 else -0.85
+			var want := hero.global_position + Vector3(side, 1.7 + sin(t * 1.7) * 0.08, 0.15)
+			byte.global_position = byte.global_position.lerp(want, clampf(delta * 2.2, 0.0, 1.0))
 
 
 # ---------- the robot player (for the demo video) ----------
@@ -1150,7 +1687,23 @@ func _wait_idle() -> void:
 		await get_tree().create_timer(0.1).timeout
 
 
+## The robot for any episode: plays the solver's way through, action by action, through the real game.
+func _autoplay_solution() -> void:
+	await get_tree().create_timer(1.5).timeout
+	await _shot("s00_start")
+	var n := 1
+	for a in eng.episode["solution"]:
+		_do(String(a["verb"]), String(a["obj"]), String(a["item"]))
+		await _wait_idle()
+		await get_tree().create_timer(0.7).timeout
+		await _shot("s%02d_%s_%s" % [n, a["verb"], a["obj"]])
+		n += 1
+
+
 func _autoplay() -> void:
+	if eng.episode.has("solution") and String(eng.episode.get("id", "")) != "s1e0":
+		await _autoplay_solution()
+		return
 	await get_tree().create_timer(1.2).timeout
 	await _shot("p01_start")
 	var steps := [

@@ -6,6 +6,11 @@
 (window.EPISODES = window.EPISODES || {}).s1e1 = {
   id: "s1e1",
   title: "The Cold Village",
+  // What happened before, in a few simple lines (the Godot game says them at the start).
+  previously: [
+    "You were in Grandpa's attic. The old computer pulled you into a game.",
+    "Byte is your friend. To go home, you must win the game.",
+  ],
   summary: "The hero arrives in a cold Viking village. He finds a key under a rock and enters his house. " +
     "Grandmother says his father is in the forest and needs help. He takes a sword and bread, feeds the " +
     "hungry wolf on the bridge, and goes into the forest, where he hears his father's voice.",
@@ -43,7 +48,7 @@
     {
       id: "outside",
       name: "Outside the house",
-      intro: "You are outside your house. It is winter. It is very cold.",
+      intro: 'Byte: "This is the Cold Village. In this game, you have a house here. Go to your house!"',
       introAgain: "You are outside your house.",
       art: "village",
       fallbackArt: "ega:outside",

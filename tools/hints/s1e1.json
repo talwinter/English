@@ -1,0 +1,96 @@
+{
+  "outside": {
+    "shell": "village_yard",
+    "objects": {
+      "house": {
+        "prop": "house_viking",
+        "where": "back_left",
+        "against": "back"
+      },
+      "window": {
+        "of": "house",
+        "part": "window"
+      },
+      "door": {
+        "of": "house",
+        "part": "door",
+        "opensWith": "doorOpen"
+      },
+      "rock": {
+        "prop": "rock_big",
+        "where": "front_left"
+      },
+      "key": {
+        "prop": "item_key",
+        "where": "front_left",
+        "near": "rock"
+      },
+      "tree": {
+        "prop": "pine_tree",
+        "where": "middle_right"
+      },
+      "forest": {
+        "prop": "forest_edge",
+        "where": "right_edge"
+      }
+    }
+  },
+  "inside": {
+    "shell": "longhouse_interior",
+    "objects": {
+      "fire": {
+        "prop": "fire_pit",
+        "where": "middle_left"
+      },
+      "table": {
+        "prop": "table_long",
+        "where": "center"
+      },
+      "bread": {
+        "prop": "item_bread",
+        "on": "table"
+      },
+      "chest": {
+        "prop": "chest_wood",
+        "where": "back_right",
+        "against": "back",
+        "opensWith": "chestOpen"
+      },
+      "sword": {
+        "prop": "item_sword",
+        "inside": "chest"
+      },
+      "door": {
+        "prop": "door_wall",
+        "against": "right"
+      },
+      "grandmother": {
+        "prop": "grandmother",
+        "where": "middle_left",
+        "near": "fire"
+      }
+    }
+  },
+  "bridge": {
+    "shell": "river_bridge",
+    "objects": {
+      "forest": {
+        "prop": "@forest"
+      },
+      "river": {
+        "prop": "@river"
+      },
+      "bridge": {
+        "prop": "@bridge"
+      },
+      "wolf": {
+        "prop": "wolf",
+        "slot": "bridge_middle"
+      },
+      "village": {
+        "prop": "signpost",
+        "where": "front_left"
+      }
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+ "id": "bear",
+ "name": "bear",
+ "kind": "character",
+ "glb": "props/bear.glb",
+ "desc": "a big brown bear on four legs; friendly but hungry",
+ "words": [
+  "bear"
+ ],
+ "footprint": [
+  0.975,
+  2.181
+ ],
+ "height": 1.2,
+ "center_offset": [
+  0.0,
+  -0.217
+ ],
+ "place": [
+  "floor",
+  "slot"
+ ],
+ "stand": 1.4,
+ "surface": false,
+ "container": false,
+ "anims": {
+  "clips": [
+   "Idle"
+  ]
+ }
+}

@@ -223,6 +223,78 @@ mystery = build_music(
     [69, 72, 76, 79, 81, 76, 72, 67], 0.16)
 save("mystery", mystery, 0.55)
 
+# adventure: a bright, steady pulse over a major pad (the village by day, setting out)
+def pulse_track(chords, seg, notes, step, vol, kind="tri", decay=0.18):
+    total = n(seg * len(chords))
+    track = [0.0] * total
+    t = 0.0
+    i = 0
+    while t < seg * len(chords) - step:
+        base = chords[int(t // seg) % len(chords)]
+        m = base[notes[i % len(notes)] % len(base)] + (12 if (i // len(notes)) % 2 else 0)
+        note = tone(mtof(m + 12), step * 1.5, kind, vol, attack=0.004, release=0.05, decay=decay)
+        start = n(t)
+        for j, v in enumerate(note):
+            if start + j < total:
+                track[start + j] += v
+        t += step
+        i += 1
+    return track
+
+
+adv_chords = [[60, 64, 67], [57, 60, 64], [53, 57, 60], [55, 59, 62]]
+adv = mix(pulse_track(adv_chords, 4.0, [0, 1, 2, 1], 0.25, 0.22),
+          build_music([[c - 12 for c in ch] + [ch[0]] for ch in adv_chords], 4.0, [72, 74, 76, 79], 0.1))
+save("adventure", adv, 0.5)
+
+# cozy: warm, slow, a gentle tune over soft chords (inside by the fire)
+cozy_chords = [[53, 57, 60, 65], [55, 59, 62, 67], [57, 60, 64, 69], [50, 57, 62, 65]]
+cozy = build_music(cozy_chords, 8.0, [65, 67, 69, 72, 69, 65, 62], 0.2)
+save("cozy", cozy, 0.5)
+
+# danger: a low drone, a heartbeat, a few sharp high notes
+dseg = 8.0
+danger = build_music([[36, 43], [34, 41], [36, 43], [33, 40]], dseg, [76, 77, 83], 0.1)
+beat = [0.0] * n(dseg * 4)
+tt = 0.0
+while tt < dseg * 4 - 1:
+    for off, v in ((0.0, 0.55), (0.18, 0.4)):
+        thump = env_exp(tone(58, 0.35, "sine", v, freq_end=42), 0.1)
+        st = n(tt + off)
+        for j, x in enumerate(thump):
+            if st + j < len(beat):
+                beat[st + j] += x
+    tt += 0.9
+save("danger", mix(danger, beat), 0.55)
+
+# glitch: a broken, buzzing bed with random bleeps (the Glitch is near)
+gl = [0.0] * n(16.0)
+tt = 0.0
+while tt < 15.5:
+    b = tone(rng.choice((220, 330, 440, 660, 880, 1320)), rng.uniform(0.04, 0.12), "square", rng.uniform(0.05, 0.14), release=0.02)
+    st = n(tt)
+    for j, x in enumerate(b):
+        gl[st + j] += x
+    tt += rng.choice((0.2, 0.35, 0.5, 0.9))
+hum = tone(55, 16.0, "saw", 0.07, attack=2.0, release=2.0)
+glitchbed = mix(gl, hum, lowpass(noise(16.0, 0.12), 1500))
+save("glitch_music", glitchbed, 0.5)
+
+# ambience: wind and a fire that crackles (quiet loops under the music)
+w = lowpass(noise(20.0, 0.6), 700)
+w = [v * (0.45 + 0.55 * math.sin(2 * math.pi * i / len(w) * 4) ** 2) * 0.5 for i, v in enumerate(w)]
+save("wind", w, 0.35)
+crackle = lowpass(noise(12.0, 0.25), 400)
+for _ in range(90):
+    st = rng.randrange(0, n(11.5))
+    snap = env_exp(highpass(noise(0.04, 0.9), 900), 0.008)
+    for j, x in enumerate(snap):
+        crackle[st + j] += x * rng.uniform(0.3, 1.0)
+save("fire", crackle, 0.35)
+
+# one footstep (soft, on boards or snow; the game varies the pitch)
+save("step", mix(env_exp(lowpass(noise(0.12, 0.8), 500), 0.035), env_exp(tone(110, 0.1, "sine", 0.5, freq_end=70), 0.04)), 0.5)
+
 # cold world: glassy bells over a wide, quiet chord, with wind
 cold_music = build_music([[50, 57, 62, 69], [46, 53, 58, 65], [48, 55, 60, 67]], 8.0,
                          [74, 77, 81, 79, 86, 84, 77], 0.14, bell=True)

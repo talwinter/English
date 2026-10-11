@@ -146,7 +146,7 @@ func find_rule(verb: String, obj_id: String, item_id: String) -> Dictionary:
 		var objs := _list(r.get("obj"))
 		if objs.size() > 0 and not objs.has(obj_id):
 			continue
-		var want_item := String(r.get("item", ""))
+		var want_item := "" if r.get("item") == null else String(r.get("item"))
 		if want_item != "":
 			if want_item != item_id:
 				continue
@@ -215,10 +215,10 @@ func act(verb: String, obj_id: String, item_id: String = "") -> Dictionary:
 						(state["bag"] as Array).append(i)
 				for i in _list(d.get("remove")):
 					state["bag"] = (state["bag"] as Array).filter(func(x): return x != i)
-				if d.get("goal", "") != "" and state["goal"] != d["goal"]:
+				if d.get("goal") != null and d.get("goal", "") != "" and state["goal"] != d["goal"]:
 					state["goal"] = d["goal"]
 					new_goal = d["goal"]
-				if d.get("go", "") != "":
+				if d.get("go") != null and d.get("go", "") != "":
 					new_scene = d["go"]
 				if d.get("finish", false):
 					finish = true

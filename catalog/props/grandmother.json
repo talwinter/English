@@ -1,0 +1,32 @@
+{
+ "id": "grandmother",
+ "name": "Grandmother",
+ "kind": "character",
+ "glb": "props/grandmother.glb",
+ "desc": "the hero's grandmother: an old, kind woman in a long purple dress with white hair in a bun",
+ "words": [
+  "grandmother",
+  "grandma",
+  "woman"
+ ],
+ "footprint": [
+  0.68,
+  0.52
+ ],
+ "height": 1.66,
+ "center_offset": [
+  0.0,
+  0.0
+ ],
+ "place": [
+  "floor"
+ ],
+ "stand": 0.9,
+ "surface": false,
+ "container": false,
+ "anims": {
+  "clips": [
+   "Idle"
+  ]
+ }
+}

@@ -1,0 +1,20 @@
+{
+  "forest": {
+    "shell": "forest_glade",
+    "objects": {
+      "tree": { "prop": "fallen_tree", "where": "center" },
+      "father": { "prop": "father_trapped", "near": "tree" },
+      "bush": { "prop": "berry_bush", "where": "front_right" },
+      "cave": { "prop": "cave_mouth", "where": "right_edge" },
+      "bear": { "prop": "bear", "where": "middle_right" }
+    }
+  },
+  "cave": {
+    "shell": "cave_interior",
+    "objects": {
+      "bear": { "prop": "bear", "where": "center" },
+      "rope": { "prop": "item_rope", "near": "bear" },
+      "exit": { "prop": "cave_mouth", "where": "left_edge" }
+    }
+  }
+}

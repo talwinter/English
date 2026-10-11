@@ -8,6 +8,10 @@
     "gives them to a hungry bear in a cave, and takes the rope the bear was sleeping on. He ties the rope " +
     "to the tree and the bear pulls it. His father is free. Then the sky turns black: the Glitch appears " +
     "and says the game is his.",
+  previously: [
+    "You gave bread to the wolf. Then you went into the forest.",
+    "You heard a voice. It was your father!",
+  ],
   start: { scene: "forest", goal: "father" },
 
   items: [
@@ -123,6 +127,10 @@
   ],
 
   dictionary: [
+    { en: "gave", he: "נתת (עבר של give)" },
+    { en: "went", he: "הלכת (עבר של go)" },
+    { en: "heard", he: "שמעת (עבר של hear)" },
+    { en: "was", he: "היה / הייתה (עבר של is)" },
     { en: "berries", he: "פירות יער" },
     { en: "berry", he: "פרי יער" },
     { en: "they", he: "הם / הן" },

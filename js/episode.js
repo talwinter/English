@@ -115,6 +115,7 @@
     });
     list(ep.globalRules).forEach((r) => push(r.say));
     list(ep.ending).forEach(push);
+    list(ep.previously).forEach(push);
     return out;
   }
 

@@ -1,0 +1,61 @@
+{
+ "id": "forest_glade",
+ "name": "dark forest glade",
+ "kind": "outdoor",
+ "glb": "shells/forest_glade.glb",
+ "desc": "a snowy clearing in a thick dark pine forest, in dim cold light; space for a big fallen tree; the way out is at the left or right edge",
+ "floor": [
+  -5.0,
+  -1.8,
+  5.0,
+  3.2
+ ],
+ "spawn": [
+  -3.6,
+  -1.0
+ ],
+ "walls": {
+  "back": 3.2
+ },
+ "blocked": [],
+ "slots": {
+  "left_edge": [
+   -4.2,
+   0.4
+  ],
+  "right_edge": [
+   4.2,
+   0.4
+  ],
+  "center": [
+   0.0,
+   1.0
+  ]
+ },
+ "fixed": [],
+ "camera": {
+  "pos": [
+   0.0,
+   -8.6,
+   3.9
+  ],
+  "target": [
+   0.0,
+   0.8,
+   1.1
+  ],
+  "fov": 50.0
+ },
+ "sky": [
+  0.28,
+  0.34,
+  0.45
+ ],
+ "ambient": [
+  0.62,
+  0.7,
+  0.86
+ ],
+ "ambient_energy": 1.0,
+ "light": "sun"
+}

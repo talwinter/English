@@ -40,7 +40,9 @@ Every episode ends on a cliffhanger, then the daily Word Challenge.
 
 0. **Insert Disk** (prologue, real world). The attic, the old computer, a dusty floppy disk. He types his name
    and gets pulled in. BYTE appears. *Words: computer, box, old, light, game, name, type, press.*
-1. **The Cold Village** (built). A key under a rock, Grandmother, the sword and the bread, the hungry wolf.
+1. **The Cold Village** (built). Byte brings him to a village in the game: the game gave the hero a house, a
+   grandmother and a father here (they are game characters, and they know him as their own). A key under a rock,
+   Grandmother, the sword and the bread, the hungry wolf.
    *Cliffhanger: a voice in the forest: "It is your father!"*
 2. **Into the Forest.** His game-father is trapped under a fallen tree. He needs rope and help from a bear.
    *Cliffhanger: the Glitch deletes the path behind them.*
@@ -50,6 +52,14 @@ Every episode ends on a cliffhanger, then the daily Word Challenge.
 5. **The Ice Cave.** It's dark: make a torch. Old runes turn out to be English signs.
 6. **The Giant.** Boss battle: a word duel against the ice giant, with a timer. The fast part he'll love.
 7. **Save Disk 1.** He wins the disk, the Glitch attacks, and a portal opens to the Castle world. *Season finale.*
+
+## Continuity (every episode must follow from the one before)
+
+- Start exactly where the last cliffhanger stopped. Byte is with the hero: he explains new things, never a stranger.
+- Give every episode a `previously` of 2 to 4 very simple lines that say what happened before (the game says them
+  at the start, with the voice).
+- Never contradict an earlier episode: the real world is only the attic; everything else is inside the game.
+- The game characters (Grandmother, the father) know the hero as their own; the hero knows he is in a game.
 
 ## How every episode is built (keep it fast)
 

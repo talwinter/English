@@ -164,7 +164,29 @@ Status: done and working in `godot/`. Grandpa's attic and the hero are modeled i
   State is in `user://words.json` (not yet synced to the server's challenge).
 - The HUD (`hud.gd`) and the bag (five fixed slots, pictures rendered from the real 3D models by
   `item_icons.gd`) must look the same in every episode and mode.
-- Not done yet: the daily challenge UI in Godot (server `/api/challenge/*`), syncing word progress to the server, `.pck` content updates, typed-command voice
+- **Round 3 (all in `godot/scripts/`, tested):** `settings.gd` + `settings_ui.gd` (volumes, text size, full
+  screen, quality, "Something wrong?" report box), `coach.gd` (first-time tips with a gold frame, from
+  `base.ui.tips`), `save_game.gd` (resume exactly, saved after every action), `server_api.gd` + `mission_ui.gd`
+  (episode done, progress sync, the daily challenge, "Discord is open!"), Byte follows him in every room,
+  idle hints, word-by-word highlight while a line is spoken, more music and ambience (`make_sounds.py`).
+- **Rooms from the catalog (episode 1 plays in 3D):** `catalog/` (props, shells, `overrides.json` for hand
+  tuning, built by `node tools/build-catalog.js`), `server/layout.js` (places props: no overlaps, stand points,
+  reachability; plain Node, runs on the server), `server/episode3d.js`, `tools/hints/<id>.json` (3D hints for
+  old 2D episodes), `Room.add_props()` in Godot, scene changes with entries, opening doors and lids,
+  characters with Idle (grandmother, wolf), `previously` recap, `endingStyle` ("fall" or "lines").
+  Robot for any episode: `-- --episode=s1e1 --autoplay --shots --no-server` (plays the solver's solution).
+- **Config:** `godot/config.json` {"server": "...", "report": true} (git-ignored). `report` makes this PC tell the
+  server (episode done, name, progress); tests and robots never do. Test runs use `user://test_*.json`.
+- **Server additions:** `/api/profile` (name), `/api/progress` (word knowledge, weak words go to the challenge and
+  to the writer's prompt), `/api/report` (problem reports, listed on the parent page), one new episode per day.
+- **Round 4:** episode 2 in 3D (catalog batch 2 in `godot/blender/batch2.py`: forest glade, cave, bear, father,
+  fallen tree, berry bush, cave mouth, berries; hints in `tools/hints/s1e2.json`); the server serves built-in
+  episodes laid out in 3D (`withRooms3d` in `server/content.js`); `tools/build-episode.js` runs the writer
+  pipeline with a self-refreshing progress page (`--replay <file>` needs no OpenAI key); wishes list on the
+  parent page; `tools/make-package.ps1` makes `dist/EnglishQuest.zip` for the son's PC; `docs/DEPLOY.md` is the
+  go-live checklist.
+- Not done yet: the live OpenAI run of the 3D episode builder with its progress page (writer schema for props,
+  `wishes`, continuity check), syncing word progress to the server, `.pck` content updates, typed-command voice
   lines, more scenes/props (the catalog), the layout builder and reachability check on the server.
 
 Original checklist, kept for reference:

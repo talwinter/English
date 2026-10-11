@@ -1,0 +1,32 @@
+{
+ "id": "father",
+ "name": "your father",
+ "kind": "character",
+ "glb": "props/father.glb",
+ "desc": "the hero's game-father: a strong man with a brown beard and a brown tunic, standing",
+ "words": [
+  "father",
+  "dad",
+  "man"
+ ],
+ "footprint": [
+  0.665,
+  0.38
+ ],
+ "height": 1.78,
+ "center_offset": [
+  0.0,
+  -0.01
+ ],
+ "place": [
+  "floor"
+ ],
+ "stand": 0.9,
+ "surface": false,
+ "container": false,
+ "anims": {
+  "clips": [
+   "Idle"
+  ]
+ }
+}

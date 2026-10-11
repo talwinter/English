@@ -182,3 +182,11 @@ def finish_shell(sid, name, kind, desc, floor, spawn, walls=None, blocked=None, 
     with open(os.path.join(CATALOG, "shells", f"{sid}.json"), "w", encoding="utf-8") as f:
         json.dump(entry, f, indent=1, ensure_ascii=False)
     return entry
+
+
+def pine(p, prefix, x, y, s):
+    """A snowy pine tree (trunk, three cones with snow), centred at (x, y)."""
+    cylinder(f"{prefix}_trunk", (x, y, 0.3 * s), 0.1 * s, 0.6 * s, 6, 'Z', p["wood_dark"])
+    for k, (r, h, z) in enumerate(((0.85, 1.0, 0.55), (0.65, 0.9, 1.15), (0.45, 0.8, 1.7))):
+        cone(f"{prefix}_pine{k}", r * s, z * s, (z + h) * s, p["pine"] if k % 2 == 0 else p["pine_dark"], center=(x, y))
+        cone(f"{prefix}_snow{k}", r * 0.5 * s, (z + h * 0.55) * s, (z + h) * s + 0.01, p["snow"], center=(x, y))

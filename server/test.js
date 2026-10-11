@@ -54,6 +54,129 @@ test("parent lock wins", () => {
   assert.equal(shouldLock(at("2026-10-11T12:00:00Z"), cfg, done("2026-10-11"), true).locked, true);
 });
 
+// ---------- layout builder (rooms from the catalog)
+const { layoutScene } = require("./layout");
+const fakeCatalog = {
+  props: {
+    table: { footprint: [2, 0.9], height: 0.8, surface: true, surface_height: 0.8, stand: 0.6, place: ["floor"] },
+    chest: { footprint: [1, 0.7], height: 0.6, container: true, inside_height: 0.4, stand: 0.6, place: ["floor"] },
+    rock: { footprint: [1.5, 1.1], height: 0.8, stand: 0.6, place: ["floor"] },
+    key: { footprint: [0.3, 0.1], height: 0.05, stand: 0.5, place: ["floor", "surface"] },
+    house: { footprint: [4, 2.5], height: 3, stand: 0.8, place: ["floor"], parts: { door: { center: [0, -1.3], size: [1, 0.4, 1.7] } } },
+  },
+};
+const room = { id: "room", floor: [-4, -2, 4, 3], spawn: [0, -1.4], walls: { back: 3 }, blocked: [], slots: {}, fixed: [] };
+
+test("layout: nothing overlaps, everything has a place to stand that can be reached", () => {
+  const r = layoutScene(room, [
+    { id: "house", prop: "house", where: "back_left", against: "back" },
+    { id: "door", of: "house", part: "door" },
+    { id: "table", prop: "table", where: "center" },
+    { id: "key", prop: "key", on: "table" },
+    { id: "rock", prop: "rock", where: "front_right" },
+  ], fakeCatalog);
+  assert.deepEqual(r.errors, []);
+  const rects = r.map.rects.filter((x) => !x.id.includes(":"));
+  for (let i = 0; i < rects.length; i++) for (let j = i + 1; j < rects.length; j++) {
+    const a = rects[i].rect, b = rects[j].rect;
+    assert.ok(a[2] <= b[0] || b[2] <= a[0] || a[3] <= b[1] || b[3] <= a[1], `${rects[i].id} overlaps ${rects[j].id}`);
+  }
+  for (const id of ["house", "door", "table", "key", "rock"]) assert.ok(r.objects[id].stand, `${id} has a place to stand`);
+  assert.equal(r.objects.key.parent, "table");
+  assert.ok(r.objects.key.z >= 0.8, "the key lies on the table top");
+  assert.ok(r.objects.house.y > r.objects.table.y, "the house stands against the back wall");
+});
+
+test("layout: too many big things is reported in words, for the repair loop", () => {
+  const many = Array.from({ length: 6 }, (_, i) => ({ id: `h${i}`, prop: "house", where: "center" }));
+  const r = layoutScene(room, many, fakeCatalog);
+  assert.ok(r.errors.some((e) => /no room for it/.test(e)), r.errors.join("; "));
+});
+
+test("layout: a thing behind a closed-off part of the room is found unreachable", () => {
+  const split = { ...room, blocked: [[-4, 0.3, 4, 0.6]] };    // a river across the whole room
+  const r = layoutScene(split, [{ id: "chest", prop: "chest", where: "back_center", against: "back" }], fakeCatalog);
+  assert.ok(r.errors.some((e) => /can not be reached/.test(e)), r.errors.join("; "));
+});
+
+test("layout: unknown prop and unknown part are reported", () => {
+  const r = layoutScene(room, [{ id: "x", prop: "unicorn", where: "center" }], fakeCatalog);
+  assert.ok(r.errors.some((e) => /no prop "unicorn"/.test(e)));
+});
+
+// ---------- the 3D writer: rooms and props from the catalog, layout problems go back to the writer
+test("writer 3d: a layout problem is repaired, wishes are kept, the episode gets positions", async () => {
+  const http = require("http");
+  const example = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "catalog", "example-episode.json"), "utf8"));
+  const good = JSON.parse(JSON.stringify(example));
+  good.id = "s1e3";
+  good.wishes = [{ kind: "cutscene", text: "the wolf howls at the moon" }];
+  good.dictionary = [{ en: "wolf", he: "זאב" }];
+  const bad = JSON.parse(JSON.stringify(good));
+  // too many big things in one small room
+  const outside = bad.scenes[0];
+  for (let i = 0; i < 6; i++) outside.objects.push({ id: `h${i}`, name: "the house", words: ["house"], look: "A house.", prop: "house_viking", where: "center", visible: {} });
+  let calls = 0;
+  const seenSchemas = [];
+  const fake = http.createServer((req, res) => {
+    let body = "";
+    req.on("data", (c) => { body += c; });
+    req.on("end", () => {
+      const q = JSON.parse(body);
+      if (q.response_format.json_schema.name === "translations") {   // the small "missing words" question: nothing to add
+        res.writeHead(200, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ words: [] }) } }], usage: { total_tokens: 1 } }));
+      }
+      calls++;
+      seenSchemas.push(q.response_format.json_schema.schema.properties.scenes.items.properties.shell ? "3d" : "2d");
+      assert.match(q.messages[1].content, /CANON/);
+      assert.match(q.messages[1].content, /THE SERIES has 49 episodes/);
+      assert.match(q.messages[0].content, /ROOMS AND THINGS/);
+      const answer = calls === 1 ? bad : good;
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ choices: [{ message: { content: JSON.stringify(answer) } }], usage: { total_tokens: 500 } }));
+    });
+  });
+  await new Promise((r) => fake.listen(0, r));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "eq-writer3d-"));
+  const port = 19000 + Math.floor(Math.random() * 1000);
+  const proc = spawn(process.execPath, [path.join(__dirname, "server.js")], {
+    env: { ...process.env, PORT: String(port), DATA_DIR: dir, ADMIN_PASSWORD: "pw", ROUTER_MODE: "mock",
+      OPENAI_API_KEY: "test", OPENAI_BASE_URL: `http://localhost:${fake.address().port}/v1`, AUTO_WRITE: "false" },
+    stdio: "ignore",
+  });
+  const base = `http://localhost:${port}`;
+  const auth = { Authorization: "Basic " + Buffer.from("x:pw").toString("base64"), "Content-Type": "application/json" };
+  const admin = async (p, b) => (await fetch(base + p, b ? { method: "POST", headers: auth, body: JSON.stringify(b) } : { headers: auth })).json();
+  try {
+    for (let i = 0; i < 50; i++) {
+      try { await fetch(base + "/api/status"); break; } catch { await new Promise((r) => setTimeout(r, 100)); }
+    }
+    await admin("/admin/api/episodes/write", {});
+    let w;
+    for (let i = 0; i < 80; i++) {
+      w = (await admin("/admin/api/episodes")).writer;
+      if (w.drafts[0] && w.drafts[0].status !== "writing") break;
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    const d = w.drafts[0];
+    assert.equal(d.status, "ready", JSON.stringify(d.errors));
+    assert.equal(calls, 2, "the first answer had no room for six houses, so it asks again");
+    assert.deepEqual(seenSchemas, ["3d", "3d"]);
+    assert.ok(d.stages.some((s) => s.what === "repair"));
+    assert.equal(d.wishes[0].kind, "cutscene");
+    const draft = (await admin("/admin/api/draft/s1e3")).episode;
+    const house = draft.scenes[0].objects.find((o) => o.id === "house");
+    assert.ok(house.at && typeof house.at.x === "number", "the layout put the house somewhere");
+    assert.equal(draft.format, "3d");
+    const wishes = JSON.parse(fs.readFileSync(path.join(dir, "wishes.json"), "utf8"));
+    assert.equal(wishes.length, 1);
+  } finally {
+    proc.kill();
+    fake.close();
+  }
+});
+
 // ---------- challenge
 test("challenge: 8 questions, server keeps the answers, 6 right pass", () => {
   const { DICT, episodes } = loadContent();
@@ -214,7 +337,9 @@ test("writer: writes, fixes problems, waits for approval, places things in pictu
       const q = JSON.parse(body);
       const name = q.response_format.json_schema.name;
       let answer;
-      if (name === "episode") {
+      if (name === "translations") {
+        answer = { words: [] };
+      } else if (name === "episode") {
         episodeCalls++;
         assert.match(q.messages[1].content, /STORY SO FAR:[\s\S]*Into the Forest/);
         answer = make(episodeCalls > 1);
@@ -233,7 +358,7 @@ test("writer: writes, fixes problems, waits for approval, places things in pictu
     env: {
       ...process.env, PORT: String(port), DATA_DIR: dir, ADMIN_PASSWORD: "pw", WORKER_TOKEN: "tok", ROUTER_MODE: "mock",
       OPENAI_API_KEY: "test", OPENAI_BASE_URL: `http://localhost:${fake.address().port}/v1`, AUTO_WRITE: "false",
-      AUTO_CHOOSE_ART: "false",
+      AUTO_CHOOSE_ART: "false", EPISODE_FORMAT: "2d",
     },
     stdio: "ignore",
   });
@@ -261,6 +386,20 @@ test("writer: writes, fixes problems, waits for approval, places things in pictu
     const played = await (await fetch(base + "/api/play?episode=s1e0")).json();
     assert.equal(played.profile.name, "Alex");
     assert.equal((await (await fetch(base + "/api/status")).json()).name, "Alex");
+
+    // Word progress is merged (the larger counts win, "known" sticks) and the hard words are found.
+    const post = (body) => fetch(base + "/api/progress", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+    }).then((r) => r.json());
+    await post({ words: { cable: { seen: 3, looked: 4, right: 0, wrong: 2, box: 0, known: false } } });
+    const merged = await post({ words: { cable: { seen: 2, looked: 1, right: 0, wrong: 0, box: 0, known: false },
+      disk: { seen: 1, looked: 0, right: 3, wrong: 0, box: 3, known: false } } });
+    assert.equal(merged.summary.met, 2);
+    assert.equal(merged.summary.mastered, 1);
+    assert.deepEqual(merged.summary.weak, ["cable"]);
+    const kept = (await (await fetch(base + "/api/progress")).json()).words.cable;
+    assert.equal(kept.seen, 3);
+    assert.equal(kept.looked, 4);
     assert.equal(draft.id, "s1e3");
     assert.equal(draft.status, "ready", JSON.stringify(draft.errors));
     assert.equal(episodeCalls, 2, "the first answer had a word without Hebrew, so it asks again");
@@ -385,9 +524,9 @@ test("wake: at 05:00 only when pictures wait, once a day, retries once, then all
   assert.deepEqual(commands, ["/system script run eq-wake"]);
   await wake.tick(new Date("2026-10-11T02:01:00Z"));
   assert.equal(commands.length, 1, "only once a day");
-  assert.equal(wake.mayShutdown(), true);
+  assert.equal(wake.mayShutdown(Date.parse("2026-10-11T02:05:00Z")), true);
   wake.shutdownSent();
-  assert.equal(wake.mayShutdown(), false, "the shutdown signal is sent once");
+  assert.equal(wake.mayShutdown(Date.parse("2026-10-11T02:05:00Z")), false, "the shutdown signal is sent once");
 
   // No pictures waiting: don't wake.
   pending = 0;

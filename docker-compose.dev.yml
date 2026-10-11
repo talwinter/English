@@ -1,0 +1,21 @@
+# The same stack as the server, for the dev PC (Docker Desktop). Safe by design: no router (mock), its own data
+# folder (data-dev), no automatic episode writing (so OpenAI is only used when you press "write").
+#   docker compose -p english-quest-dev -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+# Then: http://localhost:8081 (game API) and http://localhost:8081/admin (password: ADMIN_PASSWORD from .env).
+services:
+  english-quest:
+    container_name: english-quest-dev
+    restart: "no"
+    ports: !override
+      - "8081:8080"            # 8080 is used by another project on this PC
+    environment:
+      ROUTER_MODE: mock
+      LOCK_ENABLED: "false"
+      WAKE_TIME: ""
+      AUTO_WRITE: "false"
+      DEV_MODE: "true"                # the next episode is available at once (no waiting for tomorrow)
+    volumes:
+      - ./data-dev:/data
+  kokoro:
+    container_name: kokoro-dev
+    restart: "no"

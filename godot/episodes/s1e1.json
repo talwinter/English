@@ -1,6 +1,10 @@
 {
  "id": "s1e1",
  "title": "The Cold Village",
+ "previously": [
+  "You were in Grandpa's attic. The old computer pulled you into a game.",
+  "Byte is your friend. To go home, you must win the game."
+ ],
  "summary": "The hero arrives in a cold Viking village. He finds a key under a rock and enters his house. Grandmother says his father is in the forest and needs help. He takes a sword and bread, feeds the hungry wolf on the bridge, and goes into the forest, where he hears his father's voice.",
  "start": {
   "scene": "outside",
@@ -108,7 +112,7 @@
   {
    "id": "outside",
    "name": "Outside the house",
-   "intro": "You are outside your house. It is winter. It is very cold.",
+   "intro": "Byte: \"This is the Cold Village. In this game, you have a house here. Go to your house!\"",
    "introAgain": "You are outside your house.",
    "art": "village",
    "fallbackArt": "ega:outside",
@@ -118,8 +122,8 @@
     "y1": 196
    },
    "entry": {
-    "x": 160,
-    "y": 186
+    "x": 0,
+    "y": -1
    },
    "objects": [
     {
@@ -136,7 +140,20 @@
       140,
       110
      ],
-     "sprite": null
+     "sprite": null,
+     "prop": "house_viking",
+     "where": "back_left",
+     "against": "back",
+     "at": {
+      "x": -2.9,
+      "y": 1.8,
+      "rot": 0,
+      "z": 0
+     },
+     "stand": [
+      -2.9,
+      -0.5
+     ]
     },
     {
      "id": "window",
@@ -151,7 +168,19 @@
       30,
       24
      ],
-     "sprite": null
+     "sprite": null,
+     "of": "house",
+     "part": "window",
+     "at": {
+      "x": -2.9,
+      "y": 1.8,
+      "rot": 0,
+      "z": 0
+     },
+     "stand": [
+      -1.55,
+      -0.3
+     ]
     },
     {
      "id": "door",
@@ -166,7 +195,20 @@
       30,
       58
      ],
-     "sprite": null
+     "sprite": null,
+     "of": "house",
+     "part": "door",
+     "opensWith": "doorOpen",
+     "at": {
+      "x": -2.9,
+      "y": 1.8,
+      "rot": 0,
+      "z": 0
+     },
+     "stand": [
+      -2.9,
+      -0.5
+     ]
     },
     {
      "id": "rock",
@@ -182,7 +224,19 @@
       52,
       34
      ],
-     "sprite": null
+     "sprite": null,
+     "prop": "rock_big",
+     "where": "front_left",
+     "at": {
+      "x": -4.3,
+      "y": -0.9,
+      "rot": 0,
+      "z": 0
+     },
+     "stand": [
+      -2.85,
+      -0.9
+     ]
     },
     {
      "id": "key",
@@ -205,7 +259,20 @@
       "notFlags": [
        "keyTaken"
       ]
-     }
+     },
+     "prop": "item_key",
+     "where": "front_left",
+     "near": "rock",
+     "at": {
+      "x": -3.1,
+      "y": -1.5,
+      "rot": 0,
+      "z": 0
+     },
+     "stand": [
+      -2.43,
+      -1.5
+     ]
     },
     {
      "id": "tree",
@@ -220,7 +287,19 @@
       56,
       140
      ],
-     "sprite": null
+     "sprite": null,
+     "prop": "pine_tree",
+     "where": "middle_right",
+     "at": {
+      "x": 0.3,
+      "y": 0.7,
+      "rot": 0,
+      "z": 0
+     },
+     "stand": [
+      0.3,
+      -0.65
+     ]
     },
     {
      "id": "forest",
@@ -237,7 +316,19 @@
       72,
       100
      ],
-     "sprite": null
+     "sprite": null,
+     "prop": "forest_edge",
+     "where": "right_edge",
+     "at": {
+      "x": 4.28,
+      "y": 0.7,
+      "rot": 0,
+      "z": 0
+     },
+     "stand": [
+      4.28,
+      -1.3
+     ]
     }
    ],
    "rules": [
@@ -532,7 +623,8 @@
      ],
      "say": "The tree says nothing. It is a tree."
     }
-   ]
+   ],
+   "shell": "village_yard"
   },
   {
    "id": "inside",
@@ -547,8 +639,8 @@
     "y1": 196
    },
    "entry": {
-    "x": 290,
-    "y": 182
+    "x": 0.8,
+    "y": -1.2
    },
    "objects": [
     {
@@ -564,7 +656,19 @@
       74,
       90
      ],
-     "sprite": null
+     "sprite": null,
+     "prop": "fire_pit",
+     "where": "middle_left",
+     "at": {
+      "x": -2.4,
+      "y": 0.42,
+      "rot": 0,
+      "z": 0
+     },
+     "stand": [
+      -2.4,
+      -1.11
+     ]
     },
     {
      "id": "table",
@@ -579,7 +683,19 @@
       96,
       42
      ],
-     "sprite": null
+     "sprite": null,
+     "prop": "table_long",
+     "where": "center",
+     "at": {
+      "x": 0.07,
+      "y": 0.62,
+      "rot": 0,
+      "z": 0
+     },
+     "stand": [
+      0.07,
+      -0.48
+     ]
     },
     {
      "id": "bread",
@@ -599,7 +715,20 @@
       "notFlags": [
        "breadTaken"
       ]
-     }
+     },
+     "prop": "item_bread",
+     "on": "table",
+     "at": {
+      "x": -0.38,
+      "y": 0.62,
+      "rot": 0,
+      "z": 0.82
+     },
+     "stand": [
+      0.07,
+      -0.48
+     ],
+     "parent": "table"
     },
     {
      "id": "chest",
@@ -615,7 +744,21 @@
       60,
       40
      ],
-     "sprite": null
+     "sprite": null,
+     "prop": "chest_wood",
+     "where": "back_right",
+     "against": "back",
+     "opensWith": "chestOpen",
+     "at": {
+      "x": 2.53,
+      "y": 2.11,
+      "rot": 0,
+      "z": 0
+     },
+     "stand": [
+      2.53,
+      1.12
+     ]
     },
     {
      "id": "sword",
@@ -638,7 +781,20 @@
       "notFlags": [
        "swordTaken"
       ]
-     }
+     },
+     "prop": "item_sword",
+     "inside": "chest",
+     "at": {
+      "x": 2.53,
+      "y": 2.11,
+      "rot": 0,
+      "z": 0.4
+     },
+     "stand": [
+      2.53,
+      1.12
+     ],
+     "parent": "chest"
     },
     {
      "id": "door",
@@ -654,7 +810,19 @@
       28,
       110
      ],
-     "sprite": null
+     "sprite": null,
+     "prop": "door_wall",
+     "against": "right",
+     "at": {
+      "x": 3.75,
+      "y": 0.3,
+      "rot": -90,
+      "z": 0
+     },
+     "stand": [
+      2.95,
+      0.3
+     ]
     },
     {
      "id": "grandmother",
@@ -671,7 +839,20 @@
       30,
       44
      ],
-     "sprite": "grandmother"
+     "sprite": "grandmother",
+     "prop": "grandmother",
+     "where": "middle_left",
+     "near": "fire",
+     "at": {
+      "x": -0.8,
+      "y": -0.5,
+      "rot": 0,
+      "z": 0
+     },
+     "stand": [
+      0.44,
+      -0.5
+     ]
     }
    ],
    "rules": [
@@ -951,7 +1132,8 @@
       "go": "outside"
      }
     }
-   ]
+   ],
+   "shell": "longhouse_interior"
   },
   {
    "id": "bridge",
@@ -966,8 +1148,8 @@
     "y1": 196
    },
    "entry": {
-    "x": 40,
-    "y": 188
+    "x": -3.5,
+    "y": -0.8
    },
    "objects": [
     {
@@ -984,7 +1166,9 @@
       260,
       70
      ],
-     "sprite": null
+     "sprite": null,
+     "prop": "@forest",
+     "fixed": "forest"
     },
     {
      "id": "river",
@@ -1000,7 +1184,9 @@
       320,
       52
      ],
-     "sprite": null
+     "sprite": null,
+     "prop": "@river",
+     "fixed": "river"
     },
     {
      "id": "bridge",
@@ -1015,7 +1201,9 @@
       84,
       92
      ],
-     "sprite": null
+     "sprite": null,
+     "prop": "@bridge",
+     "fixed": "bridge"
     },
     {
      "id": "wolf",
@@ -1036,7 +1224,19 @@
       "notFlags": [
        "wolfGone"
       ]
-     }
+     },
+     "prop": "wolf",
+     "slot": "bridge_middle",
+     "at": {
+      "x": 0,
+      "y": 2.2,
+      "rot": 0,
+      "z": 0
+     },
+     "stand": [
+      0,
+      0.05
+     ]
     },
     {
      "id": "village",
@@ -1054,7 +1254,19 @@
       72,
       46
      ],
-     "sprite": null
+     "sprite": null,
+     "prop": "signpost",
+     "where": "front_left",
+     "at": {
+      "x": -2.3,
+      "y": -1.7,
+      "rot": 0,
+      "z": 0
+     },
+     "stand": [
+      -3.49,
+      -1.7
+     ]
     }
    ],
    "rules": [
@@ -1178,7 +1390,8 @@
       "go": "outside"
      }
     }
-   ]
+   ],
+   "shell": "river_bridge"
   }
  ],
  "ending": [
@@ -1228,6 +1441,69 @@
    "kind": "item",
    "height": 16,
    "prompt": "a Viking sword with a brown leather handle"
+  }
+ ],
+ "format": "3d",
+ "solution": [
+  {
+   "verb": "look",
+   "obj": "rock",
+   "item": ""
+  },
+  {
+   "verb": "take",
+   "obj": "key",
+   "item": ""
+  },
+  {
+   "verb": "open",
+   "obj": "door",
+   "item": ""
+  },
+  {
+   "verb": "enter",
+   "obj": "house",
+   "item": ""
+  },
+  {
+   "verb": "open",
+   "obj": "chest",
+   "item": ""
+  },
+  {
+   "verb": "talk",
+   "obj": "grandmother",
+   "item": ""
+  },
+  {
+   "verb": "take",
+   "obj": "bread",
+   "item": ""
+  },
+  {
+   "verb": "take",
+   "obj": "sword",
+   "item": ""
+  },
+  {
+   "verb": "open",
+   "obj": "door",
+   "item": ""
+  },
+  {
+   "verb": "enter",
+   "obj": "forest",
+   "item": ""
+  },
+  {
+   "verb": "give",
+   "obj": "wolf",
+   "item": "bread"
+  },
+  {
+   "verb": "enter",
+   "obj": "forest",
+   "item": ""
   }
  ]
 }

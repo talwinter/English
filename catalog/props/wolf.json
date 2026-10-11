@@ -1,0 +1,32 @@
+{
+ "id": "wolf",
+ "name": "wolf",
+ "kind": "character",
+ "glb": "props/wolf.glb",
+ "desc": "a big, thin grey wolf with sad eyes; hungry, not scary",
+ "words": [
+  "wolf",
+  "dog"
+ ],
+ "footprint": [
+  0.429,
+  2.093
+ ],
+ "height": 1.0,
+ "center_offset": [
+  0.0,
+  -0.047
+ ],
+ "place": [
+  "floor",
+  "slot"
+ ],
+ "stand": 1.1,
+ "surface": false,
+ "container": false,
+ "anims": {
+  "clips": [
+   "Idle"
+  ]
+ }
+}

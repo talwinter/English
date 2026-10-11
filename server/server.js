@@ -15,6 +15,7 @@ const { createArt } = require("./art");
 const { createWriter } = require("./writer");
 const { createWake } = require("./wake");
 const { createVoice } = require("./voice");
+const { createCanon } = require("./canon");
 const Episode = require("../js/episode");
 
 const env = process.env;
@@ -59,6 +60,43 @@ function reloadContent() {
 const heroName = () => (store.state.profile && store.state.profile.name) || "friend";
 const withName = (t) => t.replace(/\{name\}/g, heroName());
 
+// ---------- word progress: { word: { seen, looked, right, wrong, box, known } }
+const knownWords = () => (store.state.profile.words = store.state.profile.words || {});
+
+function mergeWords(incoming) {
+  const mine = knownWords();
+  const num = (v) => (Number.isFinite(+v) ? Math.max(0, Math.floor(+v)) : 0);
+  for (const [word, w] of Object.entries(incoming).slice(0, 5000)) {
+    if (!/^[a-z']{1,30}$/.test(word) || !w || typeof w !== "object") continue;
+    const cur = mine[word] || { seen: 0, looked: 0, right: 0, wrong: 0, box: 0, known: false };
+    const inAnswers = num(w.right) + num(w.wrong), curAnswers = cur.right + cur.wrong;
+    mine[word] = {
+      seen: Math.max(cur.seen, num(w.seen)), looked: Math.max(cur.looked, num(w.looked)),
+      right: Math.max(cur.right, num(w.right)), wrong: Math.max(cur.wrong, num(w.wrong)),
+      // the box comes from whoever answered more recently (more answers)
+      box: inAnswers >= curAnswers ? Math.min(4, num(w.box)) : cur.box,
+      known: !!(cur.known || w.known),
+    };
+  }
+}
+
+// Words he finds hard: answered wrong, or looked up many times and not mastered yet.
+function weakWords(limit = 15) {
+  return Object.entries(knownWords())
+    .filter(([, w]) => !w.known && w.box < 3 && (w.wrong > 0 || w.looked >= 3))
+    .map(([word, w]) => [word, w.wrong * 3 + w.looked - w.right])
+    .sort((a, b) => b[1] - a[1]).slice(0, limit).map(([word]) => word);
+}
+
+function wordSummary() {
+  const all = Object.entries(knownWords());
+  return {
+    met: all.length,
+    mastered: all.filter(([, w]) => w.known || w.box >= 3).length,
+    weak: weakWords(8),
+  };
+}
+
 function prepareVoices() {
   if (!voice.enabled) return;
   const done = (e) => store.state.episodesDone.includes(e.id);
@@ -66,6 +104,8 @@ function prepareVoices() {
   const lines = [
     ...eps.flatMap((e) => Episode.texts(e.data).slice(1).map((text) => ({ text: withName(text) }))),
     ...content.baseTexts.map((text) => ({ text })),
+    // the first-time tips are also said by Byte (after he has met Byte)
+    ...Object.values((content.base.ui || {}).tips || {}).map((t) => ({ text: `Byte: "${t}"` })),
     ...eps.flatMap((e) => Episode.commandLines(e.data, content.base).map((text) => ({ text }))),
     ...Object.keys(content.DICT).map((text) => ({ text, slow: true })),
   ];
@@ -75,8 +115,9 @@ function prepareVoices() {
 const wake = createWake({
   wakeAt: env.WAKE_TIME ? parseTime(env.WAKE_TIME) : null, timeZone: config.timeZone, router, art, log: (m) => store.log(m),
 });
+const canon = createCanon(dataDir);
 writer = createWriter({ dataDir, env, getContent: () => content, reload: reloadContent, art, log: (m) => store.log(m),
-  getProfile: () => store.state.profile || {} });
+  getProfile: () => ({ ...(store.state.profile || {}), weak: weakWords(15) }), canon });
 if (env.AUTO_CHOOSE_ART !== "false" || env.AUTO_PUBLISH === "true") art.chooseWaiting();
 
 // An episode with AI pictures is ready to play when all its pictures are chosen.
@@ -84,12 +125,14 @@ if (env.AUTO_CHOOSE_ART !== "false" || env.AUTO_PUBLISH === "true") art.chooseWa
 // (People such as the hero and grandmother are ready-made walking sprites, not AI pictures.)
 const isPicture = (k) => k && !String(k).startsWith("ega:") && !Episode.CHARACTERS.includes(k);
 function artReady(ep) {
+  if (ep.format === "3d") return true; // rooms come from the catalog: there are no pictures to wait for
   const keys = ep.scenes.flatMap((sc) => (sc.fallbackArt ? [] : [sc.art, ...sc.objects.map((o) => o.sprite)]));
   return keys.filter(isPicture).every((k) => art.isChosen(k));
 }
 
 // The AI pictures of this episode that are ready (the game uses them instead of the old drawings).
 function chosenArt(ep) {
+  if (ep.format === "3d") return [];
   const keys = ep.scenes.flatMap((sc) => [sc.art, ...sc.objects.map((o) => o.sprite)]);
   return [...new Set(keys.filter((k) => isPicture(k) && art.isChosen(k)))];
 }
@@ -121,6 +164,9 @@ const desired = (now = new Date()) => shouldLock(now, config, isDone, state().fo
 // Today's new episode: the first one he has not finished whose pictures are ready.
 // (An episode still waiting for pictures is skipped, and comes later when they are ready.)
 function nextEpisode() {
+  // One new episode a day: once he has finished one today, the mission is the word challenge.
+  const playedToday = (state().episodeDates || {})[missionDate(new Date(), config)];
+  if (playedToday && env.DEV_MODE !== "true") return null;   // DEV_MODE: no waiting for tomorrow while testing
   return content.episodes.find((e) => !state().episodesDone.includes(e.id) && artReady(e.data)) || null;
 }
 
@@ -244,6 +290,20 @@ function status() {
   };
 }
 
+function listReports() {
+  const dir = path.join(dataDir, "reports");
+  try {
+    return fs.readdirSync(dir).filter((f) => f.endsWith(".json")).sort().reverse().slice(0, 12)
+      .map((f) => JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")));
+  } catch { return []; }
+}
+
+function listWishes() {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(dataDir, "wishes.json"), "utf8")).filter((w) => !w.done).slice(-30).reverse();
+  } catch { return []; }
+}
+
 function adminState() {
   const recent = Object.entries(state().completions).sort().reverse().slice(0, 21);
   return {
@@ -253,6 +313,8 @@ function adminState() {
     config: { timeZone: config.timeZone, lockTime: config.lockTime, days: config.days },
     episodes: content.episodes.map((e) => ({ id: e.id, title: e.title, done: state().episodesDone.includes(e.id), words: e.words.length })),
     voice: voice.status(),
+    reports: listReports(),
+    wishes: listWishes(),
     completions: recent,
     log: state().log.slice(-60).reverse(),
   };
@@ -294,6 +356,8 @@ async function handle(req, res) {
     const { episode } = await readJson(req);
     const ep = content.episodes.find((e) => e.id === episode);
     if (!ep) return send(res, 400, { error: "unknown episode" });
+    state().episodeDates = state().episodeDates || {};
+    state().episodeDates[missionDate(new Date(), config)] = ep.id;
     if (!state().episodesDone.includes(ep.id)) {
       state().episodesDone.push(ep.id);
       store.log(`Episode finished: ${ep.id} ${ep.title}`);
@@ -304,7 +368,7 @@ async function handle(req, res) {
   if (p === "/api/challenge/start" && post) {
     if (nextEpisode()) return send(res, 409, { error: "episode-first", mission: mission() });
     const played = content.episodes.filter((e) => state().episodesDone.includes(e.id));
-    const result = challenges.start(played.flatMap((e) => e.words));
+    const result = challenges.start(played.flatMap((e) => e.words), Date.now(), weakWords(6));
     return send(res, result.error ? 409 : 200, result);
   }
 
@@ -314,6 +378,42 @@ async function handle(req, res) {
     if (result.error) return send(res, 409, result);
     if (result.passed) complete("challenge", result.score);
     return send(res, 200, { ...result, status: result.done ? status() : undefined });
+  }
+
+  // ---------- "Something is wrong?" from the game: where he was, what was said, a screenshot
+  if (p === "/api/report" && post) {
+    const body = await readJson(req, 4 * 1024 * 1024);
+    const id = new Date().toISOString().replace(/[:.]/g, "-");
+    const dir = path.join(dataDir, "reports");
+    fs.mkdirSync(dir, { recursive: true });
+    const clean = (v, n) => String(v == null ? "" : v).slice(0, n);
+    const entry = {
+      id, at: new Date().toISOString(), episode: clean(body.episode, 20), scene: clean(body.scene, 40),
+      goal: clean(body.goal, 40), note: clean(body.note, 400), flags: Object.keys(body.flags || {}).slice(0, 60),
+      bag: (body.bag || []).slice(0, 20).map((x) => clean(x, 40)),
+      messages: (body.messages || []).slice(-10).map((m) => ({ kind: clean(m.kind, 10), text: clean(m.text, 300) })),
+      version: clean(body.version, 20),
+    };
+    if (body.shot) {
+      try { fs.writeFileSync(path.join(dir, `${id}.png`), Buffer.from(String(body.shot), "base64")); entry.hasShot = true; } catch { /* no picture */ }
+    }
+    fs.writeFileSync(path.join(dir, `${id}.json`), JSON.stringify(entry, null, 2));
+    // keep the last 60
+    const old = fs.readdirSync(dir).filter((f) => f.endsWith(".json")).sort().slice(0, -60);
+    for (const f of old) { for (const ext of [".json", ".png"]) { try { fs.unlinkSync(path.join(dir, f.replace(".json", ext))); } catch { /* gone */ } } }
+    store.log(`Report from the game: ${entry.episode} ${entry.scene}${entry.note ? ` "${entry.note}"` : ""}`);
+    return send(res, 200, { ok: true, id });
+  }
+
+  // ---------- what he knows about each word (sent by the Godot game)
+  if (p === "/api/progress" && req.method === "GET") {
+    return send(res, 200, { words: knownWords(), summary: wordSummary() });
+  }
+  if (p === "/api/progress" && post) {
+    const body = await readJson(req, 2 * 1024 * 1024);
+    mergeWords(body.words || {});
+    store.save();
+    return send(res, 200, { summary: wordSummary() });
   }
 
   // ---------- art worker (the PC with the GPU)
@@ -392,6 +492,37 @@ async function handle(req, res) {
     if (!isAdmin(req)) return send(res, 401, "Password needed", { "WWW-Authenticate": 'Basic realm="English Quest parent"' });
     if (p === "/admin" || p === "/admin/") return serveFile(res, path.join(__dirname, "admin.html"));
     if (p === "/admin/api/state") return send(res, 200, adminState());
+    if (p === "/admin/api/canon" && req.method === "GET") return send(res, 200, canon.data);
+    if (p === "/admin/api/canon" && post) {
+      canon.replace(await readJson(req));
+      store.log("The parent edited the story canon");
+      return send(res, 200, canon.data);
+    }
+    if (p.startsWith("/admin/report/") && p.endsWith(".png")) {
+      const id = path.basename(p, ".png");
+      if (!/^[0-9A-Za-z-]+$/.test(id)) return send(res, 400, { error: "id" });
+      const file = path.join(dataDir, "reports", `${id}.png`);
+      if (!fs.existsSync(file)) return send(res, 404, { error: "no picture" });
+      res.writeHead(200, { "Content-Type": "image/png" });
+      return res.end(fs.readFileSync(file));
+    }
+    if (p === "/admin/api/report/delete" && post) {
+      const { id } = await readJson(req);
+      if (/^[0-9A-Za-z-]+$/.test(String(id))) {
+        for (const ext of [".json", ".png"]) { try { fs.unlinkSync(path.join(dataDir, "reports", `${id}${ext}`)); } catch { /* gone */ } }
+      }
+      return send(res, 200, adminState());
+    }
+    if (p === "/admin/api/wish/done" && post) {
+      const { episode, text } = await readJson(req);
+      const wf = path.join(dataDir, "wishes.json");
+      try {
+        const all = JSON.parse(fs.readFileSync(wf, "utf8"));
+        for (const w of all) if (w.episode === episode && w.text === text) w.done = true;
+        fs.writeFileSync(wf, JSON.stringify(all, null, 2));
+      } catch { /* none */ }
+      return send(res, 200, adminState());
+    }
     if (p === "/admin/api/unlock" && post) { complete("parent"); return send(res, 200, adminState()); }
     if (p === "/admin/api/lock" && post) {
       state().forceLock = true;
@@ -429,6 +560,16 @@ async function handle(req, res) {
       writer.write(String(note || "").slice(0, 500)).catch(() => { /* logged */ });
       await new Promise((r) => setTimeout(r, 100));
       return send(res, 200, { ok: true, writer: writer.list() });
+    }
+    if (p === "/admin/api/episodes/import" && post) {
+      let body;
+      try { body = await readJson(req, 2_000_000); } catch (e) { return send(res, 400, { ok: false, error: e.message }); }
+      try {
+        const id = writer.importDraft(body.episode || body, String(body.source || "another computer").slice(0, 60));
+        return send(res, 200, { ok: true, id });
+      } catch (e) {
+        return send(res, 400, { ok: false, error: e.message });
+      }
     }
     if (p === "/admin/api/episodes/approve" && post) {
       const { id } = await readJson(req);
@@ -504,7 +645,7 @@ server.listen(config.port, () => {
   setInterval(() => reconcile(), 30 * 1000);
   setInterval(() => wake.tick().catch((e) => store.log(`Wake error: ${e.message}`)), 30 * 1000);
   // Pictures the episodes need are made without waiting for a parent to ask.
-  const needed = [...new Set(content.episodes.flatMap((e) => (e.data.art || []).map((a) => a.key)))];
+  const needed = [...new Set(content.episodes.filter((e) => e.data.format !== "3d").flatMap((e) => (e.data.art || []).map((a) => a.key)))];
   const queued = art.queueNew(needed);
   if (queued.length) store.log(`Pictures queued: ${queued.join(", ")}`);
   placeMadeBackgrounds();

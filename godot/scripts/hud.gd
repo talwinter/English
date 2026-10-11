@@ -12,6 +12,7 @@ signal hint_pressed
 signal listen_pressed
 signal word_clicked(word: String, sentence: String)
 signal words_pressed
+signal menu_pressed
 signal text_shown(text: String)
 signal command_submitted(text: String)
 signal continue_pressed
@@ -19,7 +20,11 @@ signal continue_pressed
 const GOLD := Color(1.0, 0.82, 0.25)
 const CYAN := Color(0.62, 0.9, 1.0)
 const BAG_SLOTS := 5
-const SLOT := Vector2(94, 112)
+const SLOT := Vector2(64, 76)
+const TOP_H := 46
+const BOTTOM_H := 166
+
+signal layout_changed
 
 var player_name := ""
 ## word -> 0 new, 1 learning, 2 mastered (set by the game); decides the colour of each word.
@@ -39,7 +44,12 @@ var _words: Array = []
 var _word_ctx: Array = []
 var _goal_text := ""
 var _words_btn: Button
+var _hint_btn: Button
+var _slots_row: Control
 var _goal_count := 0
+var _spoken_text := ""
+var _spoken_idx := -1
+var _speaker_re: RegEx
 var _messages: Array = []
 var _top: Control
 var _bottom: Control
@@ -56,32 +66,27 @@ func _init() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_word_re = RegEx.new()
 	_word_re.compile("[A-Za-z]+(?:'[A-Za-z]+)?")
+	_speaker_re = RegEx.new()
+	_speaker_re.compile('^([A-Z][A-Za-z]*(?: [A-Z][A-Za-z]*)?): "')
 	_build()
 
 
-static func _style(color: Color, border: Color = Color(0, 0, 0, 0), radius: int = 8) -> StyleBoxFlat:
-	var s := StyleBoxFlat.new()
-	s.bg_color = color
-	s.border_color = border
-	s.set_border_width_all(2 if border.a > 0.0 else 0)
-	s.set_corner_radius_all(radius)
-	s.content_margin_left = 12
-	s.content_margin_right = 12
-	s.content_margin_top = 6
-	s.content_margin_bottom = 6
-	return s
+static func _style(color: Color, border: Color = Color(0, 0, 0, 0), radius: int = 8, margin: int = 12) -> StyleBoxFlat:
+	return UiKit.style(color, border, radius, margin)
 
 
-func _button(text: String, font: int = 21) -> Button:
+func _button(text: String, font: int = 16) -> Button:
 	var b := Button.new()
 	b.text = text
 	b.toggle_mode = true
 	b.focus_mode = Control.FOCUS_NONE
 	b.add_theme_font_size_override("font_size", font)
-	b.add_theme_stylebox_override("normal", _style(Color(0.13, 0.13, 0.2, 0.95), Color(0.4, 0.4, 0.6)))
-	b.add_theme_stylebox_override("hover", _style(Color(0.2, 0.2, 0.32, 0.98), GOLD))
-	b.add_theme_stylebox_override("pressed", _style(Color(0.45, 0.35, 0.05, 0.98), GOLD))
-	b.add_theme_stylebox_override("hover_pressed", _style(Color(0.5, 0.4, 0.08, 0.98), GOLD))
+	b.add_theme_color_override("font_color", Color(0.92, 0.94, 1.0))
+	b.add_theme_color_override("font_hover_color", Color.WHITE)
+	b.add_theme_stylebox_override("normal", _style(Color(1, 1, 1, 0.09), Color(1, 1, 1, 0.2), 12, 10))
+	b.add_theme_stylebox_override("hover", _style(Color(1, 1, 1, 0.2), GOLD, 12, 10))
+	b.add_theme_stylebox_override("pressed", _style(Color(0.62, 0.47, 0.08, 0.95), GOLD, 12, 10))
+	b.add_theme_stylebox_override("hover_pressed", _style(Color(0.7, 0.54, 0.1, 0.98), GOLD, 12, 10))
 	return b
 
 
@@ -90,21 +95,25 @@ func _build() -> void:
 	var top := PanelContainer.new()
 	_top = top
 	top.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	top.offset_left = 16
-	top.offset_right = -16
-	top.offset_top = 12
-	top.offset_bottom = 70
-	top.add_theme_stylebox_override("panel", _style(Color(0.04, 0.04, 0.09, 0.82), Color(0.35, 0.35, 0.55)))
+	top.offset_left = 0
+	top.offset_right = 0
+	top.offset_top = 0
+	top.offset_bottom = TOP_H
+	top.add_theme_stylebox_override("panel", UiKit.bar(true))
 	add_child(top)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 14)
 	top.add_child(row)
+	var tag_box := PanelContainer.new()
+	tag_box.add_theme_stylebox_override("panel", UiKit.pill(GOLD, 12))
+	tag_box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var tag := Label.new()
 	tag.text = "GOAL"
-	tag.add_theme_color_override("font_color", GOLD)
-	tag.add_theme_font_size_override("font_size", 22)
-	row.add_child(tag)
-	_goal = _rich(26)
+	tag.add_theme_color_override("font_color", UiKit.INK)
+	tag.add_theme_font_size_override("font_size", 13)
+	tag_box.add_child(tag)
+	row.add_child(tag_box)
+	_goal = _rich(18)
 	_goal.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(_goal)
 	var hint := _button("Hint")
@@ -119,20 +128,29 @@ func _build() -> void:
 	_words_btn.toggle_mode = false
 	_words_btn.pressed.connect(func() -> void: words_pressed.emit())
 	row.add_child(_words_btn)
+	_hint_btn = hint
+	var menu := _button("Menu")
+	menu.toggle_mode = false
+	menu.pressed.connect(func() -> void: menu_pressed.emit())
+	row.add_child(menu)
 	_score = Label.new()
-	_score.add_theme_font_size_override("font_size", 22)
+	_score.add_theme_font_size_override("font_size", 15)
 	_score.add_theme_color_override("font_color", GOLD)
-	row.add_child(_score)
+	var score_box := PanelContainer.new()
+	score_box.add_theme_stylebox_override("panel", UiKit.pill(Color(0, 0, 0, 0.35), 12))
+	score_box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	score_box.add_child(_score)
+	row.add_child(score_box)
 
 	# ---- bottom
 	var bottom := PanelContainer.new()
 	_bottom = bottom
 	bottom.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	bottom.offset_left = 16
-	bottom.offset_right = -16
-	bottom.offset_bottom = -12
-	bottom.offset_top = -236
-	bottom.add_theme_stylebox_override("panel", _style(Color(0.04, 0.04, 0.09, 0.88), Color(0.35, 0.35, 0.55)))
+	bottom.offset_left = 0
+	bottom.offset_right = 0
+	bottom.offset_bottom = 0
+	bottom.offset_top = -BOTTOM_H
+	bottom.add_theme_stylebox_override("panel", UiKit.bar(false))
 	add_child(bottom)
 	var cols := HBoxContainer.new()
 	cols.add_theme_constant_override("separation", 18)
@@ -143,8 +161,8 @@ func _build() -> void:
 	left.add_theme_constant_override("separation", 5)
 	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	cols.add_child(left)
-	_log = _rich(23)
-	_log.custom_minimum_size = Vector2(0, 92)
+	_log = _rich(17)
+	_log.custom_minimum_size = Vector2(0, 52)
 	_log.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_log.scroll_active = false
 	left.add_child(_log)
@@ -153,12 +171,12 @@ func _build() -> void:
 	line.add_theme_constant_override("separation", 16)
 	left.add_child(line)
 	_sentence = Label.new()
-	_sentence.add_theme_font_size_override("font_size", 23)
+	_sentence.add_theme_font_size_override("font_size", 16)
 	_sentence.add_theme_color_override("font_color", GOLD)
-	_sentence.custom_minimum_size = Vector2(380, 0)
+	_sentence.custom_minimum_size = Vector2(300, 0)
 	line.add_child(_sentence)
 	_gloss = Label.new()
-	_gloss.add_theme_font_size_override("font_size", 23)
+	_gloss.add_theme_font_size_override("font_size", 16)
 	_gloss.add_theme_color_override("font_color", CYAN)
 	_gloss.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_gloss.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -169,7 +187,7 @@ func _build() -> void:
 	_verb_row = _verbs
 	left.add_child(_verbs)
 
-	_continue = _button("Continue  >", 24)
+	_continue = _button("Continue  >", 18)
 	_continue.toggle_mode = false
 	_continue.visible = false
 	_continue.pressed.connect(func() -> void: continue_pressed.emit())
@@ -177,7 +195,7 @@ func _build() -> void:
 
 	_type = LineEdit.new()
 	_type.placeholder_text = "Or type a command, for example: open the box"
-	_type.add_theme_font_size_override("font_size", 21)
+	UiKit.line_edit(_type, 15)
 	_type.text_submitted.connect(func(t: String) -> void:
 		_type.clear()
 		command_submitted.emit(t))
@@ -190,12 +208,13 @@ func _build() -> void:
 	cols.add_child(right)
 	var bag_tag := Label.new()
 	bag_tag.text = "Bag"
-	bag_tag.add_theme_font_size_override("font_size", 21)
+	bag_tag.add_theme_font_size_override("font_size", 14)
 	bag_tag.add_theme_color_override("font_color", GOLD)
 	right.add_child(bag_tag)
 	var slots := HBoxContainer.new()
 	slots.add_theme_constant_override("separation", 6)
 	right.add_child(slots)
+	_slots_row = slots
 	for i in BAG_SLOTS:
 		var b := _slot_button()
 		slots.add_child(b)
@@ -218,8 +237,8 @@ func _slot_button() -> Button:
 	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	b.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
 	b.expand_icon = true
-	b.add_theme_constant_override("icon_max_width", 64)
-	b.add_theme_font_size_override("font_size", 18)
+	b.add_theme_constant_override("icon_max_width", 44)
+	b.add_theme_font_size_override("font_size", 13)
 	b.pivot_offset = SLOT / 2.0
 	return b
 
@@ -230,18 +249,18 @@ func _fill_slot(i: int, item: Dictionary, icon: Texture2D, selected: bool) -> vo
 		b.text = ""
 		b.icon = null
 		b.disabled = true
-		b.add_theme_stylebox_override("normal", _style(Color(0.08, 0.08, 0.13, 0.7), Color(0.22, 0.22, 0.34), 10))
-		b.add_theme_stylebox_override("disabled", _style(Color(0.08, 0.08, 0.13, 0.7), Color(0.22, 0.22, 0.34), 10))
+		b.add_theme_stylebox_override("normal", _style(Color(1, 1, 1, 0.05), Color(1, 1, 1, 0.1), 14, 8))
+		b.add_theme_stylebox_override("disabled", _style(Color(1, 1, 1, 0.05), Color(1, 1, 1, 0.1), 14, 8))
 		return
 	var words: Array = item.get("words", [])
 	b.text = String(words[0]) if words.size() > 0 else String(item.get("id", ""))
 	b.icon = icon
 	b.disabled = false
-	var border := GOLD if selected else Color(0.5, 0.5, 0.75)
-	var fill := Color(0.35, 0.28, 0.06, 0.98) if selected else Color(0.16, 0.16, 0.26, 0.98)
-	b.add_theme_stylebox_override("normal", _style(fill, border, 10))
-	b.add_theme_stylebox_override("hover", _style(Color(0.24, 0.24, 0.38, 0.98), GOLD, 10))
-	b.add_theme_stylebox_override("pressed", _style(fill, GOLD, 10))
+	var border := GOLD if selected else Color(1, 1, 1, 0.3)
+	var fill := Color(0.5, 0.38, 0.06, 0.95) if selected else Color(1, 1, 1, 0.11)
+	b.add_theme_stylebox_override("normal", _style(fill, border, 14, 8))
+	b.add_theme_stylebox_override("hover", _style(Color(1, 1, 1, 0.22), GOLD, 14, 8))
+	b.add_theme_stylebox_override("pressed", _style(fill, GOLD, 14, 8))
 
 
 func _rich(size: int) -> RichTextLabel:
@@ -257,18 +276,21 @@ func _rich(size: int) -> RichTextLabel:
 
 # ---------- text with clickable words
 
-func bb(text: String, color: String = "#ffffff", clickable: bool = true) -> String:
+func bb(text: String, color: String = "#ffffff", clickable: bool = true, hl: int = -1, hl_offset: int = 0) -> String:
 	var out := ""
 	var last := 0
 	var safe := text.replace("[", "[lb]")
 	if not clickable:
 		return "[color=%s]%s[/color]" % [color, safe]
 	var own := player_name.to_lower()
+	var tok := -1
 	for m in _word_re.search_all(safe):
 		var w := m.get_string()
+		tok += 1
 		out += safe.substr(last, m.get_start() - last)
+		var lit := hl >= 0 and tok - hl_offset == hl
 		if own != "" and w.to_lower() == own:
-			out += w
+			out += ("[bgcolor=#6b5514]%s[/bgcolor]" % w) if lit else w
 		else:
 			var lw := w.to_lower()
 			_words.append(lw)
@@ -280,6 +302,8 @@ func bb(text: String, color: String = "#ffffff", clickable: bool = true) -> Stri
 			var inner := "[color=%s]%s[/color]" % [String(colors[st]), w]
 			if st < 2:
 				inner = "[u]%s[/u]" % inner
+			if lit:
+				inner = "[bgcolor=#6b5514][b]%s[/b][/bgcolor]" % inner
 			out += "[url=%d]%s[/url]" % [_words.size() - 1, inner]
 		last = m.get_end()
 	out += safe.substr(last)
@@ -312,7 +336,7 @@ func set_verbs(verbs: Array) -> void:
 		c.queue_free()
 	_verb_buttons.clear()
 	for v in verbs:
-		var b := _button(String(v["label"]), 20)
+		var b := _button(String(v["label"]), 15)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var id := String(v["id"])
 		b.pressed.connect(func() -> void: verb_pressed.emit(id))
@@ -376,7 +400,7 @@ func _render_log() -> void:
 	_words = _words.slice(0, _goal_count)   # the goal's words stay; the log's are numbered again
 	_word_ctx = _word_ctx.slice(0, _goal_count)
 	# only the last few messages are shown, so nothing is cut in the middle
-	var shown: Array = _messages.slice(maxi(0, _messages.size() - (3 if not _story else 4)))
+	var shown: Array = _messages.slice(maxi(0, _messages.size() - (2 if not _story else 3)))
 	for m in shown:
 		var t: String = m["text"]
 		match String(m["kind"]):
@@ -389,15 +413,16 @@ func _render_log() -> void:
 			"he":
 				parts.append(bb(t, "#9fe6ff", false))
 			"intro":
-				parts.append(bb(t, "#bfe9ff"))
+				parts.append(bb(t, "#bfe9ff", true, _hl_for(t), _hl_offset(t)))
 			_:
-				parts.append(bb(t, "#ffffff"))
+				parts.append(bb(t, "#ffffff", true, _hl_for(t), _hl_offset(t)))
 	_log.text = "\n".join(parts)
 
 
 func set_visible_all(v: bool) -> void:
 	_top.visible = v and not _story
 	_bottom.visible = v
+	layout_changed.emit()
 
 
 ## Story mode (cutscenes, the ending): only the text and Continue; the bag stays where it always is.
@@ -407,6 +432,7 @@ func set_story_mode(on: bool) -> void:
 	_type_row.visible = not on
 	_sentence.visible = not on
 	_top.visible = not on
+	layout_changed.emit()
 
 
 func is_story_mode() -> bool:
@@ -432,3 +458,55 @@ func refresh_text() -> void:
 
 func set_word_stats(met: int, mastered: int) -> void:
 	_words_btn.text = "Words %d" % met if met > 0 else "Words"
+
+
+# ---------- where things are, for the first-time tips
+
+func rect_of(part: String) -> Rect2:
+	var c: Control = null
+	match part:
+		"goal": c = _top
+		"verbs": c = _verb_row
+		"bag": c = _slots_row
+		"words": c = _words_btn
+		"hint": c = _hint_btn
+		"log": c = _log
+	return c.get_global_rect() if c != null and c.is_visible_in_tree() else Rect2()
+
+
+# ---------- the messages, for saving and resuming
+
+func get_messages() -> Array:
+	return _messages.duplicate(true)
+
+
+func set_messages(list: Array) -> void:
+	_messages = list.duplicate(true)
+	_render_log()
+
+
+# ---------- the word being spoken is lit in the log, like a karaoke line
+
+func _hl_for(text: String) -> int:
+	return _spoken_idx if text == _spoken_text else -1
+
+
+## Words of "Byte: " before the quote are not spoken as part of the line.
+func _hl_offset(text: String) -> int:
+	var m := _speaker_re.search(text)
+	if m == null:
+		return 0
+	return m.get_string(1).split(" ", false).size()
+
+
+func set_spoken(text: String, idx: int) -> void:
+	if text == _spoken_text and idx == _spoken_idx:
+		return
+	_spoken_text = text
+	_spoken_idx = idx
+	_render_log()
+
+
+## How much of the window the bars take, so the game picture can sit between them: (top, bottom) in pixels.
+func dock_insets() -> Vector2:
+	return Vector2(TOP_H if _top.visible else 0, BOTTOM_H if _bottom.visible else 0)

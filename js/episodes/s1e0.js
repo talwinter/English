@@ -91,6 +91,7 @@
     },
   ],
 
+  endingStyle: "fall",     // the Godot game: the screen pulls him in, he falls into the game world
   ending: [
     "The screen is very bright! The light pulls you into the computer!",
     "You fall and fall and fall...",

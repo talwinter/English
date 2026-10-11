@@ -3,13 +3,17 @@
 async function chatJson(env, { name, schema, messages, timeoutMs = 10 * 60 * 1000 }) {
   if (!env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not set");
   const base = (env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/+$/, "");
+  const model = env.OPENAI_MODEL || "gpt-5-mini";
+  const reasoning = /^(gpt-5|o\d)/.test(model) ? (env.OPENAI_REASONING || "") : "";
   const r = await fetch(`${base}/chat/completions`, {
     method: "POST",
     headers: { Authorization: `Bearer ${env.OPENAI_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: env.OPENAI_MODEL || "gpt-5-mini",
+      model,
       messages,
       response_format: { type: "json_schema", json_schema: { name, strict: true, schema } },
+      // gpt-5 and o-series models think before they answer, and the thinking is billed as output: "low" is much cheaper
+      ...(reasoning ? { reasoning_effort: reasoning } : {}),
     }),
     signal: AbortSignal.timeout(timeoutMs),
   });
@@ -21,4 +25,13 @@ async function chatJson(env, { name, schema, messages, timeoutMs = 10 * 60 * 100
   return { json: JSON.parse(msg.content), text: msg.content, usage: data.usage || {} };
 }
 
-module.exports = { chatJson };
+// An estimate in US dollars from the usage of an answer (list prices per 1M tokens: input, output).
+const PRICES = { "gpt-5-mini": [0.25, 2.0], "gpt-5-nano": [0.05, 0.4], "gpt-5": [1.25, 10], "gpt-4.1-mini": [0.4, 1.6],
+  "gpt-4.1": [2, 8], "gpt-4o-mini": [0.15, 0.6], "gpt-4o": [2.5, 10] };
+function costOf(model, usage) {
+  const p = PRICES[model];
+  if (!p || !usage) return 0;
+  return ((usage.prompt_tokens || 0) * p[0] + (usage.completion_tokens || 0) * p[1]) / 1e6;
+}
+
+module.exports = { chatJson, costOf };

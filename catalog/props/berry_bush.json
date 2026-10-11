@@ -1,0 +1,27 @@
+{
+ "id": "berry_bush",
+ "name": "bush with red berries",
+ "kind": "scenery",
+ "glb": "props/berry_bush.glb",
+ "desc": "a small green bush with many red berries (the berries can be taken)",
+ "words": [
+  "bush",
+  "berries",
+  "berry"
+ ],
+ "footprint": [
+  1.22,
+  0.996
+ ],
+ "height": 0.755,
+ "center_offset": [
+  0.01,
+  0.002
+ ],
+ "place": [
+  "floor"
+ ],
+ "stand": 0.8,
+ "surface": false,
+ "container": false
+}

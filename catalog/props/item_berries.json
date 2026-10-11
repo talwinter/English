@@ -1,0 +1,28 @@
+{
+ "id": "item_berries",
+ "name": "berries",
+ "kind": "item",
+ "glb": "props/item_berries.glb",
+ "desc": "a handful of red berries",
+ "words": [
+  "berries",
+  "berry"
+ ],
+ "footprint": [
+  0.2,
+  0.135
+ ],
+ "height": 0.077,
+ "center_offset": [
+  0.0,
+  0.0
+ ],
+ "place": [
+  "floor",
+  "surface",
+  "inside"
+ ],
+ "stand": 0.5,
+ "surface": false,
+ "container": false
+}

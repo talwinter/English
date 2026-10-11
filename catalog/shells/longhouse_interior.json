@@ -1,0 +1,63 @@
+{
+ "id": "longhouse_interior",
+ "name": "Viking longhouse inside",
+ "kind": "indoor",
+ "glb": "shells/longhouse_interior.glb",
+ "desc": "a warm log room with a plank floor and a high roof; walls at the back, left and right; the front is open to the camera",
+ "floor": [
+  -3.7,
+  -1.6,
+  3.7,
+  2.35
+ ],
+ "spawn": [
+  0.8,
+  -1.2
+ ],
+ "walls": {
+  "back": 2.45,
+  "left": -3.85,
+  "right": 3.85
+ },
+ "blocked": [],
+ "slots": {
+  "center": [
+   0.0,
+   0.5
+  ],
+  "hearth": [
+   -2.6,
+   1.2
+  ],
+  "by_door": [
+   3.0,
+   0.2
+  ]
+ },
+ "fixed": [],
+ "camera": {
+  "pos": [
+   0.0,
+   -6.8,
+   3.3
+  ],
+  "target": [
+   0.0,
+   0.7,
+   1.15
+  ],
+  "fov": 50.0
+ },
+ "sky": [
+  0.05,
+  0.04,
+  0.07
+ ],
+ "ambient": [
+  0.8,
+  0.62,
+  0.45
+ ],
+ "ambient_energy": 1.0,
+ "light": "lamp"
+}

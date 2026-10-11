@@ -1,0 +1,1309 @@
+{
+ "version": 1,
+ "shells": {
+  "cave_interior": {
+   "id": "cave_interior",
+   "name": "bear cave inside",
+   "kind": "indoor",
+   "glb": "shells/cave_interior.glb",
+   "desc": "a cold rocky cave with a flat stone floor, a dim light from the entrance at the left; walls at the back, left and right",
+   "floor": [
+    -3.7,
+    -1.6,
+    3.7,
+    2.35
+   ],
+   "spawn": [
+    -2.6,
+    -1
+   ],
+   "walls": {
+    "back": 2.45,
+    "left": -3.85,
+    "right": 3.85
+   },
+   "blocked": [],
+   "slots": {
+    "center": [
+     0,
+     0.5
+    ],
+    "back_left": [
+     -2,
+     1.6
+    ],
+    "back_right": [
+     2.2,
+     1.6
+    ]
+   },
+   "fixed": [],
+   "camera": {
+    "pos": [
+     0,
+     -6.8,
+     3.3
+    ],
+    "target": [
+     0,
+     0.7,
+     1.15
+    ],
+    "fov": 50
+   },
+   "sky": [
+    0.03,
+    0.03,
+    0.05
+   ],
+   "ambient": [
+    0.5,
+    0.52,
+    0.66
+   ],
+   "ambient_energy": 0.7,
+   "light": "lamp"
+  },
+  "forest_glade": {
+   "id": "forest_glade",
+   "name": "dark forest glade",
+   "kind": "outdoor",
+   "glb": "shells/forest_glade.glb",
+   "desc": "a snowy clearing in a thick dark pine forest, in dim cold light; space for a big fallen tree; the way out is at the left or right edge",
+   "floor": [
+    -5,
+    -1.8,
+    5,
+    3.2
+   ],
+   "spawn": [
+    -3.6,
+    -1
+   ],
+   "walls": {
+    "back": 3.2
+   },
+   "blocked": [],
+   "slots": {
+    "left_edge": [
+     -4.2,
+     0.4
+    ],
+    "right_edge": [
+     4.2,
+     0.4
+    ],
+    "center": [
+     0,
+     1
+    ]
+   },
+   "fixed": [],
+   "camera": {
+    "pos": [
+     0,
+     -8.6,
+     3.9
+    ],
+    "target": [
+     0,
+     0.8,
+     1.1
+    ],
+    "fov": 50
+   },
+   "sky": [
+    0.28,
+    0.34,
+    0.45
+   ],
+   "ambient": [
+    0.7,
+    0.78,
+    0.92
+   ],
+   "ambient_energy": 0.6,
+   "light": "sun"
+  },
+  "longhouse_interior": {
+   "id": "longhouse_interior",
+   "name": "Viking longhouse inside",
+   "kind": "indoor",
+   "glb": "shells/longhouse_interior.glb",
+   "desc": "a warm log room with a plank floor and a high roof; walls at the back, left and right; the front is open to the camera",
+   "floor": [
+    -3.7,
+    -1.6,
+    3.7,
+    2.35
+   ],
+   "spawn": [
+    0.8,
+    -1.2
+   ],
+   "walls": {
+    "back": 2.45,
+    "left": -3.85,
+    "right": 3.85
+   },
+   "blocked": [],
+   "slots": {
+    "center": [
+     0,
+     0.5
+    ],
+    "hearth": [
+     -2.6,
+     1.2
+    ],
+    "by_door": [
+     3,
+     0.2
+    ]
+   },
+   "fixed": [],
+   "camera": {
+    "pos": [
+     0,
+     -6.8,
+     3.3
+    ],
+    "target": [
+     0,
+     0.7,
+     1.15
+    ],
+    "fov": 50
+   },
+   "sky": [
+    0.05,
+    0.04,
+    0.07
+   ],
+   "ambient": [
+    0.8,
+    0.62,
+    0.45
+   ],
+   "ambient_energy": 0.55,
+   "light": "lamp"
+  },
+  "river_bridge": {
+   "id": "river_bridge",
+   "name": "river with an old bridge",
+   "kind": "outdoor",
+   "glb": "shells/river_bridge.glb",
+   "desc": "a frozen river with an old wooden bridge going into a snowy forest on the far side; you stand on this bank",
+   "floor": [
+    -5,
+    -1.8,
+    5,
+    0.8
+   ],
+   "spawn": [
+    -3.5,
+    -0.8
+   ],
+   "walls": {},
+   "blocked": [],
+   "slots": {
+    "bridge_middle": [
+     0,
+     2.2
+    ],
+    "bridge_start": [
+     0,
+     1.2
+    ],
+    "bank_left": [
+     -3.5,
+     -0.5
+    ],
+    "bank_right": [
+     3.5,
+     -0.5
+    ]
+   },
+   "fixed": [
+    {
+     "id": "bridge",
+     "name": "the old bridge",
+     "words": [
+      "bridge"
+     ],
+     "desc": "an old wooden bridge across the river"
+    },
+    {
+     "id": "river",
+     "name": "the river",
+     "words": [
+      "river",
+      "water"
+     ],
+     "desc": "a frozen river"
+    },
+    {
+     "id": "forest",
+     "name": "the forest",
+     "words": [
+      "forest",
+      "woods"
+     ],
+     "desc": "the dark pine forest across the river"
+    }
+   ],
+   "camera": {
+    "pos": [
+     0,
+     -7.2,
+     3.3
+    ],
+    "target": [
+     0,
+     1.6,
+     0.8
+    ],
+    "fov": 52
+   },
+   "sky": [
+    0.6,
+    0.74,
+    0.9
+   ],
+   "ambient": [
+    0.78,
+    0.84,
+    0.95
+   ],
+   "ambient_energy": 0.62,
+   "light": "sun"
+  },
+  "village_yard": {
+   "id": "village_yard",
+   "name": "snowy village yard",
+   "kind": "outdoor",
+   "glb": "shells/village_yard.glb",
+   "desc": "an open snowy yard in daylight with a trodden path; pines and mountains far behind; the way out is at the left or right edge",
+   "floor": [
+    -5,
+    -1.8,
+    5,
+    3.2
+   ],
+   "spawn": [
+    0,
+    -1
+   ],
+   "walls": {
+    "back": 3.2
+   },
+   "blocked": [],
+   "slots": {
+    "left_edge": [
+     -4.2,
+     0.4
+    ],
+    "right_edge": [
+     4.2,
+     0.4
+    ],
+    "center": [
+     0,
+     1
+    ]
+   },
+   "fixed": [],
+   "camera": {
+    "pos": [
+     0,
+     -8.6,
+     3.9
+    ],
+    "target": [
+     0,
+     0.8,
+     1.1
+    ],
+    "fov": 50
+   },
+   "sky": [
+    0.62,
+    0.76,
+    0.92
+   ],
+   "ambient": [
+    0.78,
+    0.84,
+    0.95
+   ],
+   "ambient_energy": 0.62,
+   "light": "sun"
+  }
+ },
+ "props": {
+  "barrel": {
+   "id": "barrel",
+   "name": "barrel",
+   "kind": "scenery",
+   "glb": "props/barrel.glb",
+   "desc": "a wooden barrel",
+   "words": [
+    "barrel"
+   ],
+   "footprint": [
+    0.67,
+    0.637
+   ],
+   "height": 0.815,
+   "center_offset": [
+    0,
+    0
+   ],
+   "place": [
+    "floor"
+   ],
+   "stand": 0.6,
+   "surface": false,
+   "container": false
+  },
+  "bear": {
+   "id": "bear",
+   "name": "bear",
+   "kind": "character",
+   "glb": "props/bear.glb",
+   "desc": "a big brown bear on four legs; friendly but hungry",
+   "words": [
+    "bear"
+   ],
+   "footprint": [
+    0.9,
+    1.9
+   ],
+   "height": 1.2,
+   "center_offset": [
+    0,
+    -0.217
+   ],
+   "place": [
+    "floor",
+    "slot"
+   ],
+   "stand": 1.4,
+   "surface": false,
+   "container": false,
+   "anims": {
+    "clips": [
+     "Idle"
+    ]
+   }
+  },
+  "bed_simple": {
+   "id": "bed_simple",
+   "name": "bed",
+   "kind": "furniture",
+   "glb": "props/bed_simple.glb",
+   "desc": "a simple wooden bed with a blue blanket",
+   "words": [
+    "bed"
+   ],
+   "footprint": [
+    1,
+    2
+   ],
+   "height": 0.62,
+   "center_offset": [
+    0,
+    0
+   ],
+   "place": [
+    "floor"
+   ],
+   "stand": 0.6,
+   "surface": false,
+   "container": false
+  },
+  "bench": {
+   "id": "bench",
+   "name": "wooden bench",
+   "kind": "furniture",
+   "glb": "props/bench.glb",
+   "desc": "a simple wooden bench",
+   "words": [
+    "bench",
+    "seat"
+   ],
+   "footprint": [
+    1.6,
+    0.44
+   ],
+   "height": 0.45,
+   "center_offset": [
+    0,
+    0
+   ],
+   "place": [
+    "floor"
+   ],
+   "stand": 0.5,
+   "surface": false,
+   "container": false
+  },
+  "berry_bush": {
+   "id": "berry_bush",
+   "name": "bush with red berries",
+   "kind": "scenery",
+   "glb": "props/berry_bush.glb",
+   "desc": "a small green bush with many red berries (the berries can be taken)",
+   "words": [
+    "bush",
+    "berries",
+    "berry"
+   ],
+   "footprint": [
+    1.22,
+    0.996
+   ],
+   "height": 0.755,
+   "center_offset": [
+    0.01,
+    0.002
+   ],
+   "place": [
+    "floor"
+   ],
+   "stand": 0.8,
+   "surface": false,
+   "container": false
+  },
+  "cave_mouth": {
+   "id": "cave_mouth",
+   "name": "cave",
+   "kind": "exit",
+   "glb": "props/cave_mouth.glb",
+   "desc": "a dark cave opening in a rock wall: the way into the cave",
+   "words": [
+    "cave",
+    "hole"
+   ],
+   "footprint": [
+    3.2,
+    1.3
+   ],
+   "height": 2.5,
+   "center_offset": [
+    0,
+    0.1
+   ],
+   "place": [
+    "edge",
+    "floor"
+   ],
+   "stand": 1,
+   "surface": false,
+   "container": false
+  },
+  "chest_wood": {
+   "id": "chest_wood",
+   "name": "wooden chest",
+   "kind": "furniture",
+   "glb": "props/chest_wood.glb",
+   "desc": "a wooden chest with an iron lock; small things can be inside",
+   "words": [
+    "chest",
+    "box"
+   ],
+   "footprint": [
+    1.14,
+    0.685
+   ],
+   "height": 0.6,
+   "center_offset": [
+    0,
+    -0.002
+   ],
+   "place": [
+    "floor"
+   ],
+   "stand": 0.65,
+   "surface": false,
+   "container": true,
+   "opens": {
+    "node": "chest_lid",
+    "axis": "x",
+    "angle": -105
+   },
+   "inside_height": 0.4
+  },
+  "door_wall": {
+   "id": "door_wall",
+   "name": "wooden door",
+   "kind": "exit",
+   "glb": "props/door_wall.glb",
+   "desc": "a wooden door in a wall; it leads somewhere else",
+   "words": [
+    "door",
+    "outside"
+   ],
+   "footprint": [
+    1.32,
+    0.2
+   ],
+   "height": 2.3,
+   "center_offset": [
+    0,
+    0
+   ],
+   "place": [
+    "wall"
+   ],
+   "stand": 0.7,
+   "surface": false,
+   "container": false,
+   "parts": {
+    "door": {
+     "center": [
+      0,
+      -0.1
+     ],
+     "size": [
+      1.3,
+      0.8,
+      2.3
+     ],
+     "min_z": 0
+    }
+   },
+   "opens": {
+    "node": "door_leaf",
+    "axis": "z",
+    "angle": 100
+   },
+   "wall": true
+  },
+  "fallen_tree": {
+   "id": "fallen_tree",
+   "name": "fallen tree",
+   "kind": "scenery",
+   "glb": "props/fallen_tree.glb",
+   "desc": "a very big pine tree lying on the ground, too heavy to move",
+   "words": [
+    "tree",
+    "log",
+    "trunk"
+   ],
+   "footprint": [
+    3.5,
+    0.9
+   ],
+   "height": 1.76,
+   "center_offset": [
+    -0.04,
+    0.062
+   ],
+   "place": [
+    "floor"
+   ],
+   "stand": 1.1,
+   "surface": false,
+   "container": false
+  },
+  "father": {
+   "id": "father",
+   "name": "your father",
+   "kind": "character",
+   "glb": "props/father.glb",
+   "desc": "the hero's game-father: a strong man with a brown beard and a brown tunic, standing",
+   "words": [
+    "father",
+    "dad",
+    "man"
+   ],
+   "footprint": [
+    0.665,
+    0.38
+   ],
+   "height": 1.78,
+   "center_offset": [
+    0,
+    -0.01
+   ],
+   "place": [
+    "floor"
+   ],
+   "stand": 0.9,
+   "surface": false,
+   "container": false,
+   "anims": {
+    "clips": [
+     "Idle"
+    ]
+   }
+  },
+  "father_trapped": {
+   "id": "father_trapped",
+   "name": "your father (on the ground)",
+   "kind": "character",
+   "glb": "props/father_trapped.glb",
+   "desc": "the hero's game-father lying on the ground; his legs are stuck, he waves one hand",
+   "words": [
+    "father",
+    "dad",
+    "man"
+   ],
+   "footprint": [
+    0.8,
+    2
+   ],
+   "height": 0.4,
+   "center_offset": [
+    0,
+    0.16
+   ],
+   "place": [
+    "floor"
+   ],
+   "stand": 1,
+   "surface": false,
+   "container": false,
+   "anims": {
+    "clips": [
+     "Idle"
+    ]
+   }
+  },
+  "fence_section": {
+   "id": "fence_section",
+   "name": "fence",
+   "kind": "decor",
+   "glb": "props/fence_section.glb",
+   "desc": "a short wooden fence",
+   "words": [
+    "fence"
+   ],
+   "footprint": [
+    1.96,
+    0.16
+   ],
+   "height": 1.02,
+   "center_offset": [
+    0,
+    0
+   ],
+   "place": [
+    "floor"
+   ],
+   "stand": 0.5,
+   "surface": false,
+   "container": false
+  },
+  "fire_pit": {
+   "id": "fire_pit",
+   "name": "fire",
+   "kind": "furniture",
+   "glb": "props/fire_pit.glb",
+   "desc": "a ring of stones with a warm fire",
+   "words": [
+    "fire",
+    "fireplace",
+    "flame"
+   ],
+   "footprint": [
+    1.428,
+    1.451
+   ],
+   "height": 0.95,
+   "center_offset": [
+    -0.004,
+    0
+   ],
+   "place": [
+    "floor"
+   ],
+   "stand": 0.8,
+   "surface": false,
+   "container": false,
+   "anims": {
+    "flicker": [
+     "flame_a",
+     "flame_b",
+     "flame_c"
+    ]
+   },
+   "lights": [
+    {
+     "kind": "fire",
+     "at": [
+      0,
+      -0.2,
+      0.7
+     ]
+    }
+   ]
+  },
+  "forest_edge": {
+   "id": "forest_edge",
+   "name": "dark forest",
+   "kind": "exit",
+   "glb": "props/forest_edge.glb",
+   "desc": "a thick group of pine trees: the way into the forest",
+   "words": [
+    "forest",
+    "woods",
+    "path"
+   ],
+   "footprint": [
+    4.8,
+    2.2
+   ],
+   "height": 4.01,
+   "center_offset": [
+    0.171,
+    0.319
+   ],
+   "place": [
+    "edge",
+    "floor"
+   ],
+   "stand": 0.9,
+   "surface": false,
+   "container": false
+  },
+  "grandmother": {
+   "id": "grandmother",
+   "name": "Grandmother",
+   "kind": "character",
+   "glb": "props/grandmother.glb",
+   "desc": "the hero's grandmother: an old, kind woman in a long purple dress with white hair in a bun",
+   "words": [
+    "grandmother",
+    "grandma",
+    "woman"
+   ],
+   "footprint": [
+    0.68,
+    0.52
+   ],
+   "height": 1.66,
+   "center_offset": [
+    0,
+    0
+   ],
+   "place": [
+    "floor"
+   ],
+   "stand": 0.9,
+   "surface": false,
+   "container": false,
+   "anims": {
+    "clips": [
+     "Idle"
+    ]
+   }
+  },
+  "house_viking": {
+   "id": "house_viking",
+   "name": "Viking log house",
+   "kind": "scenery",
+   "glb": "props/house_viking.glb",
+   "desc": "a log house with a snowy roof, a red front door and a lit window; the door and window are parts",
+   "words": [
+    "house",
+    "home"
+   ],
+   "footprint": [
+    4.3,
+    2.8
+   ],
+   "height": 3.62,
+   "center_offset": [
+    0,
+    0
+   ],
+   "place": [
+    "floor"
+   ],
+   "stand": 0.9,
+   "surface": false,
+   "container": false,
+   "parts": {
+    "door": {
+     "center": [
+      0,
+      -1.45
+     ],
+     "size": [
+      1,
+      0.5,
+      1.7
+     ],
+     "min_z": 0
+    },
+    "window": {
+     "center": [
+      1.35,
+      -1.35
+     ],
+     "size": [
+      0.8,
+      0.3,
+      0.6
+     ],
+     "min_z": 0.95
+    }
+   },
+   "opens": {
+    "part": "door",
+    "node": "door",
+    "axis": "z",
+    "angle": 100
+   },
+   "lights": [
+    {
+     "kind": "window",
+     "at": [
+      1.35,
+      -2.2,
+      1.3
+     ]
+    }
+   ],
+   "back_to_wall": true
+  },
+  "item_berries": {
+   "id": "item_berries",
+   "name": "berries",
+   "kind": "item",
+   "glb": "props/item_berries.glb",
+   "desc": "a handful of red berries",
+   "words": [
+    "berries",
+    "berry"
+   ],
+   "footprint": [
+    0.2,
+    0.135
+   ],
+   "height": 0.077,
+   "center_offset": [
+    0,
+    0
+   ],
+   "place": [
+    "floor",
+    "surface",
+    "inside"
+   ],
+   "stand": 0.5,
+   "surface": false,
+   "container": false
+  },
+  "item_bread": {
+   "id": "item_bread",
+   "name": "loaf of bread",
+   "kind": "item",
+   "glb": "props/item_bread.glb",
+   "desc": "a fresh round loaf of bread",
+   "words": [
+    "bread",
+    "loaf"
+   ],
+   "footprint": [
+    0.33,
+    0.236
+   ],
+   "height": 0.15,
+   "center_offset": [
+    0.005,
+    0
+   ],
+   "place": [
+    "floor",
+    "surface",
+    "inside"
+   ],
+   "stand": 0.5,
+   "surface": false,
+   "container": false
+  },
+  "item_fish": {
+   "id": "item_fish",
+   "name": "fish",
+   "kind": "item",
+   "glb": "props/item_fish.glb",
+   "desc": "a silver fish",
+   "words": [
+    "fish"
+   ],
+   "footprint": [
+    0.462,
+    0.095
+   ],
+   "height": 0.09,
+   "center_offset": [
+    0.069,
+    0
+   ],
+   "place": [
+    "floor",
+    "surface",
+    "inside"
+   ],
+   "stand": 0.5,
+   "surface": false,
+   "container": false
+  },
+  "item_key": {
+   "id": "item_key",
+   "name": "small iron key",
+   "kind": "item",
+   "glb": "props/item_key.glb",
+   "desc": "a small old iron key",
+   "words": [
+    "key"
+   ],
+   "footprint": [
+    0.337,
+    0.108
+   ],
+   "height": 0.075,
+   "center_offset": [
+    0.032,
+    0
+   ],
+   "place": [
+    "floor",
+    "surface",
+    "inside"
+   ],
+   "stand": 0.5,
+   "surface": false,
+   "container": false
+  },
+  "item_rope": {
+   "id": "item_rope",
+   "name": "rope",
+   "kind": "item",
+   "glb": "props/item_rope.glb",
+   "desc": "a coil of rope",
+   "words": [
+    "rope"
+   ],
+   "footprint": [
+    0.252,
+    0.252
+   ],
+   "height": 0.095,
+   "center_offset": [
+    0,
+    0
+   ],
+   "place": [
+    "floor",
+    "surface",
+    "inside"
+   ],
+   "stand": 0.5,
+   "surface": false,
+   "container": false
+  },
+  "item_sword": {
+   "id": "item_sword",
+   "name": "sword",
+   "kind": "item",
+   "glb": "props/item_sword.glb",
+   "desc": "a big Viking sword with a leather handle",
+   "words": [
+    "sword"
+   ],
+   "footprint": [
+    1.15,
+    0.2
+   ],
+   "height": 0.045,
+   "center_offset": [
+    0.175,
+    0
+   ],
+   "place": [
+    "floor",
+    "surface",
+    "inside"
+   ],
+   "stand": 0.55,
+   "surface": false,
+   "container": false
+  },
+  "item_torch": {
+   "id": "item_torch",
+   "name": "torch",
+   "kind": "item",
+   "glb": "props/item_torch.glb",
+   "desc": "a wooden torch with a small fire",
+   "words": [
+    "torch"
+   ],
+   "footprint": [
+    0.14,
+    0.121
+   ],
+   "height": 0.8,
+   "center_offset": [
+    0,
+    0
+   ],
+   "place": [
+    "floor",
+    "surface",
+    "inside"
+   ],
+   "stand": 0.5,
+   "surface": false,
+   "container": false,
+   "anims": {
+    "flicker": [
+     "flame",
+     "flame_core"
+    ]
+   },
+   "lights": [
+    {
+     "kind": "lantern",
+     "at": [
+      0,
+      0,
+      0.9
+     ]
+    }
+   ]
+  },
+  "lantern_post": {
+   "id": "lantern_post",
+   "name": "lantern post",
+   "kind": "decor",
+   "glb": "props/lantern_post.glb",
+   "desc": "an iron post with a glowing lantern",
+   "words": [
+    "lantern",
+    "lamp",
+    "light"
+   ],
+   "footprint": [
+    0.58,
+    0.26
+   ],
+   "height": 1.9,
+   "center_offset": [
+    0.24,
+    0
+   ],
+   "place": [
+    "floor"
+   ],
+   "stand": 0.6,
+   "surface": false,
+   "container": false,
+   "lights": [
+    {
+     "kind": "lantern",
+     "at": [
+      0.4,
+      -0.3,
+      1.6
+     ]
+    }
+   ]
+  },
+  "pine_tree": {
+   "id": "pine_tree",
+   "name": "pine tree",
+   "kind": "scenery",
+   "glb": "props/pine_tree.glb",
+   "desc": "a tall pine tree with snow",
+   "words": [
+    "tree",
+    "pine"
+   ],
+   "footprint": [
+    1.1,
+    1.1
+   ],
+   "height": 3.135,
+   "center_offset": [
+    0.053,
+    0
+   ],
+   "place": [
+    "floor"
+   ],
+   "stand": 0.8,
+   "surface": false,
+   "container": false
+  },
+  "rock_big": {
+   "id": "rock_big",
+   "name": "big rock",
+   "kind": "scenery",
+   "glb": "props/rock_big.glb",
+   "desc": "a big grey boulder with snow on top",
+   "words": [
+    "rock",
+    "stone",
+    "boulder"
+   ],
+   "footprint": [
+    1.5,
+    1.1
+   ],
+   "height": 0.82,
+   "center_offset": [
+    0.083,
+    0
+   ],
+   "place": [
+    "floor"
+   ],
+   "stand": 0.7,
+   "surface": false,
+   "container": false
+  },
+  "shelf_wall": {
+   "id": "shelf_wall",
+   "name": "wooden shelf",
+   "kind": "decor",
+   "glb": "props/shelf_wall.glb",
+   "desc": "a small wooden shelf with jars",
+   "words": [
+    "shelf",
+    "jar",
+    "jars"
+   ],
+   "footprint": [
+    1.2,
+    0.24
+   ],
+   "height": 1.56,
+   "center_offset": [
+    0,
+    0
+   ],
+   "place": [
+    "wall"
+   ],
+   "stand": 0.6,
+   "surface": false,
+   "container": false,
+   "wall": true
+  },
+  "shield_wall": {
+   "id": "shield_wall",
+   "name": "round shield",
+   "kind": "decor",
+   "glb": "props/shield_wall.glb",
+   "desc": "a red and yellow round shield on the wall",
+   "words": [
+    "shield"
+   ],
+   "footprint": [
+    0.8,
+    0.12
+   ],
+   "height": 1.94,
+   "center_offset": [
+    0,
+    -0.025
+   ],
+   "place": [
+    "wall"
+   ],
+   "stand": 0.6,
+   "surface": false,
+   "container": false,
+   "wall": true
+  },
+  "signpost": {
+   "id": "signpost",
+   "name": "wooden sign",
+   "kind": "scenery",
+   "glb": "props/signpost.glb",
+   "desc": "a wooden signpost with two boards",
+   "words": [
+    "sign",
+    "signpost",
+    "post"
+   ],
+   "footprint": [
+    1.18,
+    0.185
+   ],
+   "height": 1.56,
+   "center_offset": [
+    0.04,
+    -0.002
+   ],
+   "place": [
+    "floor"
+   ],
+   "stand": 0.6,
+   "surface": false,
+   "container": false
+  },
+  "table_long": {
+   "id": "table_long",
+   "name": "long wooden table",
+   "kind": "furniture",
+   "glb": "props/table_long.glb",
+   "desc": "a long wooden table; small things can be put on it",
+   "words": [
+    "table"
+   ],
+   "footprint": [
+    2,
+    0.9
+   ],
+   "height": 0.82,
+   "center_offset": [
+    0,
+    0
+   ],
+   "place": [
+    "floor"
+   ],
+   "stand": 0.65,
+   "surface": true,
+   "container": false,
+   "surface_height": 0.82
+  },
+  "wolf": {
+   "id": "wolf",
+   "name": "wolf",
+   "kind": "character",
+   "glb": "props/wolf.glb",
+   "desc": "a big, thin grey wolf with sad eyes; hungry, not scary",
+   "words": [
+    "wolf",
+    "dog"
+   ],
+   "footprint": [
+    0.429,
+    2.093
+   ],
+   "height": 1,
+   "center_offset": [
+    0,
+    -0.047
+   ],
+   "place": [
+    "floor",
+    "slot"
+   ],
+   "stand": 1.1,
+   "surface": false,
+   "container": false,
+   "anims": {
+    "clips": [
+     "Idle"
+    ]
+   }
+  }
+ }
+}

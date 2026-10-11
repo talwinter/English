@@ -523,6 +523,7 @@
    ]
   }
  ],
+ "endingStyle": "fall",
  "ending": [
   "The screen is very bright! The light pulls you into the computer!",
   "You fall and fall and fall...",
@@ -724,6 +725,38 @@
    "kind": "item",
    "height": 10,
    "prompt": "an old black 5.25 inch floppy disk with a white label"
+  }
+ ],
+ "solution": [
+  {
+   "verb": "open",
+   "obj": "box",
+   "item": ""
+  },
+  {
+   "verb": "take",
+   "obj": "cable",
+   "item": ""
+  },
+  {
+   "verb": "take",
+   "obj": "disk",
+   "item": ""
+  },
+  {
+   "verb": "use",
+   "obj": "computer",
+   "item": "cable"
+  },
+  {
+   "verb": "use",
+   "obj": "computer",
+   "item": "disk"
+  },
+  {
+   "verb": "talk",
+   "obj": "computer",
+   "item": ""
   }
  ]
 }
