@@ -562,12 +562,12 @@ function createWriter({ dataDir, env, getContent, reload, art, log, getProfile =
   }
 
   // Keep a few episodes ready: write when nothing waits for a parent and fewer than `ahead` are unplayed.
-  function maybeWrite(unplayedCount) {
+  function maybeWrite(unplayedCount, opts = {}) {
     const ahead = Number(env.EPISODES_AHEAD || 2);
     if (!env.OPENAI_API_KEY || writing || env.AUTO_WRITE === "false") return;
     if (index.drafts.some((d) => d.status === "ready" || d.status === "writing")) return;
     if (unplayedCount >= ahead) return;
-    if (Date.now() - lastAttempt < 6 * 60 * 60 * 1000) return; // at most every 6 hours, also after errors
+    if (!opts.scheduled && Date.now() - lastAttempt < 6 * 60 * 60 * 1000) return; // at most every 6 hours, also after errors
     write().catch(() => { /* logged */ });
   }
 

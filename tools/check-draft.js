@@ -18,7 +18,7 @@ const arg = (n, d = null) => { const i = args.indexOf(`--${n}`); return i >= 0 ?
 
 try {
   for (const line of fs.readFileSync(path.join(ROOT, ".env"), "utf8").split(/\r?\n/)) {
-    const m = /^(SERVER_ADMIN_PASSWORD|DEV_ADMIN_PASSWORD)=(.*)$/.exec(line.trim());
+    const m = /^(SERVER_ADMIN_PASSWORD|DEV_ADMIN_PASSWORD|CHECK_SERVER)=(.*)$/.exec(line.trim());
     if (m && !(m[1] in process.env)) process.env[m[1]] = m[2];
   }
 } catch { /* no .env */ }
@@ -27,7 +27,7 @@ const GODOT = path.join(process.env.LOCALAPPDATA || "", "Microsoft", "WinGet", "
   "GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe", "Godot_v4.7.2-stable_win64_console.exe");
 
 async function main() {
-  const server = (arg("server", "http://localhost:8081")).replace(/\/+$/, "");
+  const server = (arg("server", process.env.CHECK_SERVER || "http://localhost:8081")).replace(/\/+$/, "");
   const isLocal = /localhost|127\.0\.0\.1/.test(server);
   const pw = isLocal ? (process.env.DEV_ADMIN_PASSWORD || "dev") : process.env.SERVER_ADMIN_PASSWORD;
   if (!pw) { console.error("Set SERVER_ADMIN_PASSWORD (the server's ADMIN_PASSWORD) in the environment or in .env."); process.exit(1); }

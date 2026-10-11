@@ -36,7 +36,8 @@ laid out in 3D.
 | `WAKE_TIME` | empty | The art PC is not used any more. |
 | `OPENAI_API_KEY` | your key | Writes the episodes (a few cents each). |
 | `AUTO_WRITE` | `true` (or remove it) | Keeps `EPISODES_AHEAD` new episodes ready. |
-| `EPISODES_AHEAD` | `2` | How many to keep ready. |
+| `EPISODES_AHEAD` | `2` | How many approved episodes should be waiting for him. |
+| `WRITE_TIME` | `04:00` | Once a day, at this time, the next episode is written if fewer than `EPISODES_AHEAD` are waiting. Empty = check every hour. |
 | `AUTO_PUBLISH` | `false` | You try each new episode on the parent page, then approve. Set `true` later if you trust it. |
 | `EPISODE_FORMAT` | not set | 3D is the default. `2d` is the old pictures format (not used any more). |
 
@@ -85,6 +86,21 @@ there is nothing to copy.
 Rule for code that goes in an update: a **new** script that other scripts use must be reached with
 `preload("res://scripts/x.gd")`, not by `class_name`, because the engine only knows class names from the files the
 game started with. Changing an existing script, scene, model, sound or catalog is always fine.
+
+## 2d. The daily rhythm
+
+| Time | What | Who |
+|---|---|---|
+| 04:00 | If fewer than 2 approved episodes wait for him, the next one is written (OpenAI, a few cents), laid out and checked. If 2 wait, nothing is written. | the server |
+| 04:30 | `tools\morning-check.ps1` (a Windows scheduled task, `EnglishQuest-MorningCheck`, on the dev PC) plays the waiting draft in the real game with the robot. No tokens. Only when it finds a problem does it start Claude once, to look at it. Log: `dist\checks\morning.log`. | the dev PC |
+| morning | You look at the draft on the parent page and press approve. | you |
+| 08:00 | Discord locks. He plays the one episode of the day, passes the word challenge, Discord opens. Words he can always study. | him |
+
+One episode a day: after the challenge the start screen says "come back tomorrow"; the server also refuses to offer
+a second episode that day.
+
+Where the check looks: `CHECK_SERVER` in the dev PC's `.env` (default `http://localhost:8081`, the dev server).
+Point it at the real server (`http://192.168.2.47:8080`, with `SERVER_ADMIN_PASSWORD` in `.env`) when it is live.
 
 ## 3. The first morning
 

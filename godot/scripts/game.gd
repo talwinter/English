@@ -13,6 +13,7 @@ const SHOTS_DIR := "res://shots"
 var args: PackedStringArray
 var server := ""
 var episode_id := "s1e0"
+var menu_mode := false           # the start screen (only with a server, and not when testing)
 var draft_mode := false          # --draft: play a waiting draft from the parent page (needs --admin=PASSWORD)
 var admin_password := ""
 var pixel_look := false
@@ -91,11 +92,13 @@ func _ready() -> void:
 	server = _server_from_file()
 	if "--no-server" in args:
 		server = ""
+	var explicit_episode := false
 	for a in args:
 		if a.begins_with("--server="):
 			server = a.trim_prefix("--server=")
 		elif a.begins_with("--episode="):
 			episode_id = a.trim_prefix("--episode=")
+			explicit_episode = true
 		elif a == "--draft":
 			draft_mode = true
 		elif a.begins_with("--admin="):
@@ -112,13 +115,78 @@ func _ready() -> void:
 	loading_label.offset_right = 300
 	add_child(loading_label)
 	hud.set_visible_all(false)
+	# the start screen: with a server, the day's mission decides what he can play (one episode a day)
+	var status: Dictionary = {}
+	var testing := false
+	for flag in ["--flow-test", "--words-demo", "--click-test", "--tips-auto", "--no-menu"]:
+		testing = testing or (flag in args)
+	menu_mode = server != "" and not autoplay and not draft_mode and not explicit_episode and not testing
+	if menu_mode:
+		var r := await api.get_json("/api/status")
+		if bool(r["ok"]):
+			status = r["data"]
+			var m: Dictionary = status.get("mission", {})
+			if String(m.get("type", "")) == "episode":
+				episode_id = String(m.get("episode", episode_id))
+		else:
+			menu_mode = false   # the server does not answer: play as before
 	if not await _load_data():
 		loading_label.text = "Something is missing. Look at the Godot output."
 		return
 	loading_label.queue_free()
 	loading_label = null
 	preload("res://scripts/update_state.gd").confirm()   # an installed update works: it reached the title
+	if menu_mode:
+		await _main_menu(status)
 	_start()
+
+
+## The start screen: play today's episode (or continue it), take the challenge, study the words, settings.
+## It stays until he chooses to play; when everything for today is done there is nothing to play.
+func _main_menu(status: Dictionary) -> void:
+	var menu: Variant = preload("res://scripts/main_menu.gd").new()
+	add_child(menu)
+	var m: Dictionary = status.get("mission", {})
+	while true:
+		var done_today := bool(status.get("doneToday", false))
+		var mode := "play"
+		if String(m.get("type", "")) == "challenge":
+			mode = "done" if done_today else "challenge"
+		elif SaveGame.read(episode_id).size() > 0:
+			mode = "resume"
+		for a in args:   # a way to look at the other screens: --menu-mode=done
+			if a.begins_with("--menu-mode="):
+				mode = a.trim_prefix("--menu-mode=")
+		var counts := store.counts(dictionary)
+		var who: Variant = status.get("name")
+		menu.show_state({"mode": mode, "title": String(m.get("title", "")), "name": "" if who == null else String(who),
+			"streak": int(status.get("streak", 0)), "words": int(counts.get("met", 0))})
+		if take_shots:
+			await get_tree().create_timer(0.8).timeout
+			await _shot("menu_" + mode)
+		var action: String = await menu.chosen
+		match action:
+			"play":
+				break
+			"words":
+				wordui.show_book()
+			"settings":
+				settings_ui.open_menu()
+			"challenge":
+				menu.visible = false
+				hud.set_visible_all(false)
+				mission.robot = false
+				await mission.run()
+				await _sync_words()
+				var r := await api.get_json("/api/status")
+				if bool(r["ok"]):
+					status = r["data"]
+					m = status.get("mission", {})
+				menu.visible = true
+			"quit":
+				get_tree().quit()
+				return
+	menu.queue_free()
 
 
 ## The server's address, from godot/server.txt (one line, for example http://192.168.1.50:8080). The voices
@@ -1546,6 +1614,11 @@ func _finish_episode() -> void:
 	var reports := api.enabled() and (report_done or "--report" in args or flow_test) and (not autoplay or flow_test)
 	if reports:
 		await _end_of_day(flow_test)
+		if menu_mode:
+			# the day is done: back to the start screen, which says what is left for today
+			await get_tree().create_timer(1.5).timeout
+			get_tree().reload_current_scene()
+			return
 	elif api.enabled() and not autoplay:
 		hud.add_message("say", "(This PC does not report to the server, so Discord is not changed.)")
 	if autoplay:
@@ -1679,6 +1752,9 @@ func _shot(name: String) -> void:
 	var dir := ProjectSettings.globalize_path(SHOTS_DIR)
 	DirAccess.make_dir_recursive_absolute(dir)
 	get_viewport().get_texture().get_image().save_png("%s/%s.png" % [dir, name])
+	if cam == null or hero == null:
+		print("SHOT ", name)
+		return
 	print("SHOT ", name, " cam=", cam.global_position, " fov=", cam.fov, " hero=", hero.global_position, " hero_scale=", hero.global_transform.basis.get_scale())
 
 

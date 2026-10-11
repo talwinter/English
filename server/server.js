@@ -698,8 +698,25 @@ server.listen(config.port, () => {
   setInterval(prepareVoices, 5 * 60 * 1000);
   // Keep new episodes coming.
   const unplayed = () => content.episodes.filter((e) => !state().episodesDone.includes(e.id)).length;
-  setTimeout(() => writer.maybeWrite(unplayed()), 60 * 1000);
-  setInterval(() => writer.maybeWrite(unplayed()), 60 * 60 * 1000);
+  if (env.WRITE_TIME) {
+    // At a fixed time every day (for example 04:00), once: when fewer than EPISODES_AHEAD episodes are waiting
+    // for him, the next one is written. A parent checks it in the morning.
+    const writeAt = parseTime(env.WRITE_TIME);
+    const writeTick = () => {
+      const { date, minutes } = require("./schedule").parts(new Date(), config.timeZone);
+      if (minutes >= writeAt && minutes < writeAt + 60 && state().lastWriteDate !== date) {
+        state().lastWriteDate = date;
+        store.save();
+        store.log(`Daily writing time (${env.WRITE_TIME}): ${unplayed()} episodes are waiting for him`);
+        writer.maybeWrite(unplayed(), { scheduled: true });
+      }
+    };
+    setInterval(writeTick, 30 * 1000);
+    setTimeout(writeTick, 20 * 1000);
+  } else {
+    setTimeout(() => writer.maybeWrite(unplayed()), 60 * 1000);
+    setInterval(() => writer.maybeWrite(unplayed()), 60 * 60 * 1000);
+  }
 });
 
 module.exports = { server };
