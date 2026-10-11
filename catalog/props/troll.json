@@ -1,0 +1,32 @@
+{
+ "id": "troll",
+ "name": "troll",
+ "kind": "character",
+ "glb": "props/troll.glb",
+ "desc": "a big green troll with tusks and a wooden club; grumpy but not really dangerous",
+ "words": [
+  "troll",
+  "monster"
+ ],
+ "footprint": [
+  1.946,
+  0.956
+ ],
+ "height": 2.6,
+ "center_offset": [
+  0.0,
+  -0.098
+ ],
+ "place": [
+  "floor",
+  "slot"
+ ],
+ "stand": 1.6,
+ "surface": false,
+ "container": false,
+ "anims": {
+  "clips": [
+   "Idle"
+  ]
+ }
+}

@@ -1,0 +1,39 @@
+{
+ "id": "rune_stone",
+ "name": "rune stone",
+ "kind": "scenery",
+ "glb": "props/rune_stone.glb",
+ "desc": "a tall standing stone with glowing blue runes (signs) on its front",
+ "words": [
+  "rune",
+  "runes",
+  "stone",
+  "sign"
+ ],
+ "footprint": [
+  1.6,
+  0.7
+ ],
+ "height": 2.4,
+ "center_offset": [
+  0.0,
+  0.0
+ ],
+ "place": [
+  "floor",
+  "wall"
+ ],
+ "stand": 1.0,
+ "surface": false,
+ "container": false,
+ "lights": [
+  {
+   "kind": "lantern",
+   "at": [
+    0,
+    -0.5,
+    1.4
+   ]
+  }
+ ]
+}

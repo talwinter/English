@@ -1,0 +1,39 @@
+{
+ "id": "save_disk",
+ "name": "Save Disk",
+ "kind": "item",
+ "glb": "props/save_disk.glb",
+ "desc": "a glowing blue floppy disk: a Save Disk that keeps the game from forgetting",
+ "words": [
+  "disk",
+  "save disk",
+  "floppy"
+ ],
+ "footprint": [
+  0.504,
+  0.504
+ ],
+ "height": 0.052,
+ "center_offset": [
+  0.0,
+  0.0
+ ],
+ "place": [
+  "floor",
+  "surface",
+  "inside"
+ ],
+ "stand": 0.5,
+ "surface": false,
+ "container": false,
+ "lights": [
+  {
+   "kind": "lantern",
+   "at": [
+    0,
+    0,
+    0.35
+   ]
+  }
+ ]
+}

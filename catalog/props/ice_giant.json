@@ -1,0 +1,33 @@
+{
+ "id": "ice_giant",
+ "name": "ice giant",
+ "kind": "character",
+ "glb": "props/ice_giant.glb",
+ "desc": "a very tall giant of ice with a metal helmet with horns, a fur cloak and a beard of icicles",
+ "words": [
+  "giant",
+  "ice giant",
+  "monster"
+ ],
+ "footprint": [
+  2.713,
+  1.229
+ ],
+ "height": 4.1,
+ "center_offset": [
+  0.004,
+  -0.014
+ ],
+ "place": [
+  "floor",
+  "slot"
+ ],
+ "stand": 2.2,
+ "surface": false,
+ "container": false,
+ "anims": {
+  "clips": [
+   "Idle"
+  ]
+ }
+}

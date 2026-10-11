@@ -1,0 +1,63 @@
+{
+ "id": "ice_cave",
+ "name": "ice cave",
+ "kind": "indoor",
+ "glb": "shells/ice_cave.glb",
+ "desc": "a cold cave made of blue ice with icicles and glowing crystals, dark; walls at the back, left and right",
+ "floor": [
+  -3.7,
+  -1.6,
+  3.7,
+  2.35
+ ],
+ "spawn": [
+  -2.6,
+  -1.0
+ ],
+ "walls": {
+  "back": 2.45,
+  "left": -3.85,
+  "right": 3.85
+ },
+ "blocked": [],
+ "slots": {
+  "center": [
+   0.0,
+   0.5
+  ],
+  "back_left": [
+   -2.0,
+   1.6
+  ],
+  "back_right": [
+   2.2,
+   1.6
+  ]
+ },
+ "fixed": [],
+ "camera": {
+  "pos": [
+   0.0,
+   -6.8,
+   3.3
+  ],
+  "target": [
+   0.0,
+   0.7,
+   1.15
+  ],
+  "fov": 50.0
+ },
+ "sky": [
+  0.02,
+  0.04,
+  0.08
+ ],
+ "ambient": [
+  0.5,
+  0.62,
+  0.85
+ ],
+ "ambient_energy": 0.8,
+ "light": "lamp"
+}

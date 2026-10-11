@@ -1,0 +1,27 @@
+{
+ "id": "ice_hole",
+ "name": "fishing hole",
+ "kind": "decor",
+ "glb": "props/ice_hole.glb",
+ "desc": "a round hole in the ice where the fisherman fishes",
+ "words": [
+  "hole",
+  "ice",
+  "water"
+ ],
+ "footprint": [
+  1.994,
+  2.089
+ ],
+ "height": 0.053,
+ "center_offset": [
+  0.103,
+  0.018
+ ],
+ "place": [
+  "floor"
+ ],
+ "stand": 0.9,
+ "surface": false,
+ "container": false
+}

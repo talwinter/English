@@ -1,0 +1,69 @@
+{
+ "id": "frozen_lake",
+ "name": "frozen lake",
+ "kind": "outdoor",
+ "glb": "shells/frozen_lake.glb",
+ "desc": "a wide frozen lake seen from the snowy shore: smooth blue ice with cracks, pines and mountains on the far side; things can stand on the ice",
+ "floor": [
+  -5.0,
+  -1.8,
+  5.0,
+  3.2
+ ],
+ "spawn": [
+  0.0,
+  -1.2
+ ],
+ "walls": {
+  "back": 3.2
+ },
+ "blocked": [],
+ "slots": {
+  "shore": [
+   0.0,
+   -1.2
+  ],
+  "ice_middle": [
+   0.0,
+   1.4
+  ],
+  "far_side": [
+   0.0,
+   2.9
+  ],
+  "left_edge": [
+   -4.2,
+   0.4
+  ],
+  "right_edge": [
+   4.2,
+   0.4
+  ]
+ },
+ "fixed": [],
+ "camera": {
+  "pos": [
+   0.0,
+   -8.6,
+   3.9
+  ],
+  "target": [
+   0.0,
+   0.8,
+   1.1
+  ],
+  "fov": 50.0
+ },
+ "sky": [
+  0.6,
+  0.76,
+  0.92
+ ],
+ "ambient": [
+  0.8,
+  0.88,
+  0.98
+ ],
+ "ambient_energy": 0.7,
+ "light": "sun"
+}

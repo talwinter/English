@@ -125,6 +125,138 @@
    "ambient_energy": 0.6,
    "light": "sun"
   },
+  "frozen_lake": {
+   "id": "frozen_lake",
+   "name": "frozen lake",
+   "kind": "outdoor",
+   "glb": "shells/frozen_lake.glb",
+   "desc": "a wide frozen lake seen from the snowy shore: smooth blue ice with cracks, pines and mountains on the far side; things can stand on the ice",
+   "floor": [
+    -5,
+    -1.8,
+    5,
+    3.2
+   ],
+   "spawn": [
+    0,
+    -1.2
+   ],
+   "walls": {
+    "back": 3.2
+   },
+   "blocked": [],
+   "slots": {
+    "shore": [
+     0,
+     -1.2
+    ],
+    "ice_middle": [
+     0,
+     1.4
+    ],
+    "far_side": [
+     0,
+     2.9
+    ],
+    "left_edge": [
+     -4.2,
+     0.4
+    ],
+    "right_edge": [
+     4.2,
+     0.4
+    ]
+   },
+   "fixed": [],
+   "camera": {
+    "pos": [
+     0,
+     -8.6,
+     3.9
+    ],
+    "target": [
+     0,
+     0.8,
+     1.1
+    ],
+    "fov": 50
+   },
+   "sky": [
+    0.6,
+    0.76,
+    0.92
+   ],
+   "ambient": [
+    0.74,
+    0.82,
+    0.95
+   ],
+   "ambient_energy": 0.5,
+   "light": "sun"
+  },
+  "ice_cave": {
+   "id": "ice_cave",
+   "name": "ice cave",
+   "kind": "indoor",
+   "glb": "shells/ice_cave.glb",
+   "desc": "a cold cave made of blue ice with icicles and glowing crystals, dark; walls at the back, left and right",
+   "floor": [
+    -3.7,
+    -1.6,
+    3.7,
+    2.35
+   ],
+   "spawn": [
+    -2.6,
+    -1
+   ],
+   "walls": {
+    "back": 2.45,
+    "left": -3.85,
+    "right": 3.85
+   },
+   "blocked": [],
+   "slots": {
+    "center": [
+     0,
+     0.5
+    ],
+    "back_left": [
+     -2,
+     1.6
+    ],
+    "back_right": [
+     2.2,
+     1.6
+    ]
+   },
+   "fixed": [],
+   "camera": {
+    "pos": [
+     0,
+     -6.8,
+     3.3
+    ],
+    "target": [
+     0,
+     0.7,
+     1.15
+    ],
+    "fov": 50
+   },
+   "sky": [
+    0.02,
+    0.04,
+    0.08
+   ],
+   "ambient": [
+    0.5,
+    0.62,
+    0.85
+   ],
+   "ambient_energy": 0.8,
+   "light": "lamp"
+  },
   "longhouse_interior": {
    "id": "longhouse_interior",
    "name": "Viking longhouse inside",
@@ -740,6 +872,38 @@
     }
    ]
   },
+  "fisherman": {
+   "id": "fisherman",
+   "name": "fisherman",
+   "kind": "character",
+   "glb": "props/fisherman.glb",
+   "desc": "a friendly fisherman in a blue coat and a red wool cap with a grey beard, holding a fishing rod",
+   "words": [
+    "fisherman",
+    "man",
+    "fisher"
+   ],
+   "footprint": [
+    0.7,
+    0.8
+   ],
+   "height": 1.9,
+   "center_offset": [
+    0,
+    -0.58
+   ],
+   "place": [
+    "floor"
+   ],
+   "stand": 1,
+   "surface": false,
+   "container": false,
+   "anims": {
+    "clips": [
+     "Idle"
+    ]
+   }
+  },
   "forest_edge": {
    "id": "forest_edge",
    "name": "dark forest",
@@ -868,6 +1032,103 @@
     }
    ],
    "back_to_wall": true
+  },
+  "ice_crystal": {
+   "id": "ice_crystal",
+   "name": "ice crystals",
+   "kind": "decor",
+   "glb": "props/ice_crystal.glb",
+   "desc": "a cluster of glowing blue ice crystals growing from the ground",
+   "words": [
+    "crystal",
+    "crystals",
+    "ice"
+   ],
+   "footprint": [
+    1,
+    0.9
+   ],
+   "height": 1.49,
+   "center_offset": [
+    0,
+    0
+   ],
+   "place": [
+    "floor"
+   ],
+   "stand": 0.7,
+   "surface": false,
+   "container": false,
+   "lights": [
+    {
+     "kind": "lantern",
+     "at": [
+      0,
+      -0.3,
+      0.8
+     ]
+    }
+   ]
+  },
+  "ice_giant": {
+   "id": "ice_giant",
+   "name": "ice giant",
+   "kind": "character",
+   "glb": "props/ice_giant.glb",
+   "desc": "a very tall giant of ice with a metal helmet with horns, a fur cloak and a beard of icicles",
+   "words": [
+    "giant",
+    "ice giant",
+    "monster"
+   ],
+   "footprint": [
+    2.4,
+    1.3
+   ],
+   "height": 4.1,
+   "center_offset": [
+    0.004,
+    -0.014
+   ],
+   "place": [
+    "floor",
+    "slot"
+   ],
+   "stand": 2.2,
+   "surface": false,
+   "container": false,
+   "anims": {
+    "clips": [
+     "Idle"
+    ]
+   }
+  },
+  "ice_hole": {
+   "id": "ice_hole",
+   "name": "fishing hole",
+   "kind": "decor",
+   "glb": "props/ice_hole.glb",
+   "desc": "a round hole in the ice where the fisherman fishes",
+   "words": [
+    "hole",
+    "ice",
+    "water"
+   ],
+   "footprint": [
+    1,
+    1
+   ],
+   "height": 0.053,
+   "center_offset": [
+    0.103,
+    0.018
+   ],
+   "place": [
+    "floor"
+   ],
+   "stand": 0.9,
+   "surface": false,
+   "container": false
   },
   "item_berries": {
    "id": "item_berries",
@@ -1166,6 +1427,84 @@
    "surface": false,
    "container": false
   },
+  "rune_stone": {
+   "id": "rune_stone",
+   "name": "rune stone",
+   "kind": "scenery",
+   "glb": "props/rune_stone.glb",
+   "desc": "a tall standing stone with glowing blue runes (signs) on its front",
+   "words": [
+    "rune",
+    "runes",
+    "stone",
+    "sign"
+   ],
+   "footprint": [
+    1.6,
+    0.7
+   ],
+   "height": 2.4,
+   "center_offset": [
+    0,
+    0
+   ],
+   "place": [
+    "floor",
+    "wall"
+   ],
+   "stand": 1,
+   "surface": false,
+   "container": false,
+   "lights": [
+    {
+     "kind": "lantern",
+     "at": [
+      0,
+      -0.5,
+      1.4
+     ]
+    }
+   ]
+  },
+  "save_disk": {
+   "id": "save_disk",
+   "name": "Save Disk",
+   "kind": "item",
+   "glb": "props/save_disk.glb",
+   "desc": "a glowing blue floppy disk: a Save Disk that keeps the game from forgetting",
+   "words": [
+    "disk",
+    "save disk",
+    "floppy"
+   ],
+   "footprint": [
+    0.3,
+    0.3
+   ],
+   "height": 0.052,
+   "center_offset": [
+    0,
+    0
+   ],
+   "place": [
+    "floor",
+    "surface",
+    "inside"
+   ],
+   "stand": 0.5,
+   "surface": false,
+   "container": false,
+   "lights": [
+    {
+     "kind": "lantern",
+     "at": [
+      0,
+      0,
+      0.35
+     ]
+    }
+   ]
+  },
   "shelf_wall": {
    "id": "shelf_wall",
    "name": "wooden shelf",
@@ -1272,6 +1611,38 @@
    "surface": true,
    "container": false,
    "surface_height": 0.82
+  },
+  "troll": {
+   "id": "troll",
+   "name": "troll",
+   "kind": "character",
+   "glb": "props/troll.glb",
+   "desc": "a big green troll with tusks and a wooden club; grumpy but not really dangerous",
+   "words": [
+    "troll",
+    "monster"
+   ],
+   "footprint": [
+    1.946,
+    0.956
+   ],
+   "height": 2.6,
+   "center_offset": [
+    0,
+    -0.098
+   ],
+   "place": [
+    "floor",
+    "slot"
+   ],
+   "stand": 1.6,
+   "surface": false,
+   "container": false,
+   "anims": {
+    "clips": [
+     "Idle"
+    ]
+   }
   },
   "wolf": {
    "id": "wolf",

@@ -1,0 +1,32 @@
+{
+ "id": "fisherman",
+ "name": "fisherman",
+ "kind": "character",
+ "glb": "props/fisherman.glb",
+ "desc": "a friendly fisherman in a blue coat and a red wool cap with a grey beard, holding a fishing rod",
+ "words": [
+  "fisherman",
+  "man",
+  "fisher"
+ ],
+ "footprint": [
+  0.66,
+  1.56
+ ],
+ "height": 1.9,
+ "center_offset": [
+  0.0,
+  -0.58
+ ],
+ "place": [
+  "floor"
+ ],
+ "stand": 1.0,
+ "surface": false,
+ "container": false,
+ "anims": {
+  "clips": [
+   "Idle"
+  ]
+ }
+}

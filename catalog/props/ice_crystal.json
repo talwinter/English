@@ -1,0 +1,37 @@
+{
+ "id": "ice_crystal",
+ "name": "ice crystals",
+ "kind": "decor",
+ "glb": "props/ice_crystal.glb",
+ "desc": "a cluster of glowing blue ice crystals growing from the ground",
+ "words": [
+  "crystal",
+  "crystals",
+  "ice"
+ ],
+ "footprint": [
+  1.0,
+  0.9
+ ],
+ "height": 1.49,
+ "center_offset": [
+  0.0,
+  0.0
+ ],
+ "place": [
+  "floor"
+ ],
+ "stand": 0.7,
+ "surface": false,
+ "container": false,
+ "lights": [
+  {
+   "kind": "lantern",
+   "at": [
+    0,
+    -0.3,
+    0.8
+   ]
+  }
+ ]
+}
