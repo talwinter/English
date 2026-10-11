@@ -67,9 +67,24 @@ docker compose -p english-quest-dev -f docker-compose.yml -f docker-compose.dev.
 
 The server checks a pushed episode again (words, robot, rooms) before it appears on the parent page.
 
-What does **not** travel with an episode is game code and 3D models (new props, rooms, the UI): they are files of the
-game itself. Until the game updates itself (planned: content packs), a change there means a new
-`dist\EnglishQuest.zip` (`tools\make-package.ps1`) on his PC.
+What does **not** travel with an episode is game code and 3D models (new props, rooms, the UI): they are files of
+the game itself. They travel as a **content pack**, and his game updates itself:
+
+1. On the dev PC: `powershell -File tools\make-update.ps1 -To http://SERVER:8080`
+   (it exports the pack, about 3 MB, and uploads it; the password comes from `SERVER_ADMIN_PASSWORD` in `.env`).
+2. The server keeps one pack and offers it at `/updates/manifest.json`.
+3. The launcher (the first scene of the game) checks that address at every start, downloads a new version once,
+   checks it, loads it over the files that came with the game, and starts the game. No server, or no answer in
+   5 seconds: it starts with what is on the PC.
+4. **Safety:** if an update never reaches the title screen, the next start throws it away and goes back; that
+   version is never tried again.
+
+The zip (`tools\make-package.ps1`) is needed only **once** per PC, because it carries the launcher. After that
+there is nothing to copy.
+
+Rule for code that goes in an update: a **new** script that other scripts use must be reached with
+`preload("res://scripts/x.gd")`, not by `class_name`, because the engine only knows class names from the files the
+game started with. Changing an existing script, scene, model, sound or catalog is always fine.
 
 ## 3. The first morning
 

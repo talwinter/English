@@ -117,6 +117,7 @@ func _ready() -> void:
 		return
 	loading_label.queue_free()
 	loading_label = null
+	preload("res://scripts/update_state.gd").confirm()   # an installed update works: it reached the title
 	_start()
 
 

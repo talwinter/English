@@ -185,6 +185,11 @@ Status: done and working in `godot/`. Grandpa's attic and the hero are modeled i
   pipeline with a self-refreshing progress page (`--replay <file>` needs no OpenAI key); wishes list on the
   parent page; `tools/make-package.ps1` makes `dist/EnglishQuest.zip` for the son's PC; `docs/DEPLOY.md` is the
   go-live checklist.
+- **Round 5 (auto-update):** `godot/scripts/launcher.gd` is the first scene; it downloads the content pack from
+  `/updates/manifest.json` (made by `tools/make-update.ps1`, uploaded by `tools/push-update.js`), loads it with
+  `ProjectSettings.load_resource_pack`, remembers a version that did not start (`update_state.gd`). New scripts in
+  an update must be reached with `preload`, not `class_name`. `tools/push-episode.js` moves an episode from the dev
+  server to the real one. The HUD is docked (`UiKit`), the game picture sits between the bars.
 - Not done yet: the live OpenAI run of the 3D episode builder with its progress page (writer schema for props,
   `wishes`, continuity check), syncing word progress to the server, `.pck` content updates, typed-command voice
   lines, more scenes/props (the catalog), the layout builder and reachability check on the server.

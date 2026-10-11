@@ -325,6 +325,18 @@ async function handle(req, res) {
   const p = url.pathname;
   const post = req.method === "POST";
 
+  // The game's own files (a content pack made on the dev PC): the launcher on his PC looks here at every start.
+  if (p.startsWith("/updates/") && req.method === "GET") {
+    const name = path.basename(p);
+    const file = path.join(dataDir, "updates", name);
+    if (!/^[A-Za-z0-9._-]+$/.test(name) || !fs.existsSync(file)) return send(res, 404, { error: "not found" });
+    res.writeHead(200, {
+      "Content-Type": name.endsWith(".json") ? "application/json" : "application/octet-stream",
+      "Content-Length": fs.statSync(file).size, "Cache-Control": "no-cache",
+    });
+    return fs.createReadStream(file).pipe(res);
+  }
+
   if (p === "/api/status" && req.method === "GET") return send(res, 200, status());
 
   // The episode to play: the one asked for, else today's new episode, else the last one he finished.
@@ -560,6 +572,38 @@ async function handle(req, res) {
       writer.write(String(note || "").slice(0, 500)).catch(() => { /* logged */ });
       await new Promise((r) => setTimeout(r, 100));
       return send(res, 200, { ok: true, writer: writer.list() });
+    }
+    // The new content pack of the game (body = the .pck file). The launcher on his PC downloads it at its next start.
+    if (p === "/admin/api/update/upload" && post) {
+      const version = String(url.searchParams.get("version") || "");
+      if (!/^[A-Za-z0-9._-]{3,60}$/.test(version)) return send(res, 400, { ok: false, error: "bad version" });
+      const dir = path.join(dataDir, "updates");
+      fs.mkdirSync(dir, { recursive: true });
+      const tmp = path.join(dir, `upload-${Date.now()}.part`);
+      const hash = require("crypto").createHash("sha256");
+      let size = 0, tooBig = false;
+      const out = fs.createWriteStream(tmp);
+      req.on("data", (c) => {
+        size += c.length;
+        if (size > 300 * 1024 * 1024) { tooBig = true; req.destroy(); out.destroy(); return; }
+        hash.update(c);
+        out.write(c);
+      });
+      return new Promise((resolve) => {
+        req.on("end", () => out.end(() => {
+          const sha256 = hash.digest("hex");
+          const file = `content-${version}.pck`;
+          for (const f of fs.readdirSync(dir)) if (/^content-.*\.pck$/.test(f)) fs.unlinkSync(path.join(dir, f));
+          fs.renameSync(tmp, path.join(dir, file));
+          fs.writeFileSync(path.join(dir, "manifest.json"),
+            JSON.stringify({ version, file, size, sha256, createdAt: new Date().toISOString() }, null, 2));
+          store.log(`Game update ${version} uploaded (${(size / 1048576).toFixed(1)} MB)`);
+          resolve(send(res, 200, { ok: true, version, size, sha256 }));
+        }));
+        req.on("close", () => {
+          if (tooBig) { try { fs.unlinkSync(tmp); } catch { /* gone */ } resolve(send(res, 413, { ok: false, error: "too big" })); }
+        });
+      });
     }
     if (p === "/admin/api/episodes/import" && post) {
       let body;

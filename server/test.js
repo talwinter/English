@@ -641,3 +641,37 @@ test("voices: each character has a voice, lines are made once, word times when K
     fake.close();
   }
 });
+
+test("updates: a content pack is uploaded by the parent and downloaded by the game without a password", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "eq-update-"));
+  const port = 19000 + Math.floor(Math.random() * 1000);
+  const proc = spawn(process.execPath, [path.join(__dirname, "server.js")], {
+    env: { ...process.env, PORT: String(port), DATA_DIR: dir, ADMIN_PASSWORD: "pw", ROUTER_MODE: "mock", AUTO_WRITE: "false" },
+    stdio: "ignore",
+  });
+  const base = `http://localhost:${port}`;
+  const basic = "Basic " + Buffer.from("x:pw").toString("base64");
+  try {
+    for (let i = 0; i < 50; i++) {
+      try { await fetch(base + "/api/status"); break; } catch { await new Promise((r) => setTimeout(r, 100)); }
+    }
+    assert.equal((await fetch(base + "/updates/manifest.json")).status, 404, "nothing offered yet");
+    const pack = Buffer.alloc(5000, 7);
+    const denied = await fetch(`${base}/admin/api/update/upload?version=ver1`, { method: "POST", body: pack });
+    assert.equal(denied.status, 401, "only the parent can upload");
+    const up = await (await fetch(`${base}/admin/api/update/upload?version=ver1`, { method: "POST", headers: { Authorization: basic }, body: pack })).json();
+    assert.equal(up.ok, true);
+    const manifest = await (await fetch(base + "/updates/manifest.json")).json();
+    assert.equal(manifest.version, "ver1");
+    assert.equal(manifest.size, 5000);
+    const got = Buffer.from(await (await fetch(`${base}/updates/${manifest.file}`)).arrayBuffer());
+    assert.equal(got.length, 5000);
+    assert.equal(require("crypto").createHash("sha256").update(got).digest("hex"), manifest.sha256);
+    assert.equal((await fetch(`${base}/updates/..%2Fstate.json`)).status, 404, "no way out of the folder");
+    await fetch(`${base}/admin/api/update/upload?version=ver2`, { method: "POST", headers: { Authorization: basic }, body: Buffer.alloc(10, 1) });
+    assert.equal((await (await fetch(base + "/updates/manifest.json")).json()).version, "ver2");
+    assert.equal((await fetch(`${base}/updates/${manifest.file}`)).status, 404, "the old pack is removed");
+  } finally {
+    proc.kill();
+  }
+});
