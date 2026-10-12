@@ -83,6 +83,20 @@ The parent updates machines with `git pull` (server: then `docker compose up -d 
 - **Daily lock:** `LOCK_ENABLED=false` in the server's `.env` turns the 08:00 Discord lock off until the Godot
   game is tested (the parent page's "Lock now" still works). Set it back to `true` (or remove it) to resume.
 
+## Deployed on the real server (2026-10-12)
+
+- The Docker server (`~/docker/english-quest`, ssh `tal@192.168.2.47`) runs commit `bea42bd`: the 3D writer, the
+  catalog, `/updates/*`, the start-screen mission rules, `WRITE_TIME=04:00` (in its `.env`).
+- Its `.env` is unchanged otherwise: `LOCK_ENABLED=false`, `AUTO_WRITE=false`, `AUTO_PUBLISH=false`,
+  `EPISODES_AHEAD=2`. Nothing writes or locks by itself yet. Backups of `.env` and `data/state.json` are next to them.
+- Episode 3 ("The Frozen Lake", made on the dev PC) waits there as a draft for approval; the content pack
+  `20261012-0035-55edc647` is in `data/updates/`.
+- The 04:30 check on the dev PC (`EnglishQuest-MorningCheck`) is created but **disabled** until the server flow
+  is switched on: `Enable-ScheduledTask -TaskName EnglishQuest-MorningCheck`, and set `CHECK_SERVER` and
+  `SERVER_ADMIN_PASSWORD` in the dev PC's `.env`.
+- To switch the daily flow on: in the server's `.env` set `AUTO_WRITE=true` (and `LOCK_ENABLED=true` when the Godot
+  game is on his PC), then `docker compose up -d`.
+
 ## Lessons learned (don't repeat these)
 
 - **AI backgrounds + guessing where things are does not work.** Flat Stable Diffusion pictures have no
