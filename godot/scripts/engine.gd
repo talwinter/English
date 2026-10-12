@@ -186,7 +186,7 @@ func act(verb: String, obj_id: String, item_id: String = "") -> Dictionary:
 	var res := {
 		"cmd": sentence(verb, item_id, String(target.get("name", ""))), "say": "", "matched": false,
 		"points": 0, "picked_up": false, "goal": "", "scene": "", "intro": "", "fx": [],
-		"finished": false, "ending": [],
+		"finished": false, "ending": [], "timer": {}, "stop_timer": false,
 	}
 	var bag_before: int = (state["bag"] as Array).size()
 	var score_before := score()
@@ -194,6 +194,8 @@ func act(verb: String, obj_id: String, item_id: String = "") -> Dictionary:
 	var new_scene := ""
 	var fxs: Array = []
 	var finish := false
+	var timer: Dictionary = {}
+	var stop_timer := false
 
 	if TWO_STEP.has(verb) and item_id == "":
 		res["say"] = ui.get("useWhat" if verb == "use" else "giveWhat", "")
@@ -206,24 +208,13 @@ func act(verb: String, obj_id: String, item_id: String = "") -> Dictionary:
 				state["points"][String(rule.get("pointsId", rule["_key"]))] = int(rule["points"])
 			var d: Variant = rule.get("do")
 			if d is Dictionary:
-				for f in _list(d.get("set")):
-					state["flags"][f] = true
-				for f in _list(d.get("unset")):
-					state["flags"].erase(f)
-				for i in _list(d.get("add")):
-					if not has_item(i):
-						(state["bag"] as Array).append(i)
-				for i in _list(d.get("remove")):
-					state["bag"] = (state["bag"] as Array).filter(func(x): return x != i)
-				if d.get("goal") != null and d.get("goal", "") != "" and state["goal"] != d["goal"]:
-					state["goal"] = d["goal"]
-					new_goal = d["goal"]
-				if d.get("go") != null and d.get("go", "") != "":
-					new_scene = d["go"]
-				if d.get("finish", false):
-					finish = true
-				for f in _list(d.get("fx")):
-					fxs.append(f)
+				var eff := _apply_effects(d)
+				new_goal = eff["goal"]
+				new_scene = eff["scene"]
+				fxs = eff["fx"]
+				finish = bool(eff["finish"])
+				timer = eff["timer"]
+				stop_timer = bool(eff["stop_timer"])
 		elif verb == "look" and not target.is_empty() and String(target.get("look", "")) != "":
 			res["say"] = target["look"]
 		else:
@@ -233,6 +224,8 @@ func act(verb: String, obj_id: String, item_id: String = "") -> Dictionary:
 	res["picked_up"] = (state["bag"] as Array).size() > bag_before
 	res["goal"] = new_goal
 	res["fx"] = fxs
+	res["timer"] = timer
+	res["stop_timer"] = stop_timer
 	if new_scene != "":
 		var from: String = state["scene"]
 		state["scene"] = new_scene
@@ -243,6 +236,60 @@ func act(verb: String, obj_id: String, item_id: String = "") -> Dictionary:
 		state["visited"][new_scene] = true
 		res["from"] = from
 	if finish:
+		state["finished"] = true
+		res["finished"] = true
+		res["ending"] = episode.get("ending", [])
+	return res
+
+
+## Applies the effects of a rule (or of a timer that ran out) to the state. Returns what the game must show:
+## { goal, scene, fx, finish, timer, stop_timer }  (timer = { seconds, onEnd } when the rule starts one).
+func _apply_effects(d: Dictionary) -> Dictionary:
+	var out := {"goal": "", "scene": "", "fx": [], "finish": false, "timer": {}, "stop_timer": false}
+	for f in _list(d.get("set")):
+		state["flags"][f] = true
+	for f in _list(d.get("unset")):
+		state["flags"].erase(f)
+	for i in _list(d.get("add")):
+		if not has_item(i):
+			(state["bag"] as Array).append(i)
+	for i in _list(d.get("remove")):
+		state["bag"] = (state["bag"] as Array).filter(func(x): return x != i)
+	if d.get("goal") != null and d.get("goal", "") != "" and state["goal"] != d["goal"]:
+		state["goal"] = d["goal"]
+		out["goal"] = d["goal"]
+	if d.get("go") != null and d.get("go", "") != "":
+		out["scene"] = d["go"]
+	if d.get("finish", false):
+		out["finish"] = true
+	for f in _list(d.get("fx")):
+		(out["fx"] as Array).append(f)
+	if d.get("timer") is Dictionary:
+		out["timer"] = d["timer"]
+	if d.get("stopTimer", false):
+		out["stop_timer"] = true
+	return out
+
+
+## The countdown ran out: applies its onEnd effects and answers like act() does, so the game shows it the same way.
+func time_up(on_end: Dictionary) -> Dictionary:
+	var res := {
+		"cmd": "", "say": String(on_end.get("say", "")), "matched": true, "points": 0, "picked_up": false, "goal": "",
+		"scene": "", "intro": "", "fx": [], "finished": false, "ending": [], "timer": {}, "stop_timer": true,
+	}
+	var eff := _apply_effects(on_end)
+	res["goal"] = eff["goal"]
+	res["fx"] = eff["fx"]
+	if String(eff["scene"]) != "":
+		var from: String = state["scene"]
+		state["scene"] = eff["scene"]
+		res["scene"] = eff["scene"]
+		var sc := scene()
+		var seen: bool = state["visited"].has(eff["scene"])
+		res["intro"] = sc.get("introAgain", "") if seen else sc.get("intro", "")
+		state["visited"][eff["scene"]] = true
+		res["from"] = from
+	if bool(eff["finish"]):
 		state["finished"] = true
 		res["finished"] = true
 		res["ending"] = episode.get("ending", [])

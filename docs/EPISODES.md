@@ -56,3 +56,25 @@ check OpenAI's current prices. The pictures themselves are free (your PC's graph
 
 - Episodes: `data/episodes/published/` (approved) and `data/episodes/drafts/` (waiting for you), as JSON.
 - The episode format is described at the top of `js/episode.js`. Episodes 1 and 2 are in `js/episodes/`.
+
+
+## Timed puzzles (a word duel, a breaking bridge)
+
+A rule can start a countdown that he sees under the top bar of the Godot game:
+
+```json
+{ "verb": ["look"], "obj": ["giant"], "say": "Quick! Say hello!",
+  "do": { "set": ["started"], "timer": { "seconds": 20, "onEnd": { "say": "Too slow. Try again.", "unset": ["started"], "go": "cave" } } } },
+{ "verb": ["talk"], "obj": ["giant"], "say": "You win!", "do": { "stopTimer": true, "finish": true } }
+```
+
+- `seconds` is 10 to 90. The clock runs while he thinks, and stops while the game answers, while a word card, the
+  word book or a menu is open (looking up a word never costs time), and during cutscenes.
+- When it reaches zero the `onEnd` effects happen (`say`, `set`, `unset`, `goal`, `go`). Running out of time only
+  sends him back to try again: it can not finish the episode or block it.
+- The move that wins must have `stopTimer: true`. The checks require it.
+- The robot that checks an episode ignores the clock (the puzzle must be solvable without hurry), the web game
+  ignores it, and a saved game does not remember a running clock.
+- Try it: `node tools/timer-demo.js slow` and then
+  `godot\play.bat --episode=_timer --no-server --no-update` (the giant waits; do nothing for 10 seconds, or say
+  hello to him quickly with Talk to).

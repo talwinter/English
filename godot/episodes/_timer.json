@@ -1,0 +1,167 @@
+{
+ "id": "_timer",
+ "title": "Timer demo",
+ "summary": "",
+ "start": {
+  "scene": "cave",
+  "goal": "duel"
+ },
+ "items": [],
+ "format": "3d",
+ "goals": [
+  {
+   "id": "duel",
+   "en": "Win the duel.",
+   "he": "נצח.",
+   "hint": "Look at the giant.",
+   "hintHe": "הסתכל."
+  }
+ ],
+ "scenes": [
+  {
+   "id": "cave",
+   "name": "The ice cave",
+   "intro": "The giant is angry.",
+   "introAgain": "The giant waits.",
+   "shell": "ice_cave",
+   "music": "danger",
+   "objects": [
+    {
+     "id": "giant",
+     "name": "giant",
+     "words": [
+      "giant"
+     ],
+     "look": "It is the giant.",
+     "prop": "ice_giant",
+     "where": "back_center",
+     "at": {
+      "x": 0.07,
+      "y": 1.73,
+      "rot": 0,
+      "z": 0
+     },
+     "stand": [
+      0.07,
+      -1.12
+     ]
+    },
+    {
+     "id": "rune",
+     "name": "rune",
+     "words": [
+      "rune"
+     ],
+     "look": "It is the rune.",
+     "prop": "rune_stone",
+     "where": "back_left",
+     "at": {
+      "x": -2.4,
+      "y": 1.73,
+      "rot": 0,
+      "z": 0
+     },
+     "stand": [
+      -2.4,
+      0.38
+     ]
+    },
+    {
+     "id": "crystal",
+     "name": "crystal",
+     "words": [
+      "crystal"
+     ],
+     "look": "It is the crystal.",
+     "prop": "ice_crystal",
+     "where": "front_right",
+     "at": {
+      "x": 2.53,
+      "y": -0.9,
+      "rot": 0,
+      "z": 0
+     },
+     "stand": [
+      1.33,
+      -0.9
+     ]
+    }
+   ],
+   "rules": [
+    {
+     "verb": [
+      "talk"
+     ],
+     "obj": [
+      "giant"
+     ],
+     "say": "You win the duel!",
+     "do": {
+      "stopTimer": true,
+      "finish": true
+     }
+    },
+    {
+     "verb": [
+      "look"
+     ],
+     "obj": [
+      "giant"
+     ],
+     "when": {
+      "notFlags": [
+       "started"
+      ]
+     },
+     "say": "Quick! Say hello before the time is up!",
+     "do": {
+      "set": [
+       "started"
+      ],
+      "timer": {
+       "seconds": 10,
+       "onEnd": {
+        "say": "Too slow! The giant laughs. Try again.",
+        "unset": [
+         "started"
+        ]
+       }
+      }
+     }
+    }
+   ],
+   "entry": {
+    "x": -2.6,
+    "y": -1
+   }
+  }
+ ],
+ "globalRules": [],
+ "ending": [
+  "You won the duel."
+ ],
+ "dictionary": [],
+ "solution": [
+  {
+   "verb": "look",
+   "obj": "giant",
+   "item": ""
+  },
+  {
+   "verb": "wait",
+   "obj": "",
+   "item": "",
+   "seconds": 12
+  },
+  {
+   "verb": "look",
+   "obj": "giant",
+   "item": ""
+  },
+  {
+   "verb": "talk",
+   "obj": "giant",
+   "item": ""
+  }
+ ]
+}

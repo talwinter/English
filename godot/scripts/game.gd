@@ -54,6 +54,10 @@ var sel_verb := ""
 var sel_item := ""
 var hover_name := ""
 var busy := false
+var timer_on := false             # a timed puzzle is running (a rule with do.timer started it)
+var timer_left := 0.0
+var timer_total := 0.0
+var timer_end: Dictionary = {}
 var player_name := ""
 var shake := 0.0
 var cam_base_v := 0.0
@@ -1125,7 +1129,8 @@ func _do(verb: String, obj_id: String, item_id: String) -> void:
 
 
 func _present(res: Dictionary, flags_before: Dictionary) -> void:
-	hud.add_message("cmd", String(res["cmd"]))
+	if String(res["cmd"]) != "":
+		hud.add_message("cmd", String(res["cmd"]))
 	var say := _fmt(String(res["say"]))
 	if say != "":
 		hud.add_message("say", say)
@@ -1139,6 +1144,10 @@ func _present(res: Dictionary, flags_before: Dictionary) -> void:
 	elif not bool(res["matched"]) and not String(res["cmd"]).begins_with("Look"):
 		sfx.play("nope")
 	hud.set_score(eng.score(), eng.max_score())
+	if bool(res.get("stop_timer", false)) or bool(res["finished"]):
+		_stop_timer()
+	if (res.get("timer", {}) as Dictionary).size() > 0:
+		_start_timer(res["timer"])
 	_refresh_bag()
 	_sync_objects()
 	if eng.flag("boxOpen") and not flags_before.has("boxOpen"):
@@ -1722,6 +1731,7 @@ func _process(delta: float) -> void:
 		return
 	_idle_check(delta)
 	_update_spoken_word()
+	_tick_timer(delta)
 	var s := shake
 	cam.h_offset = randf_range(-s, s) if s > 0.0 else 0.0
 	cam.v_offset = cam_base_v + (randf_range(-s, s) if s > 0.0 else 0.0)
@@ -1770,6 +1780,12 @@ func _autoplay_solution() -> void:
 	await _shot("s00_start")
 	var n := 1
 	for a in eng.episode["solution"]:
+		if String(a["verb"]) == "wait":
+			# the robot does nothing for a while (to see a timer run out)
+			await get_tree().create_timer(float(a.get("seconds", 5))).timeout
+			await _shot("s%02d_wait" % n)
+			n += 1
+			continue
 		_do(String(a["verb"]), String(a["obj"]), String(a["item"]))
 		await _wait_idle()
 		await get_tree().create_timer(0.7).timeout
@@ -1882,3 +1898,43 @@ func _click_test() -> void:
 			await _shot("click_test_card")
 			wordui.close_card()
 	get_tree().quit()
+
+
+# ---------- timed puzzles
+## A rule with do.timer starts a countdown. It runs only while he is playing (not while a word card, the word book
+## or a menu is open: looking up a word never costs time). When it reaches zero, the rule's onEnd effects apply.
+
+func _start_timer(t: Dictionary) -> void:
+	timer_total = maxf(float(t.get("seconds", 30)), 1.0)
+	timer_left = timer_total
+	timer_end = t.get("onEnd", {}) if t.get("onEnd") is Dictionary else {}
+	timer_on = true
+	hud.show_timer(timer_left, timer_total)
+
+
+func _stop_timer() -> void:
+	timer_on = false
+	hud.hide_timer()
+
+
+func _timer_paused() -> bool:
+	return busy or zoomed or hud.is_story_mode() or wordui.is_open() or settings_ui.is_open() or coach.is_open() 		or mission.is_open() or eng.state["finished"]
+
+
+func _tick_timer(delta: float) -> void:
+	if not timer_on or _timer_paused():
+		return
+	timer_left -= delta
+	hud.show_timer(timer_left, timer_total)
+	if timer_left > 0.0:
+		return
+	timer_on = false
+	hud.hide_timer()
+	busy = true
+	var flags_before: Dictionary = eng.state["flags"].duplicate()
+	sfx.play("nope")
+	var res := eng.time_up(timer_end)
+	await _present(res, flags_before)
+	_update_sentence()
+	busy = false
+	_save_progress()

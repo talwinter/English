@@ -53,6 +53,9 @@ var _speaker_re: RegEx
 var _messages: Array = []
 var _top: Control
 var _bottom: Control
+var _timer_box: PanelContainer
+var _timer_bar: ProgressBar
+var _timer_label: Label
 var _word_re: RegEx
 var _story := false
 var _continue: Button
@@ -141,6 +144,32 @@ func _build() -> void:
 	score_box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	score_box.add_child(_score)
 	row.add_child(score_box)
+
+	# ---- the countdown of a timed puzzle: a bar under the top bar, only while a timer runs
+	_timer_box = PanelContainer.new()
+	_timer_box.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_timer_box.offset_left = -190
+	_timer_box.offset_right = 190
+	_timer_box.offset_top = TOP_H + 10
+	_timer_box.offset_bottom = TOP_H + 48
+	_timer_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_timer_box.visible = false
+	_timer_box.add_theme_stylebox_override("panel", _style(Color(0.04, 0.05, 0.1, 0.88), Color(1, 1, 1, 0.2), 16, 12))
+	var trow := HBoxContainer.new()
+	trow.add_theme_constant_override("separation", 10)
+	_timer_box.add_child(trow)
+	_timer_label = Label.new()
+	_timer_label.add_theme_font_size_override("font_size", 20)
+	_timer_label.custom_minimum_size = Vector2(52, 0)
+	_timer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	trow.add_child(_timer_label)
+	_timer_bar = ProgressBar.new()
+	_timer_bar.show_percentage = false
+	_timer_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_timer_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_timer_bar.custom_minimum_size = Vector2(0, 10)
+	trow.add_child(_timer_bar)
+	add_child(_timer_box)
 
 	# ---- bottom
 	var bottom := PanelContainer.new()
@@ -510,3 +539,27 @@ func set_spoken(text: String, idx: int) -> void:
 ## How much of the window the bars take, so the game picture can sit between them: (top, bottom) in pixels.
 func dock_insets() -> Vector2:
 	return Vector2(TOP_H if _top.visible else 0, BOTTOM_H if _bottom.visible else 0)
+
+
+## The countdown of a timed puzzle. `left` and `total` are seconds; the bar turns red for the last ten.
+func show_timer(left: float, total: float) -> void:
+	_timer_box.visible = true
+	_timer_bar.max_value = maxf(total, 1.0)
+	_timer_bar.value = clampf(left, 0.0, total)
+	var secs := int(ceil(maxf(left, 0.0)))
+	_timer_label.text = "%d:%02d" % [secs / 60, secs % 60]
+	var urgent := left <= 10.0
+	var col := Color(1.0, 0.4, 0.35) if urgent else Color(1.0, 0.82, 0.25)
+	_timer_label.add_theme_color_override("font_color", col)
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = col
+	fill.set_corner_radius_all(5)
+	_timer_bar.add_theme_stylebox_override("fill", fill)
+	var back := StyleBoxFlat.new()
+	back.bg_color = Color(1, 1, 1, 0.1)
+	back.set_corner_radius_all(5)
+	_timer_bar.add_theme_stylebox_override("background", back)
+
+
+func hide_timer() -> void:
+	_timer_box.visible = false

@@ -122,6 +122,15 @@ function validate(ep, ctx) {
     if (d.goal && !goals.has(d.goal)) err(`${where}: unknown goal "${d.goal}"`);
     if (d.go && !scenes.has(d.go)) err(`${where}: unknown scene "${d.go}"`);
     for (const f of list(d.fx)) if (!Episode.FX.includes(f)) err(`${where}: unknown effect "${f}"`);
+    if (d.timer) {
+      const t = d.timer;
+      if (!(Number.isInteger(t.seconds) && t.seconds >= 10 && t.seconds <= 90)) err(`${where}: do.timer.seconds must be a whole number from 10 to 90`);
+      const e = t.onEnd || {};
+      if (!e.say) err(`${where}: do.timer.onEnd needs "say" (what happens when the time is up)`);
+      if (e.go && !scenes.has(e.go)) err(`${where}: do.timer.onEnd: unknown scene "${e.go}"`);
+      if (e.goal && !goals.has(e.goal)) err(`${where}: do.timer.onEnd: unknown goal "${e.goal}"`);
+      if (e.finish) err(`${where}: do.timer.onEnd can not finish the episode: running out of time must only send him back to try again`);
+    }
   };
 
   const threeD = !!ctx.catalog;
@@ -173,6 +182,12 @@ function validate(ep, ctx) {
   }
   list(ep.globalRules).forEach((r, i) => checkRule(r, `global rule ${i + 1}`, allObjIds));
   for (const it of list(ep.items)) if (!threeD && it.art && !artKeys.has(it.art)) err(`item ${it.id}: picture "${it.art}" is not in the art list`);
+
+  // a timer must be possible to stop: the winning move has do.stopTimer
+  const rulesAll = [...[...scenes.values()].flatMap((sc) => list(sc.rules)), ...list(ep.globalRules)];
+  if (rulesAll.some((r) => (r.do || {}).timer) && !rulesAll.some((r) => (r.do || {}).stopTimer)) {
+    err("an episode that starts a timer needs a rule with do.stopTimer = true: the move that wins stops the clock");
+  }
 
   // every item must be possible to get: some rule adds it
   const added = new Set();

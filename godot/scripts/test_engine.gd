@@ -52,5 +52,30 @@ func _init() -> void:
 	var a := e2.command_to_action(p)
 	check.call("typed: use cable on computer", a.get("verb") == "use" and a.get("obj") == "computer" and a.get("item") == "cable")
 
+	# a timed puzzle: a rule starts the countdown, running out sends him back, the winning move stops the clock
+	var timed := {
+		"id": "t", "start": {"scene": "a", "goal": "g"}, "items": [], "goals": [{"id": "g", "en": "Go.", "he": "", "hint": "", "hintHe": ""}],
+		"scenes": [
+			{"id": "a", "name": "A", "intro": "A.", "introAgain": "A.", "objects": [{"id": "x", "name": "x", "words": ["x"], "look": "x"}],
+			 "rules": [
+				{"verb": ["talk"], "obj": ["x"], "say": "Won.", "do": {"stopTimer": true, "finish": true}},
+				{"verb": ["look"], "obj": ["x"], "say": "Go!", "do": {"set": ["on"], "timer": {"seconds": 20, "onEnd": {"say": "Too slow.", "unset": ["on"], "go": "b"}}}},
+			 ]},
+			{"id": "b", "name": "B", "intro": "B.", "introAgain": "B.", "objects": [], "rules": []},
+		],
+		"globalRules": [], "ending": ["End."], "dictionary": [],
+	}
+	var e3 := EpisodeEngine.new()
+	e3.load_episode(timed, base)
+	var r3 := e3.act("look", "x")
+	check.call("timer: the rule starts a countdown of 20 s", int((r3["timer"] as Dictionary).get("seconds", 0)) == 20 and e3.flag("on"))
+	var up := e3.time_up((r3["timer"] as Dictionary)["onEnd"])
+	check.call("timer: running out says it, unsets the flag and goes to b", String(up["say"]) == "Too slow." and not e3.flag("on") and String(up["scene"]) == "b" and not bool(up["finished"]))
+	var e4 := EpisodeEngine.new()
+	e4.load_episode(timed, base)
+	e4.act("look", "x")
+	var win := e4.act("talk", "x")
+	check.call("timer: the winning move stops the clock and finishes", bool(win["stop_timer"]) and bool(win["finished"]))
+
 	print("ENGINE TEST: ", ("FAILED (%d)" % fails[0]) if fails[0] > 0 else "all ok")
 	quit(1 if fails[0] > 0 else 0)

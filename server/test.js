@@ -675,3 +675,25 @@ test("updates: a content pack is uploaded by the parent and downloaded by the ga
     proc.kill();
   }
 });
+
+test("validate: a timed puzzle needs sensible seconds, an onEnd that only sends him back, and a rule that stops it", () => {
+  const { validate } = require("./validate");
+  const content = require("./content").loadContent(null);
+  const base = JSON.parse(JSON.stringify(content.episodes.find((e) => e.id === "s1e2").data));
+  const ctx = { base: content.base, dict: content.DICT, knownWords: new Set(), functionWords: content.functionWords,
+    artKeys: new Set(require("../art/shots.json").shots.map((s) => s.key)) };
+  const rule = base.scenes[0].rules.find((r) => (r.verb || []).includes("look"));
+  const msgs = (ep) => validate(ep, ctx).errors.join(" | ");
+
+  let ep = JSON.parse(JSON.stringify(base));
+  ep.scenes[0].rules.find((r) => (r.verb || []).includes("look")).do = { timer: { seconds: 30, onEnd: { say: "Too slow." } } };
+  assert.match(msgs(ep), /needs a rule with do\.stopTimer/);
+
+  ep = JSON.parse(JSON.stringify(base));
+  const r = ep.scenes[0].rules.find((x) => (x.verb || []).includes("look"));
+  r.do = { stopTimer: true, timer: { seconds: 3, onEnd: { say: "Too slow.", finish: true } } };
+  const m = msgs(ep);
+  assert.match(m, /seconds must be a whole number from 10 to 90/);
+  assert.match(m, /can not finish the episode/);
+  assert.ok(rule, "the episode has a look rule");
+});

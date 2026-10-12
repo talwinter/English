@@ -13,6 +13,8 @@
 //   The first rule that matches the action wins, so put special cases before general ones.
 // A condition: { flags: [], notFlags: [], has: [], notHas: [] }  (all must be true)
 // Effects: { set: [], unset: [], add: [], remove: [], goal, go, finish, fx: [] }
+//   timer: { seconds, onEnd: { say, set, unset, goal, go } }  starts a countdown (the Godot game shows it; the web game
+//          and the robot ignore it). stopTimer: true stops it. When it runs out the onEnd effects happen.
 //   fx: special effects played in order: shake, flash, glitch, crt (an old screen turns on),
 //       boot (an old computer starts), askname (he types his name; texts can then use {name}), pullin
 //       (the screen pulls him in). Sounds for items, points and goals play by themselves.

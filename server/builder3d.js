@@ -18,8 +18,11 @@ function makeSchema(catalog) {
   const propIds = Object.keys(catalog.props);
   const fixedIds = Object.values(catalog.shells).flatMap((s) => (s.fixed || []).map((f) => `@${f.id}`));
   const cond = object({ flags: strs, notFlags: strs, has: strs, notHas: strs });
+  const onEnd = object({ say: str, set: strs, unset: strs, goal: strOrNull, go: strOrNull });
+  const timer = { ...object({ seconds: { type: "integer" }, onEnd }), type: ["object", "null"] };
   const effects = object({
     set: strs, unset: strs, add: strs, remove: strs, goal: strOrNull, go: strOrNull, finish: { type: "boolean" },
+    timer, stopTimer: { type: "boolean" },
     fx: { type: "array", items: { type: "string", enum: Episode.FX.filter((f) => !["askname", "pullin", "crt", "boot"].includes(f)) } },
   });
   const rule = object({
@@ -125,6 +128,12 @@ const RULES3D_SCENES = `ROOMS AND THINGS (the game is in 3D; there are no pictur
 - If the story needs something the catalog does not have (a prop, a room, a person, an effect or a special
   cutscene), use the closest thing that exists AND add an entry to "wishes" saying what you wished for. The
   episode must still work without it.
+- TIMED PUZZLES (use rarely, at most one or two in an episode, for a fast moment such as a word duel or a bridge
+  that is breaking): a rule with do.timer = {seconds: 20 to 60, onEnd: {say, set, unset, goal, go}} starts a
+  countdown that he sees. If it reaches zero the onEnd effects happen: he is only sent back to try again (for
+  example go to the scene before and say what happened), NEVER finish the episode and never block it. The move
+  that wins must have do.stopTimer = true. Reading words is never penalized (the clock stops while he looks a word
+  up). The robot that checks the episode ignores the clock, so the puzzle must also be solvable without hurry.
 - "endingStyle" is always lines: the "ending" lines are shown one by one. Do not use the effects askname, pullin, crt or boot (they need the attic's computer); shake, flash and glitch are fine.`;
 
 // the 2D rules, with the picture section replaced
@@ -139,7 +148,16 @@ function cleanRule(r) {
   r.obj = r.obj && r.obj.length ? r.obj : null;
   if (r.item === null || r.item === undefined || r.item === "") delete r.item;
   if (!r.points) { delete r.points; delete r.pointsId; }
-  if (r.do) for (const k of Object.keys(r.do)) if (r.do[k] === null) delete r.do[k];
+  if (r.do) {
+    for (const k of Object.keys(r.do)) if (r.do[k] === null) delete r.do[k];
+    if (!r.do.stopTimer) delete r.do.stopTimer;
+    if (r.do.timer && r.do.timer.onEnd) {
+      for (const k of Object.keys(r.do.timer.onEnd)) {
+        const x = r.do.timer.onEnd[k];
+        if (x === null || (Array.isArray(x) && !x.length)) delete r.do.timer.onEnd[k];
+      }
+    }
+  }
   return r;
 }
 
