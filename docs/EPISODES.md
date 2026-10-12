@@ -76,5 +76,5 @@ A rule can start a countdown that he sees under the top bar of the Godot game:
 - The robot that checks an episode ignores the clock (the puzzle must be solvable without hurry), the web game
   ignores it, and a saved game does not remember a running clock.
 - Try it: `node tools/timer-demo.js slow` and then
-  `godot\play.bat --episode=_timer --no-server --no-update` (the giant waits; do nothing for 10 seconds, or say
+  `godot\play.bat --episode=_timer --no-server --no-update` (the giant waits; do nothing for 20 seconds, or say
   hello to him quickly with Talk to).

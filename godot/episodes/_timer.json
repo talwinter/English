@@ -119,7 +119,7 @@
        "started"
       ],
       "timer": {
-       "seconds": 10,
+       "seconds": 20,
        "onEnd": {
         "say": "Too slow! The giant laughs. Try again.",
         "unset": [
@@ -151,7 +151,7 @@
    "verb": "wait",
    "obj": "",
    "item": "",
-   "seconds": 12
+   "seconds": 22
   },
   {
    "verb": "look",

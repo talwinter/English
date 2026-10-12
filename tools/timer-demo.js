@@ -17,14 +17,14 @@ const ep = {
     rules: [
       { verb: ["talk"], obj: ["giant"], say: "You win the duel!", do: { stopTimer: true, finish: true } },
       { verb: ["look"], obj: ["giant"], when: { notFlags: ["started"] }, say: "Quick! Say hello before the time is up!",
-        do: { set: ["started"], timer: { seconds: 10, onEnd: { say: "Too slow! The giant laughs. Try again.", unset: ["started"] } } } },
+        do: { set: ["started"], timer: { seconds: 20, onEnd: { say: "Too slow! The giant laughs. Try again.", unset: ["started"] } } } },
     ],
   }],
   globalRules: [], ending: ["You won the duel."], dictionary: [],
 };
 ep.solution = mode === "fast"
   ? [{ verb: "look", obj: "giant", item: "" }, { verb: "talk", obj: "giant", item: "" }]
-  : [{ verb: "look", obj: "giant", item: "" }, { verb: "wait", obj: "", item: "", seconds: 12 },
+  : [{ verb: "look", obj: "giant", item: "" }, { verb: "wait", obj: "", item: "", seconds: 22 },
     { verb: "look", obj: "giant", item: "" }, { verb: "talk", obj: "giant", item: "" }];
 const laid = applyLayout(ep, catalog);
 if (laid.errors.length) { console.error(laid.errors.join("; ")); process.exit(1); }

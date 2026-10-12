@@ -188,7 +188,7 @@ func _main_menu(status: Dictionary) -> void:
 					m = status.get("mission", {})
 				menu.visible = true
 			"quit":
-				get_tree().quit()
+				_quit_now()
 				return
 	menu.queue_free()
 
@@ -1632,7 +1632,7 @@ func _finish_episode() -> void:
 		hud.add_message("say", "(This PC does not report to the server, so Discord is not changed.)")
 	if autoplay:
 		await get_tree().create_timer(1.5).timeout
-		get_tree().quit()
+		_quit_now()
 
 
 ## Tells the server the episode is done, sends what he learned, then runs the word challenge: passing it
@@ -1877,7 +1877,7 @@ func _words_demo() -> void:
 		wordui._answer(int(wordui._questions[i]["answer"]) if i % 3 != 0 else (int(wordui._questions[i]["answer"]) + 1) % 3)
 	await get_tree().create_timer(2.2).timeout
 	await _shot("w07_quiz_done")
-	get_tree().quit()
+	_quit_now()
 
 
 ## Presses the mouse on the first word of the goal, like a real click (not a function call).
@@ -1897,7 +1897,7 @@ func _click_test() -> void:
 		if wordui._card.visible:
 			await _shot("click_test_card")
 			wordui.close_card()
-	get_tree().quit()
+	_quit_now()
 
 
 # ---------- timed puzzles
@@ -1938,3 +1938,19 @@ func _tick_timer(delta: float) -> void:
 	_update_sentence()
 	busy = false
 	_save_progress()
+
+
+## Ends the game. If the system speech was used, the process is ended directly: Godot 4.7 on this machine
+## crashes while shutting down after using it (a "stopped working" window and a frozen game).
+func _quit_now() -> void:
+	voice.shutdown()
+	if voice.tts_used and not ("--soft-quit" in args):   # --soft-quit: the normal way out, to see the crash again
+		OS.kill(OS.get_process_id())
+	else:
+		get_tree().quit()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST and voice != null and voice.tts_used:
+		voice.shutdown()
+		OS.kill(OS.get_process_id())

@@ -12,6 +12,9 @@ const CHAR_PITCH := {"byte": 1.5, "grandmother": 0.82, "grandma": 0.82, "wolf": 
 
 var server := ""             # e.g. http://192.168.1.50:8080 ; empty = no server (offline)
 var enabled := true
+var no_tts := false
+var tts_used := false      # the system speech was started in this run
+var _tts_ready := false
 var volume := 1.0            # 0..1, from the settings
 var _http: HTTPRequest
 var _player: AudioStreamPlayer
@@ -36,16 +39,38 @@ func _ready() -> void:
 	add_child(_player)
 	_line_re = RegEx.new()
 	_line_re.compile("^([A-Z][A-Za-z]*(?: [A-Z][A-Za-z]*)?): \"([^\"]+)\"$")
+	no_tts = "--no-tts" in OS.get_cmdline_user_args()
+	if "--force-tts" in OS.get_cmdline_user_args():   # a test switch: start the system speech right away
+		_ensure_tts()
+	_player.finished.connect(func() -> void: speaking.emit(false))
+
+
+## The operating system's speech is only touched when a line really needs it (the server's voice is not ready).
+## On this machine Godot 4.7 crashes when it shuts down after the system speech was used, so it is never started
+## unless needed, and the game ends the process by itself afterwards (see game.gd, _quit_now).
+func _ensure_tts() -> void:
+	if _tts_ready:
+		return
+	_tts_ready = true
+	if no_tts:
+		_tts_voices = PackedStringArray()
+		return
+	tts_used = true
 	_tts_voices = DisplayServer.tts_get_voices_for_language("en")
 	if _tts_voices.size() == 0:
 		_tts_voices = PackedStringArray()
 		for v in DisplayServer.tts_get_voices():
 			if String(v.get("language", "")).begins_with("en"):
 				_tts_voices.append(String(v["id"]))
-	_player.finished.connect(func() -> void: speaking.emit(false))
 	DisplayServer.tts_set_utterance_callback(DisplayServer.TTS_UTTERANCE_STARTED, func(_id: int) -> void: speaking.emit(true))
 	DisplayServer.tts_set_utterance_callback(DisplayServer.TTS_UTTERANCE_ENDED, func(_id: int) -> void: speaking.emit(false))
 	DisplayServer.tts_set_utterance_callback(DisplayServer.TTS_UTTERANCE_CANCELED, func(_id: int) -> void: speaking.emit(false))
+
+
+## Before the game ends: the system speech is told to stop.
+func shutdown() -> void:
+	if tts_used:
+		DisplayServer.tts_stop()
 
 
 func stop() -> void:
@@ -54,7 +79,7 @@ func stop() -> void:
 	_player.stop()
 	if _http.get_http_client_status() != HTTPClient.STATUS_DISCONNECTED:
 		_http.cancel_request()
-	if DisplayServer.tts_is_speaking():
+	if tts_used and DisplayServer.tts_is_speaking():
 		DisplayServer.tts_stop()
 
 
@@ -157,6 +182,7 @@ func _speak_tts(text: String, slow: bool) -> void:
 	_started_msec = Time.get_ticks_msec()
 	line_started.emit(text, [])
 	var p := parse(text)
+	_ensure_tts()
 	var voice_id := _voice_for(String(p["who"]))
 	if voice_id == "":
 		return
